@@ -1,0 +1,6 @@
+# Build output (recreated by build.bat / build.sh)
+build/
+*.class
+# The JAR is built by build.bat and packed into the submission ZIP; it is not versioned,
+# so the binary never causes merge conflicts.
+EducationalLudo.jar

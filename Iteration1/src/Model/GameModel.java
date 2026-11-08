@@ -45,6 +45,19 @@ public final class GameModel {
      * @param timeSource the time source of the game clock
      */
     public GameModel(GameSettings settings, Random random, Dice dice, LongSupplier timeSource) {
+        this(settings, random, dice, timeSource, StandardMoveEngine::new);
+    }
+
+    /** Creates the move engine of a game; lets tests replace the engine (package-private, not a contract). */
+    @FunctionalInterface
+    interface EngineFactory {
+        MoveEngine create(Board board, List<Player> players, SquareRules squareRules, HomePathRules homePathRules);
+    }
+
+    /**
+     * Creates a game with an explicit move engine. Package-private: used by tests of the turn flow.
+     */
+    GameModel(GameSettings settings, Random random, Dice dice, LongSupplier timeSource, EngineFactory engines) {
         this.settings = settings;
         this.board = BoardFactory.create(settings.difficulty(), random);
         List<Player> list = new ArrayList<>();
@@ -54,7 +67,7 @@ public final class GameModel {
         this.players = Collections.unmodifiableList(list);
         SquareRules squareRules = new StandardSquareRules(board, players);
         HomePathRules homePathRules = new StandardHomePathRules(board);
-        MoveEngine moveEngine = new StandardMoveEngine(board, players, squareRules, homePathRules);
+        MoveEngine moveEngine = engines.create(board, players, squareRules, homePathRules);
         this.ranking = new StandardRankingTracker(players);
         this.turns = new StandardTurnManager(players, settings.difficulty(), dice, moveEngine, ranking);
         this.clock = new GameClock(timeSource);
@@ -81,26 +94,55 @@ public final class GameModel {
     // ------------------------------------------------------------------ commands (controller only)
 
     /**
-     * Rolls for the active player (FR-15, FR-16) and notifies the listeners.
+     * Rolls for the active player (FR-15, FR-16) and notifies the listeners with {@code ROLLED}. If the turn
+     * cannot go on, it ends here (Task 12): a cancelled third 6 (FR-22), or no legal move and no extra roll
+     * (FR-23), fires {@code TURN_PASSED} with the message to show, then {@code TURN_CHANGED}.
      *
      * @return the roll
      */
     public DiceRoll roll() {
+        Player roller = turns.current();
         DiceRoll roll = turns.roll();
-        fire(new GameEvent(GameEvent.Type.ROLLED, turns.current(), roll, null, null));
+        fire(new GameEvent(GameEvent.Type.ROLLED, roller, roll, null, null));
+        if (turns.legalMoves().isEmpty() && !turns.hasBonusRoll()) {
+            String message = turns.endTurn();
+            fire(new GameEvent(GameEvent.Type.TURN_PASSED, roller, roll, null, message));
+            afterTurnEnded();
+        }
         return roll;
     }
 
     /**
-     * Moves a highlighted piece (FR-20) and notifies the listeners.
+     * Moves a highlighted piece (FR-20) and notifies the listeners with {@code MOVED}, then
+     * {@code PLAYER_FINISHED} if the mover has finished (FR-43) and {@code GAME_OVER} at the end (FR-44).
+     * Without an extra roll (FR-21) the turn passes and {@code TURN_CHANGED} follows.
      *
      * @param piece a piece contained in {@link #legalMoves()}
      * @return the result of the move
      */
     public MoveResult move(Piece piece) {
+        Player mover = turns.current();
+        boolean finishedBefore = ranking.hasFinished(mover);
         MoveResult result = turns.move(piece);
-        fire(new GameEvent(GameEvent.Type.MOVED, turns.current(), null, result, null));
+        fire(new GameEvent(GameEvent.Type.MOVED, mover, null, result, null));
+        if (!finishedBefore && ranking.hasFinished(mover)) {
+            fire(new GameEvent(GameEvent.Type.PLAYER_FINISHED, mover, null, result, null));
+        }
+        if (turns.phase() == TurnPhase.GAME_OVER) {
+            fire(new GameEvent(GameEvent.Type.GAME_OVER, mover, null, result, null));
+        } else if (!turns.hasBonusRoll()) {
+            turns.endTurn();
+            afterTurnEnded();
+        }
         return result;
+    }
+
+    private void afterTurnEnded() {
+        if (turns.phase() == TurnPhase.GAME_OVER) {
+            fire(new GameEvent(GameEvent.Type.GAME_OVER, turns.current(), null, null, null));
+        } else {
+            fire(new GameEvent(GameEvent.Type.TURN_CHANGED, turns.current(), null, null, null));
+        }
     }
 
     // ------------------------------------------------------------------ read-only state (views)

@@ -73,11 +73,11 @@ class GameModelSkeletonTest {
     }
 
     @Test
-    @DisplayName("Remaining placeholders: moving is not implemented yet (Task 16)")
+    @DisplayName("Remaining placeholder: the real move engine is not implemented yet (Task 16)")
     void placeholdersAreNotImplemented() {
         GameModel m = model(2);
-        m.roll(); // implemented in Task 11
-        assertThrows(UnsupportedOperationException.class, () -> m.move(m.players().get(0).pieces().get(0)));
+        // Rolling works (Tasks 11, 12), but deciding whether a piece can move needs the move engine.
+        assertThrows(UnsupportedOperationException.class, m::roll);
     }
 
     @Test

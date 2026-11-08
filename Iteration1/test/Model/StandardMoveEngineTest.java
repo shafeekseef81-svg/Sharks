@@ -407,13 +407,11 @@ class StandardMoveEngineTest {
     }
 
     @Test
-    @DisplayName("Integration status: with the real (placeholder) Task 18 rules only castle exits work so far")
-    void realRulesAreStillPlaceholders() {
+    @DisplayName("With the real rule classes, castle exits need neither Task 17 nor Task 18")
+    void castleExitWithRealRuleClasses() {
         StandardMoveEngine real = new StandardMoveEngine(board, players,
                 new StandardSquareRules(board, players), new StandardHomePathRules(board));
         assertEquals(4, real.legalMoves(red, roll(6)).size());
-        redPiece(0).setProgress(3);
-        assertThrows(UnsupportedOperationException.class, () -> real.legalMoves(red, roll(2)),
-                "replace this test when Task 18 is merged");
+        assertTrue(real.legalMoves(red, roll(5)).isEmpty());
     }
 }

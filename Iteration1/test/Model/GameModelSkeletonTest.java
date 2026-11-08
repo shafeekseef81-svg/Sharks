@@ -73,10 +73,10 @@ class GameModelSkeletonTest {
     }
 
     @Test
-    @DisplayName("Phase A placeholders are not implemented yet (they must be replaced in Phase B)")
+    @DisplayName("Remaining placeholders: moving is not implemented yet (Task 16)")
     void placeholdersAreNotImplemented() {
         GameModel m = model(2);
-        assertThrows(UnsupportedOperationException.class, m::roll);
+        m.roll(); // implemented in Task 11
         assertThrows(UnsupportedOperationException.class, () -> m.move(m.players().get(0).pieces().get(0)));
     }
 

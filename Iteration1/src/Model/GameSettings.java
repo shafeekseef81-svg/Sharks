@@ -62,7 +62,7 @@ public final class GameSettings {
         this.difficulty = difficulty;
         List<PlayerSetup> clean = new ArrayList<>();
         for (PlayerSetup p : players) {
-            clean.add(new PlayerSetup(p.name().trim(), p.color()));
+            clean.add(new PlayerSetup(cleanName(p.name()), p.color()));
         }
         this.players = Collections.unmodifiableList(clean);
     }
@@ -133,7 +133,7 @@ public final class GameSettings {
     }
 
     private static String cleanName(String name) {
-        return name == null ? "" : name.trim();
+        return name == null ? "" : name.strip(); // strip(): Unicode spaces too, same rule as Player (isBlank)
     }
 
     private static boolean sameName(String a, String b) {

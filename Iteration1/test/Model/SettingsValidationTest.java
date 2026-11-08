@@ -95,7 +95,28 @@ class SettingsValidationTest {
         assertTrue(validate(p("Rakan", PlayerColor.RED), p("Rakan2", PlayerColor.BLUE)).isEmpty());
     }
 
-    // ---- FR-07 -------------------------------------------------------------------------------------
+    @Test
+    @DisplayName("FR-06/FR-08: a name of only Unicode spaces is reported, not accepted and then refused by Player")
+    void fr06UnicodeSpacesOnly() {
+        assertTrue(hasError(validate(p("　 ", PlayerColor.RED), p("Ben", PlayerColor.BLUE)), 0,
+                GameSettings.FIELD_NAME));
+        GameSettings s = new GameSettings(Difficulty.EASY,
+                List.of(p("　Ana ", PlayerColor.RED), p("Ben", PlayerColor.BLUE)));
+        assertEquals("Ana", s.players().get(0).name(), "Unicode spaces around a name are removed");
+        new GameModel(s, new Random(1), new FixedDice(1), () -> 0L); // Player accepts the stored name
+    }
+
+    @Test
+    @DisplayName("FR-06: a name is counted in characters: 12 emoji (24 UTF-16 units) are valid, 13 are not")
+    void fr06CodePoints() {
+        String twelve = "😀".repeat(12);
+        assertEquals(24, twelve.length());
+        assertTrue(validate(p(twelve, PlayerColor.RED), p("Ben", PlayerColor.BLUE)).isEmpty());
+        assertTrue(hasError(validate(p(twelve + "😀", PlayerColor.RED), p("Ben", PlayerColor.BLUE)), 0,
+                GameSettings.FIELD_NAME));
+    }
+
+    // ---- FR-07-------------------------------------------------------------------------------------
 
     @Test
     @DisplayName("FR-07: every player needs a colour, and colours must be unique")

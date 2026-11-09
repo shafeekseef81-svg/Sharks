@@ -14,13 +14,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * Task 25: independent unit tests for game end and ranking (SRS FR-43, FR-44, FR-45), written from the SRS text
- * by Rakan Ziyan, who did not implement {@link StandardRankingTracker} (Shafeek Saif, Task 23; SDP 5.3.4,
- * Definition of Done). The tracker is tested alone and through the real {@link GameModel}, with the real move
- * engine and turn manager.
- *
- * <p>FR-46 (elapsed time as HH:MM:SS) belongs to {@link GameClock}, Task 24. Its tests are added here once Task 24
- * is merged.
+ * Task 25: independent unit tests for game end, ranking and game time (SRS FR-43, FR-44, FR-45, FR-46), written
+ * from the SRS text by Rakan Ziyan, who implemented neither {@link StandardRankingTracker} (Shafeek Saif, Task 23)
+ * nor {@link GameClock} (Mohamed Zereny, Task 24) (SDP 5.3.4, Definition of Done). The tracker and the clock are
+ * tested alone and through the real {@link GameModel}, with the real move engine and turn manager.
  */
 class GameEndRankingTest {
 
@@ -181,5 +178,55 @@ class GameEndRankingTest {
         assertEquals(2, p2.rank(), "FR-44: the remaining player is ranked last");
         assertEquals(GameEvent.Type.GAME_OVER, events.get(events.size() - 1));
         assertFalse(events.contains(GameEvent.Type.TURN_CHANGED), "no turn after the game is over");
+    }
+
+    // ------------------------------------------------------------------ FR-46 game time
+
+    @Test
+    @DisplayName("FR-46: SRS examples of HH:MM:SS: zero, seconds, minutes, hours, and a game over 24 hours")
+    void durationFormat() {
+        assertEquals("00:00:00", GameClock.format(0));
+        assertEquals("00:00:00", GameClock.format(999), "parts of a second are not rounded up");
+        assertEquals("00:00:59", GameClock.format(59_999));
+        assertEquals("00:01:00", GameClock.format(60_000));
+        assertEquals("00:59:59", GameClock.format(3_599_000));
+        assertEquals("01:00:00", GameClock.format(3_600_000));
+        assertEquals("12:34:56", GameClock.format(((12 * 60 + 34) * 60 + 56) * 1000L));
+        assertEquals("25:00:01", GameClock.format(90_001_000L), "hours are not wrapped at 24");
+    }
+
+    @Test
+    @DisplayName("FR-46, FR-44 in a real game: the clock measures from the start and the final time stays fixed after the end")
+    void realGameTime() {
+        long[] now = {1_000_000L};
+        GameModel m = new GameModel(settings(2), new Random(3), new FixedDice(2), () -> now[0]);
+        assertEquals(0, m.clock().elapsedMillis(), "nothing is measured before the game starts");
+        m.clock().start();
+        now[0] += ((1 * 60 + 2) * 60 + 3) * 1000L; // 1 h 2 min 3 s of play
+        assertEquals("01:02:03", GameClock.format(m.clock().elapsedMillis()));
+
+        almostDone(m.players().get(0));
+        m.roll();
+        m.move(m.players().get(0).pieces().get(3));
+        assertTrue(m.isGameOver());
+        m.clock().stop(); // the controller stops the clock at the end (N02 finishGame)
+        now[0] += 3_600_000L; // the results screen stays open for an hour
+        assertEquals("01:02:03", GameClock.format(m.clock().elapsedMillis()), "the duration shown in the results");
+    }
+
+    @Test
+    @DisplayName("FR-46: leaving and stopping twice keeps the measured time; a second start does not reset a running game")
+    void stopAndStartAreSafe() {
+        long[] now = {0L};
+        GameClock clock = new GameClock(() -> now[0]);
+        clock.start();
+        now[0] = 5_000;
+        clock.start();
+        now[0] = 9_000;
+        assertEquals(9_000, clock.elapsedMillis(), "a second start must not restart the time");
+        clock.stop();
+        now[0] = 20_000;
+        clock.stop();
+        assertEquals(9_000, clock.elapsedMillis());
     }
 }

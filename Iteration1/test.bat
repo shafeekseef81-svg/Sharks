@@ -15,7 +15,7 @@ if exist build\test-classes rmdir /s /q build\test-classes
 mkdir build\test-classes
 
 echo Compiling the tests...
-javac --release 17 -encoding UTF-8 -d build\test-classes -cp "build\classes;%JUNIT%" test\Model\*.java test\View\*.java test\Architecture\*.java
+javac --release 17 -encoding UTF-8 -d build\test-classes -cp "build\classes;%JUNIT%" test\Model\*.java test\View\*.java test\Controller\*.java test\Architecture\*.java
 if errorlevel 1 goto failed
 
 echo Running the tests...

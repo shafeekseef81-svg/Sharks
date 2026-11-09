@@ -20,8 +20,9 @@ import org.junit.jupiter.api.Test;
  * Author tests for {@link StandardMoveEngine} (Task 16, FR-19 P, FR-20, FR-25 P). The independent tests are
  * Task 20 (Shafeek).
  *
- * <p>The real {@link HomePathRules} and {@link SquareRules} are Tasks 18 and 17 (Shafeek) and are not
- * implemented yet, so these tests use small test doubles that follow the frozen contracts. The board is the
+ * <p>The engine is tested here in isolation: {@link HomePathRules} and {@link SquareRules} are small test
+ * doubles that follow the frozen contracts, so a rule can be made to misbehave on purpose. The real rules are
+ * Tasks 18 and 17 (Shafeek); they are covered by T21 and by the last test of this class. The board is the
  * real Easy board from {@link BoardFactory}.
  *
  * <p>Owner: Rakan Ziyan.
@@ -323,6 +324,68 @@ class StandardMoveEngineTest {
         rules.toCapture = List.of(far);
         assertThrows(IllegalStateException.class, () -> engine.apply(new Move(mover, 13)));
         assertEquals(1, far.progress());
+    }
+
+    @Test
+    @DisplayName("Review #11: a piece of the right colour and cell that belongs to no player is a rule error")
+    void captureOfAStrangerIsARuleError() {
+        Piece mover = redPiece(0);
+        mover.setProgress(10);
+        Piece stranger = new Player("X", PlayerColor.GREEN, board.finishIndex()).pieces().get(0);
+        int greenAtTarget = -1;
+        for (int p = 0; p < board.homeStartIndex(); p++) {
+            if (board.cellAt(PlayerColor.GREEN, p).equals(board.cellAt(PlayerColor.RED, 13))) {
+                greenAtTarget = p;
+            }
+        }
+        stranger.setProgress(greenAtTarget);
+        rules.toCapture = List.of(stranger);
+        engine.legalMoves(red, roll(3));
+        assertThrows(IllegalStateException.class, () -> engine.apply(new Move(mover, 13)));
+        assertEquals(10, mover.progress(), "nothing changes");
+    }
+
+    @Test
+    @DisplayName("Review #11: the same piece twice in the capture list is a rule error and nothing changes")
+    void duplicateCaptureIsARuleError() {
+        Piece mover = redPiece(0);
+        mover.setProgress(10);
+        Piece victim = green.pieces().get(0);
+        for (int p = 0; p < board.homeStartIndex(); p++) {
+            if (board.cellAt(PlayerColor.GREEN, p).equals(board.cellAt(PlayerColor.RED, 13))) {
+                victim.setProgress(p);
+            }
+        }
+        int victimProgress = victim.progress();
+        rules.toCapture = List.of(victim, victim);
+        engine.legalMoves(red, roll(3));
+        assertThrows(IllegalStateException.class, () -> engine.apply(new Move(mover, 13)));
+        assertEquals(10, mover.progress());
+        assertEquals(victimProgress, victim.progress());
+
+        rules.toCapture = List.of(victim);
+        MoveResult result = engine.apply(new Move(mover, 13));
+        assertEquals(1, result.captures().size(), "with a correct list the same move works");
+    }
+
+    @Test
+    @DisplayName("Review #11: after a legalMoves call that fails, the earlier offer can no longer be applied")
+    void failedCallWithdrawsTheOldOffer() {
+        engine.legalMoves(red, roll(6));
+        Player stranger = new Player("X", PlayerColor.BLUE, board.finishIndex());
+        assertThrows(IllegalArgumentException.class, () -> engine.legalMoves(stranger, roll(6)));
+        assertThrows(IllegalArgumentException.class, () -> engine.apply(new Move(redPiece(0), 0)),
+                "a player not in the game");
+        assertTrue(redPiece(0).inCastle());
+
+        redPiece(1).setProgress(10);
+        engine.legalMoves(red, roll(6));
+        home.reachOverride = true;
+        home.stepsOverride = board.finishIndex(); // a defective rule that lets the piece pass the finish
+        assertThrows(IllegalStateException.class, () -> engine.legalMoves(red, roll(6)));
+        assertThrows(IllegalArgumentException.class, () -> engine.apply(new Move(redPiece(0), 0)),
+                "a defective HomePathRules");
+        assertTrue(redPiece(0).inCastle());
     }
 
     // ------------------------------------------------------------------ illegal moves (FR-20)

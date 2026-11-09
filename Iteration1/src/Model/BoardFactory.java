@@ -74,9 +74,7 @@ public final class BoardFactory {
                 squares.put(h, home);
             }
         }
-        // T08 integration point: once ProtectionSquarePlacer (PR #4) is in iteration-1, protection squares are
-        // placed here with ProtectionSquarePlacer.place(config.protectionSquares(), squares.values(), random),
-        // and placeSpecialSquares stops placing them.
+        ProtectionSquarePlacer.place(config.protectionSquares(), squares.values(), random);
         placeSpecialSquares(config, squares, random);
         return new Board(difficulty, n, o, squares, paths, corners);
     }
@@ -182,9 +180,9 @@ public final class BoardFactory {
     }
 
     /**
-     * Random protection, question and surprise squares on plain shared-track squares (FR-12):
-     * never overlapping, never on start squares, arrows or home paths, and not adjacent to each
-     * other when that is possible.
+     * Random question and surprise squares on the plain shared-track squares left after
+     * {@link ProtectionSquarePlacer} (FR-12): never overlapping, never on start squares, arrows or
+     * home paths, and not adjacent to each other when that is possible.
      */
     private static void placeSpecialSquares(LevelConfig d, Map<Cell, Square> squares, Random random) {
         List<Square> candidates = new ArrayList<>();
@@ -196,9 +194,6 @@ public final class BoardFactory {
         Collections.shuffle(candidates, random);
 
         List<Object> wanted = new ArrayList<>();
-        for (int i = 0; i < d.protectionSquares(); i++) {
-            wanted.add(SquareType.PROTECTION);
-        }
         for (int i = 0; i < d.questionSquares(); i++) {
             wanted.add(Difficulty.values()[i % 3]);
         }

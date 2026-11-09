@@ -152,6 +152,54 @@ class StandardHomePathRulesTest {
     }
 
     @Test
+    @DisplayName("FR-31: Integer.MAX_VALUE steps from progress 1 are rejected and do not overflow")
+    void hugeStepsFromProgressOneAreRejected() {
+        assertFalse(rules.canReach(pieceAt(1), Integer.MAX_VALUE));
+    }
+
+    @Test
+    @DisplayName("FR-31: steps too large for an int sum are rejected from every position on the path")
+    void hugeStepsAreRejectedFromEveryPosition() {
+        for (int progress = -1; progress <= finish; progress++) {
+            Piece piece = pieceAt(progress);
+            assertFalse(rules.canReach(piece, Integer.MAX_VALUE), "progress " + progress);
+            // The smallest step count whose sum with this progress no longer fits in an int.
+            if (progress > 0) {
+                assertFalse(rules.canReach(piece, Integer.MAX_VALUE - progress + 1), "progress " + progress);
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("FR-31: the exact distance to the finish stays legal from every square on the path")
+    void exactDistanceStaysLegalFromEveryPosition() {
+        for (int progress = 0; progress < finish; progress++) {
+            assertTrue(rules.canReach(pieceAt(progress), finish - progress), "progress " + progress);
+        }
+    }
+
+    @Test
+    @DisplayName("FR-31: one step past the finish stays illegal from every square on the path")
+    void oneStepPastFinishStaysIllegalFromEveryPosition() {
+        for (int progress = 0; progress <= finish; progress++) {
+            assertFalse(rules.canReach(pieceAt(progress), finish - progress + 1), "progress " + progress);
+        }
+    }
+
+    @Test
+    @DisplayName("FR-17, FR-18: every Regular die value is still a legal move on the track and on the home path")
+    void regularDieValuesStayLegal() {
+        for (int value = 1; value <= 6; value++) {
+            assertTrue(rules.canReach(pieceAt(1), value), "track, roll " + value);
+            assertEquals(value, rules.stepsFor(pieceAt(1), regular(value)), "track, roll " + value);
+        }
+        for (int value = 1; value <= finish - homeStart; value++) {
+            assertTrue(rules.canReach(pieceAt(homeStart), value), "home path, roll " + value);
+            assertEquals(value, rules.stepsFor(pieceAt(homeStart), regular(value)), "home path, roll " + value);
+        }
+    }
+
+    @Test
     @DisplayName("FR-31: over every position and roll, a move is offered only when it stays on the path")
     void everyPositionAndRoll() {
         for (int progress = -1; progress <= finish; progress++) {

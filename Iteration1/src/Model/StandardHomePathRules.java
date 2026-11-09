@@ -47,7 +47,7 @@ public final class StandardHomePathRules implements HomePathRules {
     @Override
     public boolean canReach(Piece piece, int steps) {
         Objects.requireNonNull(piece, "piece");
-        return steps > 0 && piece.onBoard() && piece.progress() + steps <= board.finishIndex();
+        return steps > 0 && piece.onBoard() && steps <= board.finishIndex() - piece.progress();
     }
 
     Board board() {

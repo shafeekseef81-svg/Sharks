@@ -44,6 +44,7 @@ import View.components.Theme;
 import View.components.ToggleChip;
 import View.components.UiKit;
 import Model.Difficulty;
+import Model.DieType;
 import Model.GameSettings;
 import Model.PlayerColor;
 
@@ -132,6 +133,14 @@ public class GameSetupView extends GradientBackground implements ScreenView {
             DifficultyCard dc = new DifficultyCard(d);
             dc.setName("setup.level." + d.name().toLowerCase());
             dc.addActionListener(e -> setDifficulty(d));
+            if (!playable(d)) {
+                // FR-05 is partial in Iteration 1: the level is shown with its board and dice, but it
+                // cannot be chosen, because its dice are added in Iteration 2 (SDP 5.2.1, US-2.1).
+                dc.setEnabled(false);
+                dc.setCursor(Cursor.getDefaultCursor());
+                dc.setToolTipText(d.label() + " needs the " + d.specialDie().label()
+                        + " die, which is added in Iteration 2. Iteration 1 plays Easy.");
+            }
             levels.add(dc);
             difficultyCards.put(d, dc);
             dc.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -209,10 +218,37 @@ public class GameSetupView extends GradientBackground implements ScreenView {
         repaint();
     }
 
+    /**
+     * Whether a level can be played in this iteration. Easy rolls the Regular die only; Medium and Hard
+     * need the Boost and UltraBoost dice, which {@code RandomDice} refuses until Iteration 2 (FR-05
+     * partial). Asking the level itself keeps the screen and the dice in step: as soon as the dice of
+     * Iteration 2 arrive, the levels unlock here on their own.
+     *
+     * @param d the level
+     * @return {@code true} if a game of this level can be played now
+     */
+    public static boolean playable(Difficulty d) {
+        return d != null && d.specialDie() == DieType.NONE;
+    }
+
+    /**
+     * Chooses the level. A level that cannot be played yet is ignored and the current choice stays, the
+     * same as clicking its card, which is disabled (FR-05 partial in Iteration 1).
+     *
+     * @param d the level to choose
+     */
     public void setDifficulty(Difficulty d) {
+        if (!playable(d)) {
+            return;
+        }
         difficulty = d;
         difficultyCards.get(d).setSelected(true);
         repaint();
+    }
+
+    /** @return the chosen level */
+    public Difficulty difficulty() {
+        return difficulty;
     }
 
     public void setPlayerName(int index, String name) {
@@ -279,6 +315,12 @@ public class GameSetupView extends GradientBackground implements ScreenView {
         }
         for (PlayerRow row : rows) {
             row.clearError();
+        }
+        if (!playable(difficulty)) {
+            // Cannot normally happen: the card of such a level is disabled. The guard is here so that no
+            // route can start a game whose first roll would fail (FR-05 partial, SDP Iteration 1).
+            summary.setText(difficulty.label() + " is added in Iteration 2. Choose Easy to play now.");
+            return;
         }
         List<GameSettings.FieldError> errors = startHandler == null ? List.of() : startHandler.apply(difficulty, players);
         if (errors.isEmpty()) {
@@ -492,12 +534,14 @@ public class GameSetupView extends GradientBackground implements ScreenView {
             Theme.antialias(g2);
             int w = getWidth();
             int h = getHeight();
-            Color accent = Theme.level(level);
+            boolean available = isEnabled();
+            Color accent = available ? Theme.level(level) : Theme.alpha(Theme.level(level), 90);
             RoundRectangle2D shape = new RoundRectangle2D.Double(1, 1, w - 2, h - 2, 14, 14);
-            g2.setColor(isSelected() ? Theme.levelLight(level) : hover ? new Color(0xF6F8FC) : Color.WHITE);
+            g2.setColor(!available ? new Color(0xF4F6FA)
+                    : isSelected() ? Theme.levelLight(level) : hover ? new Color(0xF6F8FC) : Color.WHITE);
             g2.fill(shape);
-            g2.setColor(isSelected() ? accent : Theme.BORDER);
-            g2.setStroke(new BasicStroke(isSelected() ? 2.4f : 1.2f));
+            g2.setColor(isSelected() && available ? accent : Theme.BORDER);
+            g2.setStroke(new BasicStroke(isSelected() && available ? 2.4f : 1.2f));
             g2.draw(shape);
             if (isFocusOwner()) {
                 g2.setColor(Theme.ACCENT);
@@ -516,13 +560,28 @@ public class GameSetupView extends GradientBackground implements ScreenView {
             }
             int tx = 74;
             g2.setFont(Theme.font(Font.BOLD, 17f));
-            g2.setColor(Theme.TEXT);
+            g2.setColor(available ? Theme.TEXT : Theme.TEXT_MUTED);
             g2.drawString(level.label(), tx, 26);
+            if (!available) {
+                // Says plainly why the level cannot be chosen yet (FR-05 partial).
+                Font tagFont = Theme.font(Font.BOLD, 12f);
+                String tag = "Iteration 2";
+                FontMetrics tagMetrics = g2.getFontMetrics(tagFont);
+                int tagWidth = tagMetrics.stringWidth(tag) + 18;
+                int tagHeight = tagMetrics.getAscent() + tagMetrics.getDescent() + 6;
+                int tagX = tx + g2.getFontMetrics(Theme.font(Font.BOLD, 17f)).stringWidth(level.label()) + 10;
+                int tagY = 26 - tagMetrics.getAscent();
+                g2.setColor(new Color(0xE4E8F0));
+                g2.fillRoundRect(tagX, tagY, tagWidth, tagHeight, tagHeight, tagHeight);
+                g2.setFont(tagFont);
+                g2.setColor(Theme.TEXT_MUTED);
+                g2.drawString(tag, tagX + 9, tagY + tagMetrics.getAscent() + 3);
+            }
             g2.setFont(Theme.font(Font.PLAIN, 13f));
             g2.setColor(Theme.TEXT_MUTED);
             g2.drawString(line1(), tx, 47);
             g2.drawString(line2(), tx, 66);
-            if (isSelected()) {
+            if (isSelected() && available) {
                 g2.setColor(accent);
                 g2.fill(new Ellipse2D.Double(w - 34, h / 2.0 - 11, 22, 22));
                 Icons.paint(g2, Icons.Type.CHECK, w - 30, h / 2.0 - 7, 14, Color.WHITE);

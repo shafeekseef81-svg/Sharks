@@ -22,13 +22,14 @@ public final class Player {
 
     /**
      * @param finishIndex progress index of the finish square on this player's path (must be positive)
-     * @throws IllegalArgumentException if the name is blank or the finish index is not positive
+     * @throws IllegalArgumentException if the name is blank (by the same rule as {@link GameSettings}, so
+     *         no-break and zero-width spaces count as blank) or the finish index is not positive
      * @throws NullPointerException if the name or colour is null
      */
     public Player(String name, PlayerColor color, int finishIndex) {
         Objects.requireNonNull(name, "name");
         Objects.requireNonNull(color, "color");
-        if (name.isBlank()) {
+        if (GameSettings.cleanName(name).isEmpty()) {
             throw new IllegalArgumentException("A player needs a name.");
         }
         if (finishIndex <= 0) {

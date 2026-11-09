@@ -132,8 +132,32 @@ public final class GameSettings {
         return errors;
     }
 
-    private static String cleanName(String name) {
-        return name == null ? "" : name.strip(); // strip(): Unicode spaces too, same rule as Player (isBlank)
+    /**
+     * Removes invisible characters from both ends of a name (FR-06). {@link String#strip()} is not enough:
+     * it keeps the no-break spaces (U+00A0, U+2007, U+202F), so a name made only of them looked empty on the
+     * screen but passed. Here every Unicode space separator counts, and so do the zero-width space (U+200B)
+     * and the byte-order mark (U+FEFF). Characters inside the name are kept. {@link Player} uses the same rule.
+     *
+     * @param name the name as entered, or {@code null}
+     * @return the name without invisible characters at either end; {@code ""} for {@code null}
+     */
+    static String cleanName(String name) {
+        if (name == null) {
+            return "";
+        }
+        int start = 0;
+        int end = name.length();
+        while (start < end && isInvisible(name.charAt(start))) {
+            start++;
+        }
+        while (end > start && isInvisible(name.charAt(end - 1))) {
+            end--;
+        }
+        return name.substring(start, end);
+    }
+
+    private static boolean isInvisible(char c) {
+        return Character.isWhitespace(c) || Character.isSpaceChar(c) || c == '​' || c == '﻿';
     }
 
     private static boolean sameName(String a, String b) {

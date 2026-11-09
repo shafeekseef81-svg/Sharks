@@ -325,3 +325,31 @@ git ls-tree --name-only -r origin/iteration-1 Iteration1/src
 
 The MVC arrows are enforced, not just documented: run `test.bat` (or `./test.sh`) and see
 `MvcDependencyTest`, which fails the build if the Model ever imports the View, Swing or the Controller.
+
+---
+
+## 8. The submitted PDF
+
+The deliverable for Assignment 4 is **`classDiagram_Sharks.pdf`** at the repository root: 7 pages, A3
+landscape (1191 x 842 pt), drawn as real vector graphics.
+
+| Page | Content |
+|---|---|
+| 1 | Title, the three packages and the MVC dependency rule, notation |
+| 2 | Model — the `GameModel` facade and the CP1 contracts with their `Standard` implementations |
+| 3 | Model — movement rules: `MoveEngine`, `SquareRules`, `HomePathRules`, `Board`, `Square` |
+| 4 | Model — Factory Method for boards, and the settings, players and pieces of a game |
+| 5 | View — `ScreenView`, the four screens, `BoardComponent` and the widgets |
+| 6 | Controller — `Main`, `NavigationController`, `GameController`, and one turn end to end |
+| 7 | The four design patterns of NFR-09, and the classes planned for Iterations 2 and 3 |
+
+This Markdown file stays the editable source. The PDF is produced from
+`Iteration1/docs/render_class_diagram.py`, which needs only Python and `reportlab`:
+
+```
+python Iteration1/docs/render_class_diagram.py classDiagram_Sharks.pdf
+```
+
+Before the PDF was committed, every class drawn as implemented was checked to exist in
+`Iteration1/src`: 44 class names verified, 8 drawn dashed as planned for Iterations 2 and 3, and none
+invented.

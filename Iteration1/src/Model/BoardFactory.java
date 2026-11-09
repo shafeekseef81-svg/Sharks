@@ -6,6 +6,7 @@ import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
 
 /**
@@ -25,8 +26,10 @@ public final class BoardFactory {
 
     /** Builds a board; start squares and arrows are fixed, special squares are placed at random. */
     public static Board create(Difficulty difficulty, Random random) {
-        int n = difficulty.gridSize();
-        int o = difficulty.outerRings();
+        Objects.requireNonNull(random, "random");
+        LevelConfig config = LevelConfig.of(difficulty);
+        int n = config.gridSize();
+        int o = config.outerRings();
         Map<Cell, Square> squares = new LinkedHashMap<>();
         for (int depth = 0; depth < o; depth++) {
             for (Cell c : ring(n, depth)) {
@@ -71,7 +74,8 @@ public final class BoardFactory {
                 squares.put(h, home);
             }
         }
-        placeSpecialSquares(difficulty, squares, random);
+        ProtectionSquarePlacer.place(config.protectionSquares(), squares.values(), random);
+        placeSpecialSquares(config, squares, random);
         return new Board(difficulty, n, o, squares, paths, corners);
     }
 
@@ -176,11 +180,11 @@ public final class BoardFactory {
     }
 
     /**
-     * Random protection, question and surprise squares on plain shared-track squares (FR-12):
-     * never overlapping, never on start squares, arrows or home paths, and not adjacent to each
-     * other when that is possible.
+     * Random question and surprise squares on the plain shared-track squares left after
+     * {@link ProtectionSquarePlacer} (FR-12): never overlapping, never on start squares, arrows or
+     * home paths, and not adjacent to each other when that is possible.
      */
-    private static void placeSpecialSquares(Difficulty d, Map<Cell, Square> squares, Random random) {
+    private static void placeSpecialSquares(LevelConfig d, Map<Cell, Square> squares, Random random) {
         List<Square> candidates = new ArrayList<>();
         for (Square s : squares.values()) {
             if (s.type() == SquareType.TRACK && !s.isTinted()) {
@@ -190,9 +194,6 @@ public final class BoardFactory {
         Collections.shuffle(candidates, random);
 
         List<Object> wanted = new ArrayList<>();
-        for (int i = 0; i < d.protectionSquares(); i++) {
-            wanted.add(SquareType.PROTECTION);
-        }
         for (int i = 0; i < d.questionSquares(); i++) {
             wanted.add(Difficulty.values()[i % 3]);
         }

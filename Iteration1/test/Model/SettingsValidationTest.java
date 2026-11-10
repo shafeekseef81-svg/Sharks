@@ -34,6 +34,35 @@ class SettingsValidationTest {
         return errors.stream().anyMatch(e -> e.player() == row && e.field().equals(field));
     }
 
+    // ---- FR-06: invisible names (finding by Shafeek Saif in PR #20) ---------------------------------
+
+    @Test
+    @DisplayName("FR-06: a name made only of no-break or zero-width spaces is empty, for the validator and for Player")
+    void fr06InvisibleNamesAreEmpty() {
+        String[] invisible = {" ", "   ", " ", " ", "​", "﻿",
+                "　", "  \t​ "};
+        for (String name : invisible) {
+            String shown = name.codePoints().mapToObj(cp -> String.format("U+%04X", cp)).toList().toString();
+            assertTrue(hasError(validate(p(name, PlayerColor.RED), p("Bob", PlayerColor.BLUE)), 0,
+                    GameSettings.FIELD_NAME), shown);
+            assertThrows(IllegalArgumentException.class, () -> new Player(name, PlayerColor.RED, 56), shown);
+        }
+    }
+
+    @Test
+    @DisplayName("FR-06: invisible characters around a name are removed and do not count; inside a name they stay")
+    void fr06InvisibleCharactersAroundAName() {
+        GameSettings s = new GameSettings(Difficulty.EASY, List.of(
+                p(" Dana​", PlayerColor.RED), p("Ann Lee", PlayerColor.BLUE)));
+        assertEquals("Dana", s.players().get(0).name());
+        assertEquals("Ann Lee", s.players().get(1).name(), "a no-break space inside a name is kept");
+        assertTrue(validate(p(" " + "a".repeat(12) + " ", PlayerColor.RED), p("Bob", PlayerColor.BLUE))
+                .isEmpty(), "12 letters plus invisible ends is still 12");
+        assertTrue(hasError(validate(p("Dana", PlayerColor.RED), p(" dana ", PlayerColor.BLUE)), 1,
+                GameSettings.FIELD_NAME), "the same name with invisible ends is a duplicate");
+        assertTrue(validate(p("רקאן", PlayerColor.RED), p("Bob", PlayerColor.BLUE)).isEmpty(), "Hebrew is unaffected");
+    }
+
     // ---- FR-04 -------------------------------------------------------------------------------------
 
     @Test

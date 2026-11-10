@@ -60,6 +60,8 @@ public final class StandardMoveEngine implements MoveEngine {
      * {@inheritDoc}
      *
      * <p>The pieces are in castle order. A cancelled roll (FR-22) and a player who has finished have no moves.
+     * The previous offer is withdrawn as soon as the arguments are not null, so a call that then fails leaves
+     * no move that can still be applied.
      *
      * @throws IllegalArgumentException if the player is not in this game
      */
@@ -67,6 +69,7 @@ public final class StandardMoveEngine implements MoveEngine {
     public Map<Piece, Move> legalMoves(Player player, DiceRoll roll) {
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(roll, "roll");
+        offered = Map.of(); // only a move from the latest call may be applied, also if this call fails
         requireInGame(player);
         Map<Piece, Move> moves = new LinkedHashMap<>();
         if (!roll.cancelled()) {
@@ -140,6 +143,11 @@ public final class StandardMoveEngine implements MoveEngine {
         if (onSharedTrack) {
             for (Piece victim : squareRules.capturesOnLanding(piece, target)) {
                 requireCapturable(victim, piece, target);
+                for (MoveResult.Capture earlier : captures) {
+                    if (earlier.piece() == victim) {
+                        throw new IllegalStateException("SquareRules returned the same piece twice: " + victim);
+                    }
+                }
                 captures.add(new MoveResult.Capture(victim, target));
             }
         }
@@ -180,7 +188,11 @@ public final class StandardMoveEngine implements MoveEngine {
             throw new IllegalStateException("SquareRules returned a piece that is not an opponent on " + target
                     + ": " + victim);
         }
-        ownerOf(victim);
+        boolean inGame = players.stream().anyMatch(p -> p.pieces().contains(victim));
+        if (!inGame) {
+            // A rule error, as the Javadoc of apply says, not a bad argument from the caller.
+            throw new IllegalStateException("SquareRules returned a piece that is not in this game: " + victim);
+        }
     }
 
     private void requireInGame(Player player) {

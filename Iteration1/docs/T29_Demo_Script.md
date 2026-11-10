@@ -1,24 +1,23 @@
 # Iteration 1 demonstration script (T29)
 
 Owner: Shafeek Saif (PO). Audience: the team, for rehearsal, and the presenter on the day.
-Status: **draft, not rehearsed.** See "Readiness".
+Status: **not rehearsed yet.** See "Readiness".
 
 The demonstration covers US-1.1 to US-1.5 on the Easy level. It has a live part (plan A) and a repeatable
 fallback (plan B).
 
 ## Readiness
 
-| Needed for plan A (live application) | State on 09/11/2026 |
+| Needed for plan A (live application) | State on 10/11/2026 |
 |---|---|
-| Rules: T16 #11, T18 #7, T17 #9, T12 #5, T23 #10 | Open PRs, not merged |
+| Rules: T16 #11, T18 #7, T17 #9, T12 #5, T23 #10 | Merged into `iteration-1` |
 | Menu and protection squares: T01 #15, T07 #12 | Merged |
-| `GameController` connected to the model: N02 #14 | Draft PR |
-| `GameClock`: T24 | Placeholder. The application cannot start a game without it |
-| Only Easy selectable: T03 | Not done. Choosing Medium or Hard fails at the first roll |
-| Runnable JAR on two computers, including a Hebrew path: T28 | Not done |
+| `GameController` connected to the model: N02 #14 | Ready for review; passes on `iteration-1` with this PR (376/376) |
+| `GameClock`: T24 #31 | Merged |
+| Only Easy selectable: T03 #32 | Merged; Medium and Hard are shown as "Iteration 2" and cannot be chosen |
+| Runnable JAR on two computers, including a Hebrew path: T28 | Not done. On one computer the JAR built from `iteration-1` + N02 starts with `run.bat`; `java -jar` with a full Hebrew path fails (documented in the system report) |
 
-Plan A **cannot run today**. Plan B runs today only on a local merge of the open PRs. It has not been run from
-`iteration-1`.
+Plan A can run once N02 (#14) is merged. Plan B runs on `iteration-1` today. Neither has been rehearsed yet.
 
 ## Plan A: live application (about 6 minutes)
 
@@ -61,4 +60,4 @@ live application cannot be given fixed dice.
 ## What this demonstration does not show
 
 Medium and Hard, Double Blocks, questions, surprises, saved game history and administrator functions are planned for
-Iterations 2 and 3. Plan B has no duration or results screen; those belong to plan A (FR-46, FR-47).
+Iterations 2 and 3. Plan B has no duration or results screen; those are shown in plan A (FR-46, FR-47).

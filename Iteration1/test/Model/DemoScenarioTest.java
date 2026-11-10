@@ -181,6 +181,6 @@ class DemoScenarioTest {
         for (Player p : ranking) {
             say("Rank " + p.rank() + ": " + p.name());
         }
-        say("The game duration is not part of this transcript: GameClock is Task 24.");
+        say("The game duration (FR-46) and the results screen (FR-47) are shown in plan A, the live application.");
     }
 }

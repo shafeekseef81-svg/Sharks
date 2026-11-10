@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -22,8 +21,8 @@ import org.junit.jupiter.api.Test;
  * FR-43..FR-47), written by the Product Owner. Games are played through the {@link GameModel} facade with the
  * real dice and all the real rule classes.
  *
- * <p><b>Not automated yet:</b> the results screen (FR-47) needs N02 and a manual run. The two duration tests are
- * disabled until Task 24 implements {@link GameClock}; they are skipped, not passed.
+ * <p><b>Not automated here:</b> the results screen (FR-47) is covered by the GameController integration tests (N02)
+ * and a manual run. The two duration tests run against the real {@link GameClock} of Task 24.
  */
 class FullGameAcceptanceTest {
 
@@ -174,7 +173,6 @@ class FullGameAcceptanceTest {
     }
 
     @Test
-    @Disabled("Blocked by Task 24: GameClock is still a placeholder")
     @DisplayName("T26 FR-46: the elapsed game time is measured")
     void clockMeasuresElapsedTime() {
         AtomicLong now = new AtomicLong(1_000);
@@ -188,7 +186,6 @@ class FullGameAcceptanceTest {
     }
 
     @Test
-    @Disabled("Blocked by Task 24: GameClock is still a placeholder")
     @DisplayName("T26 FR-46: the duration is shown as HH:MM:SS")
     void durationFormat() {
         assertEquals("00:00:00", GameClock.format(0));

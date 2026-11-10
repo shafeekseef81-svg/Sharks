@@ -73,11 +73,62 @@ class GameModelSkeletonTest {
     }
 
     @Test
-    @DisplayName("Remaining placeholders: moving is not implemented yet (Task 16)")
-    void placeholdersAreNotImplemented() {
+    @DisplayName("FR-19 P, FR-21 with the real engine: a 6 lets any castle piece out, and the player rolls again")
+    void realEngineSixLeavesTheCastleAndKeepsTheTurn() {
         GameModel m = model(2);
-        m.roll(); // implemented in Task 11
-        assertThrows(UnsupportedOperationException.class, () -> m.move(m.players().get(0).pieces().get(0)));
+        Player first = m.currentPlayer();
+        List<GameEvent> events = new ArrayList<>();
+        m.addListener(events::add);
+
+        assertEquals(6, m.roll().regular());
+        assertEquals(TurnPhase.AWAITING_MOVE, m.phase());
+        assertEquals(4, m.legalMoves().size(), "every piece in the castle may leave on a 6");
+        assertTrue(m.legalMoves().keySet().containsAll(first.pieces()));
+
+        Piece piece = first.pieces().get(0);
+        MoveResult result = m.move(piece);
+        assertEquals(MoveResult.Kind.EXIT_CASTLE, result.kind());
+        assertTrue(piece.onBoard());
+        assertSame(first, m.currentPlayer(), "FR-21: the 6 keeps the turn");
+        assertTrue(m.hasBonusRoll());
+        assertEquals(TurnPhase.AWAITING_ROLL, m.phase());
+        assertEquals(List.of(GameEvent.Type.ROLLED, GameEvent.Type.MOVED),
+                events.stream().map(GameEvent::type).toList());
+    }
+
+    @Test
+    @DisplayName("FR-23 with the real engine: no piece can leave the castle without a 6, so the turn passes")
+    void realEngineNoMovePassesTheTurn() {
+        GameModel m = new GameModel(easy(2), new Random(1), new FixedDice(1), () -> 0L);
+        Player first = m.players().get(0);
+        List<GameEvent> events = new ArrayList<>();
+        m.addListener(events::add);
+
+        m.roll();
+        assertTrue(m.legalMoves().isEmpty());
+        assertSame(m.players().get(1), m.currentPlayer());
+        assertEquals(TurnPhase.AWAITING_ROLL, m.phase());
+        assertEquals(List.of(GameEvent.Type.ROLLED, GameEvent.Type.TURN_PASSED, GameEvent.Type.TURN_CHANGED),
+                events.stream().map(GameEvent::type).toList());
+        assertSame(first, events.get(1).player());
+        assertTrue(first.pieces().stream().allMatch(Piece::inCastle));
+    }
+
+    @Test
+    @DisplayName("FR-22 with the real engine: after two 6s and two moves, the third 6 is cancelled")
+    void realEngineThirdSixIsCancelled() {
+        GameModel m = new GameModel(easy(2), new Random(1), new FixedDice(6, 6, 6), () -> 0L);
+        Player first = m.currentPlayer();
+        m.roll();
+        m.move(first.pieces().get(0));
+        m.roll();
+        m.move(first.pieces().get(1));
+        assertSame(first, m.currentPlayer());
+
+        m.roll();
+        assertTrue(m.legalMoves().isEmpty(), "the third 6 gives no move");
+        assertSame(m.players().get(1), m.currentPlayer(), "the turn ends");
+        assertEquals(2, first.pieces().stream().filter(Piece::onBoard).count());
     }
 
     @Test

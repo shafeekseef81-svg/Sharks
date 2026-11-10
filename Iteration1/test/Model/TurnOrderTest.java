@@ -2,6 +2,7 @@ package Model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -131,7 +132,7 @@ class TurnOrderTest {
             for (int turn = 0; turn < 2 * n; turn++) {
                 assertSame(ps.get(turn % n), t.current(), n + " players, turn " + turn);
                 t.roll();
-                assertNull(t.endTurn());
+                assertNotNull(t.endTurn(), "no legal move in this stub: the turn passes with a message (FR-23)");
                 assertNull(t.lastRoll(), "a new turn starts without a roll");
                 assertEquals(TurnPhase.AWAITING_ROLL, t.phase());
             }
@@ -167,7 +168,7 @@ class TurnOrderTest {
     @DisplayName("FR-44: when the ranking reports the end, the game is over and nobody can roll")
     void gameOver() {
         StubRanking ranking = new StubRanking();
-        StandardTurnManager t = new StandardTurnManager(players(2), Difficulty.EASY, new FixedDice(6, 6),
+        StandardTurnManager t = new StandardTurnManager(players(2), Difficulty.EASY, new FixedDice(2, 2),
                 new RecordingEngine(), ranking);
         t.roll();
         ranking.over = true;
@@ -202,17 +203,16 @@ class TurnOrderTest {
         GameSettings s = new GameSettings(Difficulty.EASY, List.of(
                 new GameSettings.PlayerSetup("Ana", PlayerColor.RED),
                 new GameSettings.PlayerSetup("Ben", PlayerColor.BLUE)));
-        GameModel m = new GameModel(s, new Random(5), new FixedDice(5), () -> 0L);
+        GameModel m = new GameModel(s, new Random(5), new FixedDice(5), () -> 0L,
+                (b, p, sr, hr) -> new RecordingEngine());
         List<GameEvent> events = new ArrayList<>();
         m.addListener(events::add);
+        Player roller = m.currentPlayer();
         DiceRoll r = m.roll();
         assertEquals(5, r.regular());
-        assertEquals(1, events.size());
         assertEquals(GameEvent.Type.ROLLED, events.get(0).type());
-        assertSame(m.players().get(0), events.get(0).player());
+        assertSame(roller, events.get(0).player());
         assertSame(r, events.get(0).roll());
-        assertSame(r, m.lastRoll());
-        assertEquals(TurnPhase.AWAITING_MOVE, m.phase());
     }
 
     @Test
@@ -221,7 +221,8 @@ class TurnOrderTest {
         GameSettings s = new GameSettings(Difficulty.EASY, List.of(
                 new GameSettings.PlayerSetup("Ana", PlayerColor.RED),
                 new GameSettings.PlayerSetup("Ben", PlayerColor.BLUE)));
-        GameModel m = new GameModel(s, new Random(9));
+        GameModel m = new GameModel(s, new Random(9), new RandomDice(new Random(9)), () -> 0L,
+                (b, p, sr, hr) -> new RecordingEngine());
         int v = m.roll().regular();
         assertTrue(v >= 1 && v <= 6);
     }

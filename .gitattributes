@@ -1,0 +1,6 @@
+# Submission artefacts are binary: never apply line-ending conversion to them.
+*.pdf binary
+*.xlsx binary
+*.docx binary
+*.jar binary
+*.png binary

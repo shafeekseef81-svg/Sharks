@@ -29,11 +29,30 @@ Hebrew path works. Keep that property if the scripts are ever changed (owner: Ra
 
 ---
 
-## Computer 2 — PENDING (must be done by hand, by Mohamed Zereny)
+## Computer 2 — PARTIALLY VERIFIED (11 Nov 2026)
 
-Do this on a **different physical computer**. Nothing below can be done from the development machine.
+**Status: PARTIALLY VERIFIED — T28 is not complete.**
 
-### Steps
+The release was run on **Rakan Ziyan's separate physical computer**, by Mohamed Zereny. Three checks
+passed there. Everything else in the table below was **not** carried out and stays pending.
+
+What was observed on computer 2:
+
+| Observation | Verdict |
+|---|---|
+| The application opened | **PASS** |
+| Rolling the die worked | **PASS** |
+| Game pieces moved | **PASS** |
+
+That is the whole of the evidence from computer 2. The operating system, the Java version, the screen
+resolution, the Hebrew-path check, the setup screen, the turn change, the game clock and the results
+screen were **not** recorded, and nothing about them may be claimed.
+
+This does establish the part the brief cares about most — the submitted executable starts and is
+playable on a second, different physical machine — but the check is not finished until the remaining
+rows are filled in.
+
+### Steps (for completing the remaining rows)
 
 1. Copy `iteration1_Sharks.zip` to the second computer (USB stick, Drive, email to yourself).
    Do **not** rebuild it there — the point is to test the file that will be submitted.
@@ -50,28 +69,33 @@ Do this on a **different physical computer**. Nothing below can be done from the
    total time as HH:MM:SS.
 9. Take 2–3 photos or screenshots as evidence.
 
-### Evidence template — fill this in
+### Evidence table — computer 2
 
-| # | Check | SRS | Expected | Result (PASS / FAIL) | Note |
+| # | Check | SRS | Expected | Result | Note |
 |---|---|---|---|---|---|
-| 2.0 | Computer 2 identity | NFR-10 | different physical machine | | OS and version: |
-| 2.1 | `java -version` | NFR-10 | 17 or later | | version reported: |
-| 2.2 | ZIP extracts, one folder `iteration1_Sharks` | — | JAR present inside | | |
-| 2.3 | Folder path contains Hebrew letters | NFR-07 | path accepted | | path used: |
-| 2.4 | `run.bat` starts the game | NFR-10 | main menu appears | | start-up time: |
-| 2.5 | Main menu readable, no clipped text | NFR-24 | text ≥ 12 pt, nothing cut | | screen resolution: |
-| 2.6 | Setup screen: two names + Easy | FR-04–FR-09 | Start becomes enabled | | |
-| 2.7 | Medium and Hard shown but disabled | FR-05 (P) | "Iteration 2" tag visible | | |
-| 2.8 | Easy board drawn correctly | FR-10–FR-14 | 4 castles, tracks, protection squares | | |
-| 2.9 | Roll the die | FR-15–FR-17 | value 1–6, movable pieces highlighted | | |
-| 2.10 | Move a piece | FR-19, FR-20, FR-24, NFR-04 | moves square by square, one move per roll | | |
-| 2.11 | Turn passes to the other player | FR-15, FR-23 | active player changes | | |
-| 2.12 | Game clock on the board | FR-46 | counts up, HH:MM:SS | | |
-| 2.13 | Response to a click | NFR-01–NFR-03 | no noticeable delay | | |
-| 2.14 | Finish a game (optional) | FR-43–FR-47 | results screen, ranking, total time | | |
-| 2.15 | Leave game confirmation | FR-03 | asks before leaving | | |
+| 2.0 | Computer 2 identity | NFR-10 | different physical machine | **PASS** | Rakan Ziyan's computer; OS and version not recorded |
+| 2.1 | `java -version` | NFR-10 | 17 or later | PENDING | not checked; the version reported was not recorded |
+| 2.2 | ZIP extracts, one folder `iteration1_Sharks` | — | JAR present inside | PENDING | not recorded |
+| 2.3 | Folder path contains Hebrew letters | NFR-07 | path accepted | PENDING | not tested on this computer |
+| 2.4 | The application opens | NFR-10 | main menu appears | **PASS** | observed 11 Nov 2026 |
+| 2.5 | Main menu readable, no clipped text | NFR-24 | text ≥ 12 pt, nothing cut | PENDING | not inspected; screen resolution not recorded |
+| 2.6 | Setup screen: two names + Easy | FR-04–FR-09 | Start becomes enabled | PENDING | not recorded |
+| 2.7 | Medium and Hard shown but disabled | FR-05 (P) | "Iteration 2" tag visible | PENDING | not recorded |
+| 2.8 | Easy board drawn correctly | FR-10–FR-14 | 4 castles, tracks, protection squares | PENDING | not inspected in detail |
+| 2.9 | Rolling the die works | FR-15–FR-17 | the die can be rolled | **PASS** | the roll itself worked; whether the movable pieces were highlighted was not recorded |
+| 2.10 | A game piece moves | FR-19, FR-20 | the piece moves on the board | **PASS** | movement worked; square-by-square animation (NFR-04) and one-move-per-roll (FR-20) were not separately checked |
+| 2.11 | Turn passes to the other player | FR-15, FR-23 | active player changes | PENDING | not recorded |
+| 2.12 | Game clock on the board | FR-46 | counts up, HH:MM:SS | PENDING | not recorded |
+| 2.13 | Response to a click | NFR-01–NFR-03 | no noticeable delay | PENDING | not measured |
+| 2.14 | Finish a game | FR-43–FR-47 | results screen, ranking, total time | PENDING | the game was not played to the end |
+| 2.15 | Leave game confirmation | FR-03 | asks before leaving | PENDING | not recorded |
 
-**Overall T28 verdict:** ☐ PASS ☐ FAIL — date: ____________ tester: Mohamed Zereny
+**Overall T28 verdict: PARTIALLY VERIFIED** — 4 of 16 rows passed on computer 2 (2.0 the machine
+itself, plus the three observations 2.4, 2.9 and 2.10); the other 12 rows are pending.
+Date of the computer-2 run: 11 Nov 2026 · tester: Mohamed Zereny · machine: Rakan Ziyan's computer.
+
+T28 stays **In progress** in the Scrum Report. It becomes *Completed* only when the pending rows above
+are filled in on a second computer.
 
 ### If something fails
 
@@ -80,9 +104,16 @@ team: the Scrum Report, the system report (N05, Shafeek Saif) and N07 all refer 
 
 ---
 
-## Where the result goes once computer 2 is done
+## Where the result goes
 
-1. Fill in the table above and commit it.
-2. Tell **Shafeek Saif** — the system report (N05) has the testing section that should state the JAR was
-   checked on two computers.
-3. Tell **Rakan Ziyan** — the Scrum Report row for T28 moves from *In progress* to *Completed*.
+**Now, with T28 partially verified:**
+
+1. **Shafeek Saif** (system report N05, section 6.2): the report may say that the submitted JAR was
+   started on a second physical computer and that rolling the die and moving a piece worked there.
+   It may **not** yet say the system was fully checked on two computers, because it was not.
+2. **Rakan Ziyan** (Scrum Report N03): the T28 row stays **In progress**, with the note that the
+   application opened, the die rolled and pieces moved on a second computer on 11 Nov 2026.
+
+**Later, once the pending rows are filled in:**
+
+3. Complete the table above, commit it, and only then does T28 move to *Completed*.

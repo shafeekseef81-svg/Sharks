@@ -98,9 +98,9 @@ The rows that run left open were completed on 14 Nov 2026 (table below), followi
 
 **Overall T28 verdict: PASS** — 16 of 16 rows passed on computer 2.
 
-**All three team computers:** in addition to the rows above, the team played the game by hand on the
-computers of all three members — Rakan Ziyan, Shafeek Saif and Mohamed Zereny (confirmed by Rakan Ziyan,
-14 Nov 2026).
+**All three team computers:** in addition to the rows above, the team played full games by hand, to the
+results screen, on the computers of all three members — Rakan Ziyan, Shafeek Saif and Mohamed Zereny
+(confirmed by Rakan Ziyan, 14 Nov 2026).
 Computer-2 runs: 11 Nov 2026 by Mohamed Zereny (2.0, 2.4, 2.9, 2.10) and 14 Nov 2026 by Rakan Ziyan
 (all rows) · machine: Rakan Ziyan's computer. Screenshots of the 14 Nov run are kept by Rakan Ziyan.
 

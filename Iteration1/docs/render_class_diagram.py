@@ -5,11 +5,17 @@ Drawn with reportlab primitives: a proper UML drawing, not a picture of Markdown
 routed orthogonally so no line crosses a class box and no label sits on top of one.
 
 Source of truth: Iteration1/docs/CLASS_DIAGRAM.md, checked against Iteration1/src at iteration-1 3d3ce9b.
+Pages 8 onward (every class with all fields and methods, and every relationship) are generated from
+the compiled code by render_class_reference.py, as Assignment 4 part 4 asks.
 """
 import math
+import os
 import sys
 from reportlab.lib.pagesizes import A3, landscape
 from reportlab.pdfgen import canvas
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import render_class_reference as reference  # noqa: E402
 
 W, H = landscape(A3)          # 1191 x 842 pt
 
@@ -207,8 +213,9 @@ def page1(c):
                              "SRS: NFR-08 (MVC), NFR-09 (design patterns), NFR-20 (packages)")
     c.setFillColorRGB(*MUTED)
     c.setFont("Helvetica", 9.6)
-    c.drawString(28, H - 110, "Every class shown as implemented was read off Iteration1/src at "
-                              "iteration-1 commit 3d3ce9b. Editable source: Iteration1/docs/CLASS_DIAGRAM.md")
+    c.drawString(28, H - 110, "Pages 2-7: structure and main relationships (editable source: "
+                              "Iteration1/docs/CLASS_DIAGRAM.md).   Pages 8-%d: every class with all its fields "
+                              "and methods, and every relationship, generated from the code." % TOTAL)
 
     m = box(c, 90, H - 160, 300, "Model", [
         "Game data and all game rules.", "No Swing, no AWT, no View, no Controller.",
@@ -634,7 +641,20 @@ def page7(c):
                 "to show only where they will attach.")
 
 
+def _source_commit():
+    """Short hash of the last commit that changed Iteration1/src, or '' outside a git checkout."""
+    try:
+        import subprocess
+        return subprocess.run(["git", "log", "-1", "--format=%h", "--", "../src"], cwd=reference.DOCS,
+                              capture_output=True, text=True, check=True).stdout.strip()
+    except Exception:
+        return ""
+
+
 def main(out):
+    global TOTAL
+    classes = reference.read_classes()
+    TOTAL = 7 + reference.page_count(classes)
     c = canvas.Canvas(out, pagesize=landscape(A3))
     c.setTitle("Educational Ludo - Sharks - Class Diagram (Task N04)")
     c.setAuthor("Mohamed Zereny - Team Sharks")
@@ -643,6 +663,7 @@ def main(out):
     for fn in (page1, page2, page3, page4, page5, page6, page7):
         fn(c)
         c.showPage()
+    reference.draw(c, classes, 8, TOTAL, header, _source_commit() or "main")
     c.save()
     print("wrote", out)
 

@@ -185,7 +185,11 @@ def read_classes():
 
 
 def relationships(classes):
-    """Every relationship between two project classes: (from, kind, to, detail)."""
+    """Every structural relationship between two project classes: (from, kind, to, detail).
+
+    Generalization, realization, association (a field) and nesting. A class that appears only as a
+    method parameter or return type is a call-level dependency, not a relationship between the classes,
+    and is shown in the class boxes instead."""
     names = {c["name"] for c in classes.values()}
     rels = []
     tok = re.compile(r"[A-Z]\w*(?:\.[A-Z]\w*)*")
@@ -224,14 +228,6 @@ def relationships(classes):
                 assoc.setdefault(n, []).append((f["name"], mult))
         for n, fs in sorted(assoc.items()):
             rels.append((a, "association", n, ", ".join("%s [%s]" % x for x in fs)))
-        dep = set()
-        for m in c["methods"]:
-            for t in m["params"] + ([m["ret"]] if m["ret"] else []):
-                for n, _ in refs(t):
-                    if n != a and n not in assoc and n != (c["name"].rsplit(".", 1)[0] if c["outer"] else None):
-                        dep.add(n)
-        for n in sorted(dep):
-            rels.append((a, "dependency", n, "uses in a method signature"))
     return rels
 
 
@@ -370,7 +366,7 @@ def _draw_box(cv, c, rows, x, y, h):
             cv.line(x + 6, ly + 0.6, x + 6 + stringWidth(text, "Helvetica", MEMBER_F), ly + 0.6)
 
 
-REL_ROW = 9.2
+REL_ROW = 8.6
 
 
 def _rel_pages(rels):
@@ -443,8 +439,7 @@ def _legend(cv, rel=False):
     cv.setFont("Helvetica", 8.0)
     if rel:
         txt = ("generalization = extends · realization = implements an interface · association = held in a field "
-               "(1, * = collection, 0..1 = Optional) · nesting = inner class · dependency = only in a method's "
-               "parameters or return type")
+               "(1, * = collection, 0..1 = Optional) · nesting = inner class of")
     else:
         txt = ("Notation: + public  - private  # protected  ~ package   ·   underlined = static   ·   "
                "italic = abstract   ·   first compartment: fields (or enum literals), second: constructors and "

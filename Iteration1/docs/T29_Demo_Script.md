@@ -1,7 +1,7 @@
 # Iteration 1 demonstration script (T29)
 
 Owner: Shafeek Saif (PO). Audience: the team, for rehearsal, and the presenter on the day.
-Status: **not rehearsed yet.** See "Readiness".
+Status: **rehearsed on 14/11/2026** by Rakan Ziyan (SM) on computer 2, from the submission ZIP in a Hebrew folder. See "Readiness".
 
 The demonstration covers US-1.1 to US-1.5 on the Easy level. It has a live part (plan A) and a repeatable
 fallback (plan B).
@@ -15,9 +15,11 @@ fallback (plan B).
 | `GameController` connected to the model: N02 #14 | Ready for review; passes on `iteration-1` with this PR (376/376) |
 | `GameClock`: T24 #31 | Merged |
 | Only Easy selectable: T03 #32 | Merged; Medium and Hard are shown as "Iteration 2" and cannot be chosen |
-| Runnable JAR on two computers, including a Hebrew path: T28 | Not done. On one computer the JAR built from `iteration-1` + N02 starts with `run.bat`; `java -jar` with a full Hebrew path fails (documented in the system report) |
+| Runnable JAR on two computers, including a Hebrew path: T28 | Done 14/11: 16/16 checks on computer 2 with `run.bat` from a Hebrew folder. `java -jar` with a full Hebrew path can still fail (documented in the system report), so use `run.bat` |
 
-Plan A can run once N02 (#14) is merged. Plan B runs on `iteration-1` today. Neither has been rehearsed yet.
+N02 (#14) is merged, so plan A runs on `main`.
+
+**Rehearsal 14/11/2026 (computer 2):** plan A steps 1, 2, 4, 5, 6, 7 and 11 shown live (menu; setup with two players; Medium and Hard refused; Easy board; a 4 with nothing on the board passes the turn; a 6, the glowing piece clicked, it leaves the castle and the same player rolls again; the clock running), plus Main Menu during the game asking "Leave this game?". Plan B (`DemoScenarioTest`) ran from the same folder: 1 test, passed, transcript ending with the ranking Red, Green, Yellow.
 
 ## Plan A: live application (about 6 minutes)
 

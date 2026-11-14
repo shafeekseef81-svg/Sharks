@@ -49,7 +49,7 @@ ZIP specification and can extract wrongly on Linux and macOS.
 
 ### What the ZIP contains
 
-`iteration1_Sharks/` — the project exactly as on `main` plus the runnable JAR (110 files on 14 Nov):
+`iteration1_Sharks/` — the project exactly as on `main` plus the runnable JAR (111 files in the final ZIP of 14 Nov):
 
 | Entry | Purpose |
 |---|---|
@@ -67,7 +67,7 @@ No `build/` directory and no `.class` files are included.
 | Check | Result |
 |---|---|
 | ZIP extracts to a single folder `iteration1_Sharks` | PASS |
-| All entries use forward slashes | PASS — 108/108 (11 Nov), 110/110 (14 Nov) |
+| All entries use forward slashes | PASS — 108/108 (11 Nov), 111/111 (final ZIP, 14 Nov) |
 | `test.bat` from the unzipped copy | PASS — 376/376 (11 Nov), 380/380 (14 Nov), 0 skipped |
 | `build.bat` from the unzipped copy | PASS — JAR rebuilt, 196,702 bytes |
 | `run.bat` starts the shipped JAR | PASS — window "Educational Ludo - Team Sharks" |

@@ -4,8 +4,9 @@ Task **N07** · Owner: Mohamed Zereny · SRS **NFR-10**
 
 ## Release notes — Iteration 1
 
-**Release:** Iteration 1, built from `main` commit `af0886e` (11 Nov 2026).
-**Tests:** 376 found, 376 successful, 0 failed, 0 skipped (37 containers).
+**Release:** Iteration 1. Program code as on `main` `af0886e` (11 Nov 2026); the submission ZIP is rebuilt
+from the final `main` after the 14 Nov documentation updates, which changed no code.
+**Tests:** 380 found, 380 successful, 0 failed, 0 skipped (376 on 11 Nov, plus 4 independent Task 07 tests added on 14 Nov; no product code changed).
 **Build:** Temurin OpenJDK 17.0.17, `--release 17`, class file major version 61.
 
 ### What a player can do in this release
@@ -48,7 +49,7 @@ ZIP specification and can extract wrongly on Linux and macOS.
 
 ### What the ZIP contains
 
-`iteration1_Sharks/` — 108 files, the project exactly as on `main` plus the runnable JAR:
+`iteration1_Sharks/` — the project exactly as on `main` plus the runnable JAR (110 files on 14 Nov):
 
 | Entry | Purpose |
 |---|---|
@@ -61,17 +62,17 @@ ZIP specification and can extract wrongly on Linux and macOS.
 
 No `build/` directory and no `.class` files are included.
 
-### Verification done on this build (11 Nov 2026)
+### Verification done on this build (11 and 14 Nov 2026)
 
 | Check | Result |
 |---|---|
 | ZIP extracts to a single folder `iteration1_Sharks` | PASS |
-| All entries use forward slashes | PASS — 108/108 |
-| `test.bat` from the unzipped copy | PASS — 376/376, 0 skipped |
+| All entries use forward slashes | PASS — 108/108 (11 Nov), 110/110 (14 Nov) |
+| `test.bat` from the unzipped copy | PASS — 376/376 (11 Nov), 380/380 (14 Nov), 0 skipped |
 | `build.bat` from the unzipped copy | PASS — JAR rebuilt, 196,702 bytes |
 | `run.bat` starts the shipped JAR | PASS — window "Educational Ludo - Team Sharks" |
 | Path containing Hebrew letters | PASS |
-| Second physical computer | **PENDING** — see `T28_SecondComputer_Checklist.md` |
+| Second physical computer | **PASS** — 14 Nov 2026, 16/16 checks, see `T28_SecondComputer_Checklist.md` |
 
 ## The five files to submit
 

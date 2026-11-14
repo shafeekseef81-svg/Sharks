@@ -1,7 +1,7 @@
 # Iteration 1 retrospective and role hand-over (N08)
 
 Team Sharks. Facilitator: Rakan Ziyan (Scrum Master, Iteration 1).
-Status: **draft prepared from the GitHub record. To be confirmed by the team in the retrospective meeting (14-15/11)**; edit the sections below with what is agreed.
+Status: **final, 14/11/2026.** Written by the SM from the GitHub record; the team confirms it by reviewing the pull request that finalises it (see section 7).
 
 ## 1. What was delivered
 
@@ -9,7 +9,7 @@ Status: **draft prepared from the GitHub record. To be confirmed by the team in 
 |---|---|
 | User stories | US-1.1 to US-1.5 on Easy: menu and setup, Easy board, turns and dice, legal movement, game end and ranking |
 | Code | 42 pull requests, all reviewed and merged; Iteration 1 released to `main` in PR #42 (`56ad104`) |
-| Tests | 376 automated tests, 376 pass, 0 skipped. Every rule has author tests, independent tests by another member and PO acceptance tests |
+| Tests | 380 automated tests, 380 pass, 0 skipped (376 at the release, plus 4 independent Task 07 tests on 14/11). Every rule has author tests, independent tests by another member and PO acceptance tests |
 | Deliverables | `iteration1_Sharks` ZIP (source + JAR), `iteration1_scrumReport_Sharks`, `iteration1_report_Sharks`, `classDiagram_Sharks`, `questions_Sharks` |
 
 ## 2. What went well (keep doing)
@@ -59,10 +59,14 @@ Handed over:
 
 ## 6. Open items carried over
 
-- T28: run the submitted JAR on a second computer (Mohamed), and add the result to section 6.2 of the system report.
-- A full game played by hand on the final JAR, and a rehearsal of the demo (T29).
-- Issue #8 (BoardFactory and ProtectionSquarePlacer) and issue #13 (PO decisions): close them or carry them into Iteration 2.
+Closed before submission:
+- T28: second computer, 16/16 checks on 14/11 (Mohamed Zereny 11/11, Rakan Ziyan 14/11); result added to section 6.2 of the system report.
+- A full game played by hand on the JAR built from `main` (Rakan Ziyan, 10/11) and the demo rehearsal (T29, 14/11).
+
+Carried into Iteration 2:
+- Issue #13 (PO decisions): stays open as the reference for the new PO; close it at the Iteration 2 planning.
+- The submission ZIP is not versioned: rebuild it from `main` with the N07 procedure for every release.
 
 ## 7. Meeting record
 
-To be filled in at the meeting: date, attendees, agreed changes to sections 2-6.
+Held in writing on 14/11/2026, because the team could not meet before the deadline. Rakan Ziyan (SM) wrote sections 1-6 from the GitHub record (pull requests, reviews, issue #13 and the Scrum Report). The other members confirm or correct it in the review of the pull request that finalises this file; changes agreed there are made in that pull request.

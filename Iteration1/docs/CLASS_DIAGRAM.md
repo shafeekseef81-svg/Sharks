@@ -330,8 +330,10 @@ The MVC arrows are enforced, not just documented: run `test.bat` (or `./test.sh`
 
 ## 8. The submitted PDF
 
-The deliverable for Assignment 4 is **`classDiagram_Sharks.pdf`** at the repository root: 7 pages, A3
-landscape (1191 x 842 pt), drawn as real vector graphics.
+The deliverable for Assignment 4 is **`classDiagram_Sharks.pdf`** at the repository root: 15 pages, A3
+landscape (1191 x 842 pt), drawn as real vector graphics. Pages 1-7 are the drawn diagram below; pages
+8-15 are the complete class reference that Assignment 4, part 4 asks for ("all classes, the
+relationships between them, and the fields and methods of every class").
 
 | Page | Content |
 |---|---|
@@ -342,9 +344,22 @@ landscape (1191 x 842 pt), drawn as real vector graphics.
 | 5 | View — `ScreenView`, the four screens, `BoardComponent` and the widgets |
 | 6 | Controller — `Main`, `NavigationController`, `GameController`, and one turn end to end |
 | 7 | The four design patterns of NFR-09, and the classes planned for Iterations 2 and 3 |
+| 8-10 | Complete class reference — `Model`: every class, interface, record and enum with all fields and methods |
+| 11 | Complete class reference — `View` (screens and their inner classes) |
+| 12-13 | Complete class reference — `View.components` (widgets) |
+| 14 | Complete class reference — `Controller` |
+| 15 | Every relationship between two classes: generalization, realization, association (field and multiplicity), nesting |
 
-This Markdown file stays the editable source. The PDF is produced from
-`Iteration1/docs/render_class_diagram.py`, which needs only Python and `reportlab`:
+Pages 8-15 cover 90 classes (the 58 source files and their named inner classes), 355 fields, 580
+methods and 157 relationships. They are not typed by hand: `render_class_reference.py` compiles
+`Iteration1/src` with `javac --release 17` and reads every class back with `javap -p`, so they always
+match the code they were generated from. Anonymous classes and compiler-generated members (lambdas,
+enum `values()`/`valueOf()`, record `equals`/`hashCode`/`toString`) are left out. UML notation:
+`+` public, `-` private, `#` protected, `~` package; static members are underlined.
+
+This Markdown file stays the editable source of pages 1-7. The PDF is produced from
+`Iteration1/docs/render_class_diagram.py`, which needs Python, `reportlab` and a JDK on the PATH
+(for pages 8-15):
 
 ```
 python Iteration1/docs/render_class_diagram.py classDiagram_Sharks.pdf

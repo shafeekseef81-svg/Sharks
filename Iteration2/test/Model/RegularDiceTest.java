@@ -84,11 +84,12 @@ class RegularDiceTest {
     }
 
     @Test
-    @DisplayName("Iteration 1 scope: Medium and Hard rolls (Boost, UltraBoost) are refused, not invented")
-    void specialDiceAreIteration2() {
+    @DisplayName("Iteration 2 (T2-04): Medium rolls Regular + Boost and Hard rolls Regular + UltraBoost")
+    void specialDiceAreRolledFromIteration2() {
+        // Until Iteration 1 these levels were refused; T2-04 adds their dice (Strategy). Full tests: DiceStrategyTest.
         RandomDice dice = new RandomDice(new Random(1));
-        assertThrows(UnsupportedOperationException.class, () -> dice.roll(Difficulty.MEDIUM));
-        assertThrows(UnsupportedOperationException.class, () -> dice.roll(Difficulty.HARD));
+        assertEquals(DieType.BOOST, dice.roll(Difficulty.MEDIUM).specialType());
+        assertEquals(DieType.ULTRA_BOOST, dice.roll(Difficulty.HARD).specialType());
     }
 
     @Test

@@ -280,6 +280,17 @@ class DoubleBlockEngineTest {
     }
 
     @Test
+    @DisplayName("FR-30: with no other legal move the owner must move a block piece, which breaks the block (forced break)")
+    void forcedBreak() {
+        place(red, block, 0, 1);
+        Map<Piece, Move> moves = redMoves(3);
+        assertEquals(2, moves.size(), "only the two block pieces can move; the castle pieces need a 6");
+        assertTrue(moves.containsKey(piece(red, 0)) && moves.containsKey(piece(red, 1)));
+        engine.apply(moves.get(piece(red, 0)));
+        assertTrue(engine.isPassable(redCell(block), green), "the block is broken");
+    }
+
+    @Test
     @DisplayName("FR-26, FR-30: a captured block piece breaks the Double Block")
     void capturedPieceBreaksTheBlock() {
         place(green, block, 0, 1);

@@ -1,0 +1,5 @@
+# Windows scripts need CRLF, Unix scripts need LF, whatever the developer's Git settings are.
+*.bat text eol=crlf
+*.sh  text eol=lf
+*.java text eol=lf
+*.jar binary

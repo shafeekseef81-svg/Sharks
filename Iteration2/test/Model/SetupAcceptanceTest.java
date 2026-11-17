@@ -81,13 +81,14 @@ class SetupAcceptanceTest {
     }
 
     @Test
-    @DisplayName("T06 FR-05 (partial, SDP Iteration 1): an Easy game can be played; Medium and Hard refuse to roll")
-    void onlyEasyIsPlayableInIterationOne() {
-        GameModel easy = new GameModel(new GameSettings(Difficulty.EASY, setup(2)), new Random(1));
-        assertTrue(easy.roll().regular() >= 1);
-        for (Difficulty later : new Difficulty[] {Difficulty.MEDIUM, Difficulty.HARD}) {
-            GameModel game = new GameModel(new GameSettings(later, setup(2)), new Random(1));
-            assertThrows(UnsupportedOperationException.class, game::roll, later.label());
+    @DisplayName("T06 FR-05: a game on every level can roll its dice (Medium and Hard from Iteration 2, T2-04)")
+    void everyLevelCanRoll() {
+        // Iteration 1 expected Medium and Hard to refuse the roll; T2-04 adds their dice (Boost, UltraBoost).
+        for (Difficulty level : Difficulty.values()) {
+            GameModel game = new GameModel(new GameSettings(level, setup(2)), new Random(1));
+            DiceRoll roll = game.roll();
+            assertTrue(roll.regular() >= 1, level.label());
+            assertEquals(level.specialDie(), roll.specialType(), level.label());
         }
     }
 }

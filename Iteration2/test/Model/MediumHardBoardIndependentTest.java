@@ -40,9 +40,15 @@ import org.junit.jupiter.api.Test;
  *       on both diagrams and the clockwise colour order is the same on every board; the classic start square
  *       stays coloured but has no special function there; the three corners the Hard diagram does not draw
  *       mirror the drawn one (SRS assumption 4);</li>
- *   <li>SRS Table 1 through {@link LevelConfig}, as the acceptance criteria of issue #53 ask: 8 and 12
- *       protection squares, 6 and 9 question squares (2 and 3 per question level), 2 and 3 surprise
- *       squares;</li>
+ *   <li>SRS Table 1: 8 and 12 protection squares, 8 and 12 arrows, 6 and 9 question squares (2 and 3 per
+ *       question level), 2 and 3 surprise squares, 4 start squares and 20 home squares. These are written out
+ *       as literals in this file and {@link LevelConfig} is then checked against them, so a wrong value in
+ *       {@code LevelConfig} fails the test instead of being echoed back by it. The same numbers are recorded a
+ *       second time, independently of the code under test, in the Assignment 3 prototype that was submitted
+ *       before this iteration: the expectation table of {@code Assignment3_Prototype/src/devtools/SelfTest.java}
+ *       ("Board configurations (SRS Table 1)") and the enum
+ *       {@code Assignment3_Prototype/src/model/Difficulty.java}. That table also gives the route lengths 116
+ *       and 188 used below;</li>
  *   <li>the legs of a route, counted off the diagrams by hand: on the outermost ring a piece walks from its
  *       corner to its own arrow, which is 17 + 16 + 16 + 9 = 58 of the 64 cells on Medium and
  *       19 + 18 + 18 + 11 = 66 of the 72 cells on Hard; it then laps each inner ring once and the classic
@@ -53,8 +59,20 @@ import org.junit.jupiter.api.Test;
  * turns the corner around the central block with a diagonal step. That happens exactly four times per lap,
  * always between two squares of the classic track, and is checked as such below.</p>
  *
- * <p>Whether a surprise square protects a piece from capture (FR-27) belongs to the surprise tasks T2-09 and
- * T2-10 and is deliberately not asserted here.
+ * <p><b>What these tests cannot do.</b> The copy of the SRS in this repository stops at the end of section 2,
+ * so neither the FR table nor Table 1 itself is available here, and the diagram file
+ * <i>Ludo Project-V2 - 2026.pdf</i> is not in the repository either. The expected values are therefore taken
+ * from the two in-repo records named above, which both state that they follow the official documents; they are
+ * not read from the official documents by these tests. A reviewer still has to compare the geometry with the
+ * diagram file itself (issue #53, "against the official diagrams"). Whether a surprise square protects a piece
+ * from capture (FR-27) is not asserted here: it has no verifiable source in this repository and belongs to the
+ * surprise tasks T2-09 and T2-10. The capture rules themselves are covered by {@code StandardSquareRulesTest},
+ * {@code CaptureProtectionFinishTest} and {@code MoveEngineIndependentTest}.</p>
+ *
+ * <p>Special-square counts on random boards are also checked, against {@code LevelConfig}, by
+ * {@code BoardProtectionIntegrationTest} (issue #8). The overlap is deliberate and the assertions here are
+ * stronger: they use the Table 1 literals instead of {@code LevelConfig}, and they also cover the start,
+ * arrow and home squares and the question squares per question level.</p>
  */
 class MediumHardBoardIndependentTest {
 
@@ -63,6 +81,61 @@ class MediumHardBoardIndependentTest {
 
     /** Boards per level in the random-placement tests (issue #53: 100 random boards per level). */
     private static final int BOARDS_PER_LEVEL = 100;
+
+    /**
+     * Layouts that must differ among the {@link #BOARDS_PER_LEVEL} boards. A new random set per game (FR-12)
+     * is what matters, not that no two of 100 boards ever coincide, so this is a floor and not an equality:
+     * 95 of 100, the same threshold {@link EasyBoardTest} uses. It still catches a frozen layout, a layout
+     * that depends on the level only, or a seed that is ignored.
+     */
+    private static final int MIN_DIFFERENT_LAYOUTS = 95;
+
+    /**
+     * Share of the free track squares that the 100 boards of a level must use between them, as a percentage.
+     * Every free square has to be reachable (FR-12), but demanding all of them makes the test depend on the
+     * exact order in which the placement draws from the random source. 80% is far above what a placement
+     * restricted to part of the track could reach and far below the coverage a uniform placement gives: with
+     * 16 of 100 free squares taken per board on Medium and 24 of 168 on Hard, the chance that a uniform
+     * placement leaves more than a fifth of the squares untouched over 100 boards is negligible.
+     */
+    private static final int MIN_COVERAGE_PERCENT = 80;
+
+    /** Start squares on a board, SRS Table 1: one per colour on every level. */
+    private static final int START_SQUARES = 4;
+
+    /** Home squares drawn on a board: 5 coloured squares per colour, the finish excluded. */
+    private static final int HOME_SQUARES = 20;
+
+    /**
+     * Classic start cells that stay in a player's colour on Medium and Hard, one per colour. They are plain
+     * track squares with no function there, and no special square may be placed on them.
+     */
+    private static final int TINTED_SQUARES = 4;
+
+    /** Protection squares, SRS Table 1: Medium 8, Hard 12. */
+    private static int expectedProtectionSquares(Difficulty level) {
+        return level == Difficulty.MEDIUM ? 8 : 12;
+    }
+
+    /** Arrow squares, SRS Table 1: Medium 8, Hard 12 (one per ring and colour). */
+    private static int expectedArrowSquares(Difficulty level) {
+        return level == Difficulty.MEDIUM ? 8 : 12;
+    }
+
+    /** Question squares, SRS Table 1: Medium 6, Hard 9. */
+    private static int expectedQuestionSquares(Difficulty level) {
+        return level == Difficulty.MEDIUM ? 6 : 9;
+    }
+
+    /** Question squares per question level, SRS Table 1: Medium 2 of each, Hard 3 of each. */
+    private static int expectedQuestionsPerLevel(Difficulty level) {
+        return level == Difficulty.MEDIUM ? 2 : 3;
+    }
+
+    /** Surprise squares, SRS Table 1: Medium 2, Hard 3. */
+    private static int expectedSurpriseSquares(Difficulty level) {
+        return level == Difficulty.MEDIUM ? 2 : 3;
+    }
 
     /** Cells per side, from the diagrams: Medium 17x17, Hard 19x19. */
     private static int expectedGrid(Difficulty level) {
@@ -150,7 +223,8 @@ class MediumHardBoardIndependentTest {
             assertEquals(expectedGrid(level), b.size(), level.label());
             assertEquals(expectedRings(level).length - 1, b.offset(), level.label() + " outer rings");
             assertEquals(expectedGrid(level), LevelConfig.of(level).gridSize(), level.label());
-            assertEquals(b.offset(), LevelConfig.of(level).outerRings(), level.label());
+            assertEquals(expectedRings(level).length - 1, LevelConfig.of(level).outerRings(),
+                    level.label() + " outer rings in Table 1");
         }
     }
 
@@ -289,7 +363,7 @@ class MediumHardBoardIndependentTest {
     }
 
     @Test
-    @DisplayName("T2-02 FR-10: a route steps square by square, turning the corner only at the 4 arms of the cross")
+    @DisplayName("T2-02 FR-25: a route steps square by square, turning the corner only at the 4 arms of the cross")
     void routeTurnsDiagonallyOnlyAtTheFourCornersOfTheClassicTrack() {
         for (Difficulty level : LEVELS) {
             Board b = board(level);
@@ -360,7 +434,7 @@ class MediumHardBoardIndependentTest {
             cornerCells.put(Board.Corner.TOP_RIGHT, new Cell(0, n - 1));
             cornerCells.put(Board.Corner.BOTTOM_RIGHT, new Cell(n - 1, n - 1));
             cornerCells.put(Board.Corner.BOTTOM_LEFT, new Cell(n - 1, 0));
-            assertEquals(LevelConfig.of(level).startingSquares(), b.count(SquareType.START), level.label());
+            assertEquals(START_SQUARES, b.count(SquareType.START), level.label() + " start squares");
             for (PlayerColor color : PlayerColor.values()) {
                 Cell start = b.startCell(color);
                 assertEquals(cornerCells.get(b.corner(color)), start, where(level, color) + " start square");
@@ -380,7 +454,7 @@ class MediumHardBoardIndependentTest {
             Board b = board(level);
             int n = b.size();
             int arrowsPerColour = b.offset() + 1;
-            assertEquals(LevelConfig.of(level).arrowSquares(), b.count(SquareType.ARROW), level.label());
+            assertEquals(expectedArrowSquares(level), b.count(SquareType.ARROW), level.label() + " arrows");
             assertEquals(4L * arrowsPerColour, b.count(SquareType.ARROW), level.label());
             List<Cell> staircase = expectedStaircase(level);
             assertEquals(arrowsPerColour, staircase.size(), level.label() + " expected staircase");
@@ -513,7 +587,7 @@ class MediumHardBoardIndependentTest {
     }
 
     @Test
-    @DisplayName("T2-02 FR-10: every square of the board lies on at least one colour's route")
+    @DisplayName("T2-02 FR-10, FR-25: every square of the board lies on at least one colour's route")
     void everySquareIsReachable() {
         for (Difficulty level : LEVELS) {
             Board b = board(level);
@@ -531,24 +605,44 @@ class MediumHardBoardIndependentTest {
     // ------------------------------------------------- special square counts (FR-11, Table 1)
 
     @Test
-    @DisplayName("T2-02 FR-11, Table 1: 100 random boards per level keep the LevelConfig special-square counts")
-    void specialSquareCountsOnHundredBoards() {
+    @DisplayName("T2-02 Table 1: LevelConfig holds the documented counts, 8/8/6/2 on Medium and 12/12/9/3 on Hard")
+    void levelConfigMatchesTheDocumentedTable1Counts() {
         for (Difficulty level : LEVELS) {
             LevelConfig config = LevelConfig.of(level);
-            int questionsPerLevel = level == Difficulty.MEDIUM ? 2 : 3;
-            assertEquals(questionsPerLevel, config.questionsPerLevel(), level.label() + " Table 1");
-            assertEquals(3 * questionsPerLevel, config.questionSquares(), level.label() + " Table 1");
+            String what = level.label() + " Table 1";
+            assertEquals(expectedProtectionSquares(level), config.protectionSquares(), what + ": protection");
+            assertEquals(expectedArrowSquares(level), config.arrowSquares(), what + ": arrows");
+            assertEquals(expectedQuestionSquares(level), config.questionSquares(), what + ": question squares");
+            assertEquals(expectedQuestionsPerLevel(level), config.questionsPerLevel(),
+                    what + ": question squares per question level");
+            assertEquals(expectedSurpriseSquares(level), config.surpriseSquares(), what + ": surprise squares");
+            assertEquals(START_SQUARES, config.startingSquares(), what + ": start squares");
+            assertEquals(6, config.homePathSquares(), what + ": home squares per colour, finish included");
+            assertEquals(3 * expectedQuestionsPerLevel(level), expectedQuestionSquares(level),
+                    what + ": the question squares must divide evenly over the three question levels");
+        }
+    }
+
+    @Test
+    @DisplayName("T2-02 FR-11, Table 1: 100 random boards per level hold the documented special-square counts")
+    void specialSquareCountsOnHundredBoards() {
+        for (Difficulty level : LEVELS) {
             for (int seed = 0; seed < BOARDS_PER_LEVEL; seed++) {
                 Board b = BoardFactory.create(level, new Random(seed));
                 String what = level.label() + " seed " + seed;
-                assertEquals(config.startingSquares(), b.count(SquareType.START), what + " start squares");
-                assertEquals(config.arrowSquares(), b.count(SquareType.ARROW), what + " arrows");
-                assertEquals(config.protectionSquares(), b.count(SquareType.PROTECTION), what + " protection");
-                assertEquals(config.questionSquares(), b.count(SquareType.QUESTION), what + " question squares");
-                assertEquals(config.surpriseSquares(), b.count(SquareType.SURPRISE), what + " surprise squares");
-                assertEquals(20, b.count(SquareType.HOME_PATH), what + " home squares");
+                assertEquals(START_SQUARES, b.count(SquareType.START), what + " start squares");
+                assertEquals(expectedArrowSquares(level), b.count(SquareType.ARROW), what + " arrows");
+                assertEquals(expectedProtectionSquares(level), b.count(SquareType.PROTECTION),
+                        what + " protection squares");
+                assertEquals(expectedQuestionSquares(level), b.count(SquareType.QUESTION),
+                        what + " question squares");
+                assertEquals(expectedSurpriseSquares(level), b.count(SquareType.SURPRISE),
+                        what + " surprise squares");
+                assertEquals(HOME_SQUARES, b.count(SquareType.HOME_PATH), what + " home squares");
+                assertEquals(TINTED_SQUARES, b.squares().stream().filter(Square::isTinted).count(),
+                        what + " tinted classic start squares");
                 for (Difficulty questionLevel : Difficulty.values()) {
-                    assertEquals(questionsPerLevel, b.countQuestions(questionLevel),
+                    assertEquals(expectedQuestionsPerLevel(level), b.countQuestions(questionLevel),
                             what + ": " + questionLevel.label() + " question squares");
                 }
             }
@@ -556,7 +650,7 @@ class MediumHardBoardIndependentTest {
     }
 
     @Test
-    @DisplayName("T2-02 FR-10, FR-11: 100 random boards per level keep the fixed geometry of the diagrams")
+    @DisplayName("T2-02 FR-10, FR-12: 100 random boards per level keep the fixed geometry of the diagrams")
     void fixedGeometryIsNotTouchedByRandomPlacement() {
         for (Difficulty level : LEVELS) {
             Board first = board(level);
@@ -588,8 +682,8 @@ class MediumHardBoardIndependentTest {
     @DisplayName("T2-02 FR-12, FR-33: on 100 boards per level specials never overlap and stay on the shared track")
     void specialsNeverOverlapAndStayOnTheSharedTrack() {
         for (Difficulty level : LEVELS) {
-            LevelConfig config = LevelConfig.of(level);
-            int expectedSpecials = config.protectionSquares() + config.questionSquares() + config.surpriseSquares();
+            int expectedSpecials = expectedProtectionSquares(level) + expectedQuestionSquares(level)
+                    + expectedSurpriseSquares(level);
             for (int seed = 0; seed < BOARDS_PER_LEVEL; seed++) {
                 Board b = BoardFactory.create(level, new Random(seed));
                 String what = level.label() + " seed " + seed;
@@ -608,12 +702,11 @@ class MediumHardBoardIndependentTest {
     }
 
     @Test
-    @DisplayName("T2-02 FR-12: 100 boards per level give 100 different layouts over every free track square")
+    @DisplayName("T2-02 FR-12: 100 boards per level give different layouts spread over the free track squares")
     void placementIsRandomOverTheWholeFreeTrack() {
         for (Difficulty level : LEVELS) {
-            LevelConfig config = LevelConfig.of(level);
-            int freeTrackSquares = config.totalTrackSquares()
-                    - config.startingSquares() - config.arrowSquares() - 4;
+            int freeTrackSquares = Arrays.stream(expectedRings(level)).sum()
+                    - START_SQUARES - expectedArrowSquares(level) - TINTED_SQUARES;
             Set<Set<Cell>> layouts = new HashSet<>();
             Set<Cell> everUsed = new HashSet<>();
             for (int seed = 0; seed < BOARDS_PER_LEVEL; seed++) {
@@ -621,12 +714,17 @@ class MediumHardBoardIndependentTest {
                 layouts.add(specials);
                 everUsed.addAll(specials);
             }
-            assertEquals(BOARDS_PER_LEVEL, layouts.size(),
-                    level.label() + ": only " + layouts.size() + " different layouts in " + BOARDS_PER_LEVEL);
-            assertEquals(freeTrackSquares, everUsed.size(),
-                    level.label() + ": the random placement never used "
-                            + (freeTrackSquares - everUsed.size()) + " of the " + freeTrackSquares
-                            + " free track squares");
+            assertTrue(layouts.size() >= MIN_DIFFERENT_LAYOUTS,
+                    level.label() + ": only " + layouts.size() + " different layouts in " + BOARDS_PER_LEVEL
+                            + " boards, at least " + MIN_DIFFERENT_LAYOUTS + " expected");
+            int required = freeTrackSquares * MIN_COVERAGE_PERCENT / 100;
+            assertTrue(everUsed.size() >= required,
+                    level.label() + ": the random placement used only " + everUsed.size() + " of the "
+                            + freeTrackSquares + " free track squares over " + BOARDS_PER_LEVEL
+                            + " boards, at least " + required + " expected");
+            assertTrue(everUsed.size() <= freeTrackSquares,
+                    level.label() + ": the placement used " + everUsed.size() + " squares, more than the "
+                            + freeTrackSquares + " that are free");
         }
     }
 
@@ -642,18 +740,4 @@ class MediumHardBoardIndependentTest {
         }
     }
 
-    @Test
-    @DisplayName("T2-02 FR-27: start and protection squares protect a piece; arrows and question squares do not")
-    void protectedSquares() {
-        for (Difficulty level : LEVELS) {
-            for (Square s : board(level).squares()) {
-                String what = level.label() + " " + s.cell() + " " + s.type();
-                switch (s.type()) {
-                    case START, PROTECTION -> assertTrue(s.isProtected(), what);
-                    case TRACK, ARROW, QUESTION, HOME_PATH -> assertFalse(s.isProtected(), what);
-                    default -> { }
-                }
-            }
-        }
-    }
 }

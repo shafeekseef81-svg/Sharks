@@ -195,7 +195,15 @@ class SpecialDiceGameTest {
                     assertEquals(p.progress() + roll.regular(), target, "FR-18: " + where);
                 } else {
                     assertTrue(roll.movement() > 0, "FR-17: movement 0 moves nothing, " + where);
-                    assertEquals(p.progress() + roll.movement(), target, "FR-17: " + where);
+                    int full = p.progress() + roll.movement();
+                    if (target != full) {
+                        // T2-06 (FR-29): a blocked piece stops just before an opponent Double Block, and only
+                        // when no offered move uses the whole roll.
+                        assertTrue(target > p.progress() && target < full, "FR-17: " + where);
+                        assertTrue(opponentBlockAt(model, p, target + 1), "FR-29: stop before a block, " + where);
+                        assertTrue(moves.entrySet().stream().noneMatch(m -> usesWholeRoll(m, roll, homeStart)),
+                                "FR-29: a stop only without a full move, " + where);
+                    }
                 }
             }
             if (!moves.isEmpty()) {
@@ -210,5 +218,32 @@ class SpecialDiceGameTest {
             assertEquals(i < players - 1, ranking.get(i).allFinished(), "FR-44: " + where);
         }
         return zeroRolls;
+    }
+
+    /** Whether a move uses the whole roll: a castle exit, the Regular die on the home path, else the movement. */
+    private static boolean usesWholeRoll(Map.Entry<Piece, Move> m, DiceRoll roll, int homeStart) {
+        Piece p = m.getKey();
+        int target = m.getValue().targetProgress();
+        if (p.inCastle()) {
+            return true;
+        }
+        int steps = p.progress() >= homeStart ? roll.regular() : roll.movement();
+        return target == p.progress() + steps;
+    }
+
+    /** Whether two or more pieces of one opponent of {@code mover} stand on the mover's path at {@code progress}. */
+    private static boolean opponentBlockAt(GameModel model, Piece mover, int progress) {
+        Cell cell = model.board().cellAt(mover.color(), progress);
+        for (Player other : model.players()) {
+            if (other.color() == mover.color()) {
+                continue;
+            }
+            long here = other.pieces().stream()
+                    .filter(q -> q.onBoard() && cell.equals(model.board().cellAt(q.color(), q.progress()))).count();
+            if (here >= 2) {
+                return true;
+            }
+        }
+        return false;
     }
 }

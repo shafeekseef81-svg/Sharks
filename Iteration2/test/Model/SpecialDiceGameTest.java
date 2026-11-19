@@ -3,6 +3,8 @@ package Model;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -34,10 +36,20 @@ class SpecialDiceGameTest {
         return new GameSettings(level, setup);
     }
 
-    /** A two-player game whose dice show the scripted faces (Regular, special, Regular, special, ...). */
+    /**
+     * A two-player game whose dice show the scripted faces (Regular, special, Regular, special, ...). These are
+     * tests of the dice, so the question and surprise squares are plain squares here; their effects (T2-10) are
+     * tested in {@code EffectResolutionTest} and in the complete games below.
+     */
     private static GameModel scripted(Difficulty level, int... faces) {
-        return new GameModel(settings(level, 2), new Random(BOARD_SEED), new RandomDice(new ScriptedRandom(faces)),
-                () -> 0L);
+        GameModel model = new GameModel(settings(level, 2), new Random(BOARD_SEED),
+                new RandomDice(new ScriptedRandom(faces)), () -> 0L);
+        for (Square square : model.board().squares()) {
+            if (square.type() == SquareType.QUESTION || square.type() == SquareType.SURPRISE) {
+                square.setType(SquareType.TRACK);
+            }
+        }
+        return model;
     }
 
     private static Piece firstPiece(GameModel model) {
@@ -152,37 +164,44 @@ class SpecialDiceGameTest {
     }
 
     @Test
-    @DisplayName("FR-16..FR-19, FR-43..FR-45: complete 2-4 player Medium and Hard games with the real dice end correctly")
+    @DisplayName("FR-16..FR-19, FR-34..FR-45: complete 2-4 player Medium and Hard games with the real dice, questions "
+            + "and surprises end correctly")
     void completeMediumAndHardGames() {
         int games = 0;
         for (Difficulty level : List.of(Difficulty.MEDIUM, Difficulty.HARD)) {
-            int zeroRolls = 0;
+            int[] counts = new int[2]; // rolls with a movement of 0, special squares resolved
             for (int players = 2; players <= 4; players++) {
                 for (long seed = 0; seed < 8; seed++) {
-                    zeroRolls += playToEnd(level, players, seed);
+                    int[] game = playToEnd(level, players, seed);
+                    counts[0] += game[0];
+                    counts[1] += game[1];
                     games++;
                 }
             }
-            assertTrue(zeroRolls > 0, level.label() + ": rolls with a movement of 0 happened");
+            assertTrue(counts[0] > 0, level.label() + ": rolls with a movement of 0 happened");
+            assertTrue(counts[1] > 0, level.label() + ": questions and surprises were resolved (T2-10)");
         }
         assertEquals(48, games);
     }
 
     /**
-     * Plays one game to the end with random choices and checks every offered move against FR-17..FR-19.
+     * Plays one game to the end with random choices and checks every offered move against FR-17..FR-19. Every
+     * question gets a random answer and every push a random opponent piece (T2-10).
      *
-     * @return the number of rolls with a movement of 0
+     * @return the number of rolls with a movement of 0, and the number of special squares resolved
      */
-    private static int playToEnd(Difficulty level, int players, long seed) {
+    private static int[] playToEnd(Difficulty level, int players, long seed) {
         String where = level.label() + ", " + players + " players, seed " + seed;
         GameModel model = new GameModel(settings(level, players), new Random(seed));
         Random choice = new Random(seed * 31 + 7);
         int homeStart = model.board().homeStartIndex();
         int zeroRolls = 0;
+        int effects = 0;
         for (int rolls = 0; !model.isGameOver(); rolls++) {
             assertTrue(rolls < 200_000, "the game must end: " + where);
             DiceRoll roll = model.roll();
-            assertEquals(level.specialDie(), roll.specialType(), where);
+            assertEquals(roll.surpriseRoll() ? DieType.ULTRA_BOOST : level.specialDie(), roll.specialType(),
+                    "FR-16, Q27: " + where);
             zeroRolls += roll.movement() == 0 ? 1 : 0;
             Map<Piece, Move> moves = model.legalMoves();
             for (Map.Entry<Piece, Move> e : moves.entrySet()) {
@@ -209,6 +228,7 @@ class SpecialDiceGameTest {
             if (!moves.isEmpty()) {
                 List<Piece> movable = new ArrayList<>(moves.keySet());
                 model.move(movable.get(choice.nextInt(movable.size())));
+                effects += resolveEffects(model, choice, where);
             }
         }
         List<Player> ranking = model.ranking();
@@ -217,7 +237,37 @@ class SpecialDiceGameTest {
             assertEquals(i + 1, ranking.get(i).rank(), where);
             assertEquals(i < players - 1, ranking.get(i).allFinished(), "FR-44: " + where);
         }
-        return zeroRolls;
+        return new int[] {zeroRolls, effects};
+    }
+
+    /**
+     * Resolves the waiting special squares as a player would: a random answer to each question, a random opponent
+     * piece for each push (T2-10, FR-34, FR-39, FR-40, FR-42).
+     *
+     * @return the number of special squares resolved
+     */
+    private static int resolveEffects(GameModel model, Random choice, String where) {
+        int resolved = 0;
+        while (model.phase() == TurnPhase.RESOLVING) {
+            assertTrue(resolved < 50, "a chain must end (R2): " + where);
+            EffectQueue.Activation waiting = model.pendingEffect();
+            assertNotNull(waiting, where);
+            if (waiting.square().type() == SquareType.QUESTION) {
+                Question question = model.pendingQuestion();
+                assertEquals(waiting.square().questionLevel(), question.level(), "FR-34: " + where);
+                model.applyAnswer(model.judgeAnswer(choice.nextInt(Question.ANSWER_COUNT)));
+            } else {
+                assertEquals(SquareType.SURPRISE, waiting.square().type(), where);
+                SurprisePrompt surprise = model.pendingSurprise();
+                SurpriseResult result = surprise.needsChoice()
+                        ? model.resolveSurprise(surprise, surprise.targets().get(choice.nextInt(surprise.targets().size())))
+                        : surprise.resolve();
+                model.applySurprise(result);
+            }
+            resolved++;
+        }
+        assertNull(model.pendingEffect(), where);
+        return resolved;
     }
 
     /** Whether a move uses the whole roll: a castle exit, the Regular die on the home path, else the movement. */

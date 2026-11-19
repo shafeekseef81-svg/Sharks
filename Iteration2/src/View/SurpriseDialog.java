@@ -98,6 +98,13 @@ public class SurpriseDialog extends CustomPanel {
     private final Resolver resolver;
     private final Consumer<SurpriseResult> onResolved;
     private final List<ToggleChip> targetChips = new ArrayList<>();
+    /**
+     * Keeps the chips mutually exclusive, and is the only way to unselect them again:
+     * {@code chip.setSelected(false)} on the chip the group currently holds does nothing, because
+     * {@code ButtonGroup.setSelected} ignores a request to deselect and the toggle then reads its own state
+     * back from the group. Only {@link ButtonGroup#clearSelection()} drops the selection.
+     */
+    private final ButtonGroup targetGroup = new ButtonGroup();
     private final CustomButton confirmButton;
     private final JLabel error = UiKit.wrap(" ", CARD_WIDTH - 60, Theme.font(Font.PLAIN, 13.5f), Theme.DANGER);
     private Piece picked;
@@ -139,7 +146,8 @@ public class SurpriseDialog extends CustomPanel {
         JLabel head = UiKit.label("Surprise square", Theme.font(Font.BOLD, 14f), Theme.SURPRISE);
         texts.add(head);
         texts.add(UiKit.vgap(3));
-        JLabel title = UiKit.wrap(outcome.title(), CARD_WIDTH - 130, Theme.font(Font.BOLD, 19f), Theme.TEXT);
+        JLabel title = UiKit.wrap(recipientUndecided() ? neutralTitle(outcome) : outcome.title(),
+                CARD_WIDTH - 130, Theme.font(Font.BOLD, 19f), Theme.TEXT);
         title.setName("surprise.title");
         texts.add(title);
         texts.add(UiKit.vgap(6));
@@ -163,8 +171,9 @@ public class SurpriseDialog extends CustomPanel {
         column.setOpaque(false);
         column.setLayout(new BoxLayout(column, BoxLayout.Y_AXIS));
 
-        JLabel description = UiKit.wrap(prompt.outcome().description(), CARD_WIDTH - 60,
-                Theme.font(Font.PLAIN, 14.5f), Theme.TEXT_MUTED);
+        JLabel description = UiKit.wrap(
+                recipientUndecided() ? neutralDescription(prompt.outcome()) : prompt.outcome().description(),
+                CARD_WIDTH - 60, Theme.font(Font.PLAIN, 14.5f), Theme.TEXT_MUTED);
         description.setName("surprise.description");
         column.add(description);
 
@@ -229,7 +238,6 @@ public class SurpriseDialog extends CustomPanel {
         List<Piece> targets = prompt.targets();
         JPanel grid = new JPanel(new GridLayout(0, 2, 8, 8));
         grid.setOpaque(false);
-        ButtonGroup group = new ButtonGroup();
         for (int i = 0; i < targets.size(); i++) {
             Piece target = targets.get(i);
             ToggleChip chip = new ToggleChip(UiKit.ltr(playerName.apply(target.color())
@@ -237,7 +245,7 @@ public class SurpriseDialog extends CustomPanel {
             chip.setName(TARGET_NAME + i);
             chip.setSelectedColor(Theme.player(target.color()));
             chip.addActionListener(e -> select(target));
-            group.add(chip);
+            targetGroup.add(chip);
             targetChips.add(chip);
             grid.add(chip);
         }
@@ -292,9 +300,8 @@ public class SurpriseDialog extends CustomPanel {
         } catch (IllegalArgumentException | IllegalStateException refused) {
             showError(refused.getMessage());
             picked = null;
-            for (ToggleChip chip : targetChips) {
-                chip.setSelected(false);
-            }
+            // Must go through the group: a chip the group holds ignores setSelected(false).
+            targetGroup.clearSelection();
             confirmButton.setEnabled(!prompt.needsChoice());
             return;
         }
@@ -315,6 +322,40 @@ public class SurpriseDialog extends CustomPanel {
         error.setVisible(true);
         revalidate();
         repaint();
+    }
+
+    /**
+     * @return true when this card must name no recipient: a turn outcome in a chain that an opponent's piece
+     *         set off, which the approved requirements do not decide (FR-42, open point 1 of PR #90)
+     */
+    private boolean recipientUndecided() {
+        return prompt.outcome().affectsTurnOnly() && prompt.opponentTriggered();
+    }
+
+    /**
+     * Heading used while the recipient is undecided. The Model's own title is written to the player whose
+     * turn it is ("Skip <b>your</b> next turn"), which would assign the outcome to that player; beside the
+     * pill that says whose turn it is, that reads as a decision the team has not taken. This wording states
+     * the same outcome without a recipient. It is presentation, not a rule: nothing here changes what the
+     * Model does.
+     */
+    private static String neutralTitle(SurpriseOutcome outcome) {
+        return switch (outcome) {
+            case SKIP_TURN -> "A turn will be skipped";
+            case EXTRA_ROLL -> "An extra roll is granted";
+            default -> outcome.title();
+        };
+    }
+
+    /** The sentence of {@link #neutralTitle}, also written without a recipient. */
+    private static String neutralDescription(SurpriseOutcome outcome) {
+        return switch (outcome) {
+            case SKIP_TURN -> "One player misses their next turn, and any extra roll from a 6 "
+                    + "is cancelled with it.";
+            case EXTRA_ROLL -> "There is one more roll right away with the Regular + UltraBoost dice. "
+                    + "It does not count for the rule of 6.";
+            default -> outcome.description();
+        };
     }
 
     private static Icons.Type icon(SurpriseOutcome outcome) {

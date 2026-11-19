@@ -155,6 +155,14 @@ class SurpriseDialogTest {
         return html == null ? "" : html.replaceAll("<[^>]*>", "").replace("‎", "").strip();
     }
 
+    /** Fails if the text speaks to one player, which would say whose outcome it is. */
+    private static void assertNoSecondPerson(String text, String where) {
+        for (String word : new String[] {"you", "your", "yours", "yourself"}) {
+            assertFalse(text.toLowerCase(java.util.Locale.ROOT).matches(".*\\b" + word + "\\b.*"),
+                    where + " must name no recipient, but says \"" + word + "\": " + text);
+        }
+    }
+
     // ------------------------------------------------------------------ what the player sees (FR-39)
 
     @Test
@@ -335,6 +343,52 @@ class SurpriseDialogTest {
     }
 
     @Test
+    @DisplayName("FR-40: a refused pick leaves no chip looking selected, and the player can finish with another")
+    void aRefusedPickClearsTheSelectionItself() throws Exception {
+        Piece mine = onTrack(red, 0, 4);
+        Piece stale = onTrack(green, 0, 12);
+        Piece other = onTrack(blue, 0, 20);
+
+        SurpriseFactory factory = new SurpriseFactory(board, players, fixed(3));
+        SurprisePrompt prompt = factory.promptFor(SurpriseOutcome.OPPONENT_BACK, mine);
+        List<SurpriseResult> resolved = new ArrayList<>();
+        SurpriseDialog dialog = build(prompt, names(), factory::resolve, resolved);
+
+        assertEquals(List.of(stale, other), prompt.targets());
+        onEdt(() -> dialog.targetChip(0).doClick());
+        assertTrue(dialog.targetChip(0).isSelected(), "the chip the player clicked is selected");
+
+        // a later effect of the same chain moved that piece out of reach before the player confirmed
+        PiecePlacement.place(stale, board.homeStartIndex());
+        onEdt(dialog::confirm);
+
+        // the card must not keep showing a pick it no longer holds
+        for (int i = 0; i < dialog.targetCount(); i++) {
+            assertFalse(dialog.targetChip(i).isSelected(),
+                    "chip " + i + " still looks selected after the Model refused the pick");
+        }
+        assertNull(dialog.picked());
+        assertFalse(dialog.confirmButton().isEnabled());
+        assertNotNull(dialog.errorMessage());
+        assertFalse(dialog.resolved());
+        assertTrue(resolved.isEmpty());
+
+        // and the player can still finish the surprise with a piece that is still eligible
+        onEdt(() -> dialog.targetChip(1).doClick());
+        assertTrue(dialog.targetChip(1).isSelected());
+        assertFalse(dialog.targetChip(0).isSelected());
+        assertSame(other, dialog.picked());
+        assertTrue(dialog.confirmButton().isEnabled());
+
+        onEdt(() -> dialog.confirmButton().doClick());
+
+        assertEquals(1, resolved.size());
+        assertSame(other, resolved.get(0).piece());
+        assertSame(SurpriseAction.MOVE_STEPS, resolved.get(0).action());
+        assertNull(dialog.errorMessage());
+    }
+
+    @Test
     @DisplayName("A second confirmation cannot resolve the same surprise again")
     void onlyTheFirstConfirmationCounts() throws Exception {
         Piece mine = onTrack(red, 0, 4);
@@ -393,8 +447,15 @@ class SurpriseDialogTest {
             SurpriseDialog dialog = build(prompt, names(), factory::resolve, resolved);
 
             assertEquals(SurpriseDialog.UNDECIDED_NOTE, text(dialog, "surprise.undecided"), outcome.name());
-            assertFalse(text(dialog, "surprise.description").contains("Mohamed"), outcome.name());
-            assertFalse(text(dialog, "surprise.description").contains("Shafeek"), outcome.name());
+
+            // Neither a name nor a second person: "you"/"your" beside the pill that says whose turn it is
+            // would assign the outcome to that player, which is exactly what is not decided yet.
+            for (String name : new String[] {"Mohamed", "Shafeek", "Rakan"}) {
+                assertFalse(text(dialog, "surprise.description").contains(name), outcome + " / " + name);
+                assertFalse(text(dialog, "surprise.title").contains(name), outcome + " / " + name);
+            }
+            assertNoSecondPerson(text(dialog, "surprise.title"), outcome + " title");
+            assertNoSecondPerson(text(dialog, "surprise.description"), outcome + " description");
 
             onEdt(() -> dialog.confirmButton().doClick());
             assertTrue(resolved.get(0).turnTargetUndecided(),

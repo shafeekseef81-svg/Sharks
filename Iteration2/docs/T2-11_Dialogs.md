@@ -73,14 +73,19 @@ approved requirements do not say who misses the next turn or who gets the extra 
 
 **This task does not hardcode an answer.** In that case the card:
 
-- shows the outcome's own sentence, which names nobody ("You will miss your next turn…");
+- replaces the Model's own title and sentence, which are written to one player ("Skip **your** next turn",
+  "**You** will miss your next turn…"), with wording that names no recipient: "A turn will be skipped" /
+  "One player misses their next turn, and any extra roll from a 6 is cancelled with it." Beside the pill that
+  says whose turn it is, the second person would read as a decision the team has not taken. This is
+  presentation only; nothing about what the Model does changes;
 - adds `surprise.chainNote`, which states the fact that is certain: whose piece reached the square, during
   whose turn;
 - adds `surprise.undecided` with `SurpriseDialog.UNDECIDED_NOTE`, saying the team is still agreeing it.
 
-A test asserts that neither player's name appears in the outcome sentence in that case, and that the Model
-still reports `SurpriseResult.turnTargetUndecided()`. When the team decides, the note and that one branch come
-out; nothing else changes.
+Tests assert that, for every outcome that only affects the turn, neither a player's name nor a second person
+("you", "your") appears in the title or the sentence, and that the Model still reports
+`SurpriseResult.turnTargetUndecided()`. Outside a chain the Model's own wording is shown unchanged. When the
+team decides, the note and that one branch come out; nothing else changes.
 
 ## 6. NFR-05 — "the dialog opens within 1 s" — NOT verified
 
@@ -139,7 +144,7 @@ wrong inside a chain, for the reason PR #90 documents.
 ## 8. Tests
 
 `Iteration2/test/View/QuestionDialogTest.java` (12 tests) and
-`Iteration2/test/View/SurpriseDialogTest.java` (15 tests), 27 in all; full suite **501/501** on this branch.
+`Iteration2/test/View/SurpriseDialogTest.java` (16 tests), 28 in all; full suite **502/502** on this branch.
 
 Both wire the cards to the **real** Model factories, as a controller would, and build every component on the
 event dispatch thread without a `JFrame`, so they run headless like the other `View` tests.
@@ -152,9 +157,10 @@ often `Continue` is clicked; a judge that returns nothing failing loudly; an inv
 the drawn outcome, chance and explanation for all six outcomes; one button for the five that need no choice;
 every eligible opponent piece offered and never the active player's own; nothing confirmable before a choice;
 the chosen piece being the pushed piece and not the leading one; the no-eligible-target case; a refused pick
-reported and retried; a second confirmation ignored; the resolver asked only when there is a pick; an
-opponent-triggered chain naming the turn holder; a turn outcome in such a chain naming nobody; an ordinary
-surprise showing neither note; null arguments; and the build-and-lay-out timing of section 6.
+reported and retried with the chip selection really cleared; a second confirmation ignored; the resolver
+asked only when there is a pick; an opponent-triggered chain naming the turn holder; a turn outcome in such a
+chain naming nobody, in neither a name nor a second person; an ordinary surprise showing neither note;
+null arguments; and the build-and-lay-out timing of section 6.
 
 `Iteration2/test/Model/PiecePlacement.java` is new test infrastructure: `Piece.setProgress` is
 package-private on purpose (NFR-08), so a `View` test cannot place a piece. This one public helper in the test

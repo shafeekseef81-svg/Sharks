@@ -284,6 +284,13 @@ public class GameBoardView extends GradientBackground implements ScreenView {
             legend.add(legendRow(new LegendIcon(SquareType.SURPRISE, null), "Surprise (safe)", d.surpriseSquares()));
         }
         legend.add(legendRow(new LegendIcon(SquareType.HOME_PATH, null), "Home path", 6));
+        if (d.outerRings() > 0) {
+            // On Medium and Hard the official diagram still draws the classic start square of each colour,
+            // although a piece starts on the outer corner there and this square does nothing. Without this
+            // row it is the one coloured square on the board with no explanation (FR-14).
+            legend.add(legendRow(new LegendIcon(SquareType.TRACK, Theme.player(PlayerColor.RED)),
+                    "Old start (no effect)", 4));
+        }
         legend.revalidate();
     }
 
@@ -529,9 +536,15 @@ public class GameBoardView extends GradientBackground implements ScreenView {
     /** Small board-cell icon used in the legend. */
     private static final class LegendIcon implements Icon {
         private final SquareType type;
+        private final Color fill;
 
-        LegendIcon(SquareType type, Object unused) {
+        /**
+         * @param type the square type to draw
+         * @param fill the cell colour, or null for the colour this type uses on the board
+         */
+        LegendIcon(SquareType type, Color fill) {
             this.type = type;
+            this.fill = fill;
         }
 
         @Override
@@ -539,7 +552,7 @@ public class GameBoardView extends GradientBackground implements ScreenView {
             Graphics2D g2 = (Graphics2D) g.create();
             Theme.antialias(g2);
             double s = 22;
-            Color fill = switch (type) {
+            Color cellColor = fill != null ? fill : switch (type) {
                 case START -> Theme.player(PlayerColor.RED);
                 case HOME_PATH -> Theme.player(PlayerColor.BLUE);
                 default -> Color.WHITE;
@@ -558,7 +571,7 @@ public class GameBoardView extends GradientBackground implements ScreenView {
                 g2.dispose();
                 return;
             }
-            g2.setColor(fill);
+            g2.setColor(cellColor);
             g2.fill(new RoundRectangle2D.Double(x, y, s, s, 5, 5));
             g2.setColor(Theme.BOARD_LINE);
             g2.setStroke(new BasicStroke(1.2f));

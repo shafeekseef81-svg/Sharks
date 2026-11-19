@@ -12,11 +12,13 @@ import java.util.Random;
  * itself inside its controller, while this enum only names the outcome. {@link SurpriseFactory} draws it,
  * {@link SurpriseResult} says what must happen, and the effect queue of T2-10 does it.
  *
- * <p><b>Probabilities.</b> The table below is the prototype's table, which
+ * <p><b>Probabilities.</b> The table below matches the prototype's table, which
  * {@code Assignment3_Prototype/PROTOTYPE_TRACEABILITY.md} records as the probabilities of SRS Table 2. The
- * full SRS table itself is <i>not</i> in the repository (the committed {@code SRS_Sharks.pdf} and
- * {@code SRS_Sharks.docx} are version 1.0 and stop before the requirement tables), so these values are
- * carried over from the prototype and still need the Product Owner's check against the approved SRS.
+ * Product Owner has since checked these six values against the full submitted Sharks SRS and the original
+ * project specification and confirmed them. Those documents are <b>not</b> committed to this repository: the
+ * {@code SRS_Sharks.pdf} and {@code SRS_Sharks.docx} that are here are version 1.0 and stop before the
+ * requirement tables, so the confirmation rests on the Product Owner's reading of documents held outside the
+ * repository, not on anything a reader can check from a clone.
  *
  * <table border="1">
  *   <caption>Outcome probabilities (FR-39)</caption>

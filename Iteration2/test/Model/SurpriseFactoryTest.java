@@ -456,8 +456,12 @@ class SurpriseFactoryTest {
                 () -> new SurprisePrompt(null, mine, PlayerColor.RED, 0, List.of()));
         assertThrows(NullPointerException.class,
                 () -> new SurprisePrompt(SurpriseOutcome.BACK_THREE, mine, PlayerColor.RED, 0, null));
-        assertThrows(IllegalArgumentException.class, () ->
-                new SurprisePrompt(SurpriseOutcome.BACK_THREE, mine, PlayerColor.GREEN, 0, List.of()));
+        // FR-42: a piece of another player than the turn holder is allowed, and means the chain was set off
+        // by an opponent's piece. It is not a contradiction.
+        SurprisePrompt chained =
+                new SurprisePrompt(SurpriseOutcome.BACK_THREE, mine, PlayerColor.GREEN, 0, List.of());
+        assertTrue(chained.opponentTriggered());
+        assertSame(PlayerColor.RED, chained.subjectOwner());
         assertThrows(IllegalArgumentException.class, () ->
                 new SurprisePrompt(SurpriseOutcome.BACK_THREE, inCastle, PlayerColor.GREEN, 0, List.of()));
         assertThrows(IllegalArgumentException.class, () ->
@@ -478,35 +482,61 @@ class SurpriseFactoryTest {
     @DisplayName("A result refuses parts that contradict each other")
     void resultRefusesContradictions() {
         Piece mine = onTrack(red, 0, 4);
+        Piece alsoMine = onTrack(red, 1, 8);
         Piece victim = onTrack(green, 0, 6);
+        Piece inCastle = green.pieces().get(1);
 
         assertThrows(NullPointerException.class, () -> new SurpriseResult(
-                null, mine, PlayerColor.RED, SurpriseAction.JUMP_TO_FINISH, 0, 0, null));
+                null, PlayerColor.RED, mine, mine, SurpriseAction.JUMP_TO_FINISH, 0, 0, null));
         assertThrows(NullPointerException.class, () -> new SurpriseResult(
-                SurpriseOutcome.JUMP_TO_FINISH, mine, PlayerColor.RED, null, 0, 0, null));
+                SurpriseOutcome.JUMP_TO_FINISH, null, mine, mine,
+                SurpriseAction.JUMP_TO_FINISH, 0, 0, null));
+        assertThrows(NullPointerException.class, () -> new SurpriseResult(
+                SurpriseOutcome.JUMP_TO_FINISH, PlayerColor.RED, null, mine,
+                SurpriseAction.JUMP_TO_FINISH, 0, 0, null));
+        assertThrows(NullPointerException.class, () -> new SurpriseResult(
+                SurpriseOutcome.JUMP_TO_FINISH, PlayerColor.RED, mine, mine, null, 0, 0, null));
+        // the piece that landed on the square must be on the board
+        assertThrows(IllegalArgumentException.class, () -> new SurpriseResult(
+                SurpriseOutcome.SKIP_TURN, PlayerColor.GREEN, inCastle, null,
+                SurpriseAction.SKIP_NEXT_TURN, 0, 0, null));
         // a moving action without a piece, and a non-moving action with one
         assertThrows(IllegalArgumentException.class, () -> new SurpriseResult(
-                SurpriseOutcome.JUMP_TO_FINISH, null, PlayerColor.RED,
+                SurpriseOutcome.JUMP_TO_FINISH, PlayerColor.RED, mine, null,
                 SurpriseAction.JUMP_TO_FINISH, 0, 0, null));
         assertThrows(IllegalArgumentException.class, () -> new SurpriseResult(
-                SurpriseOutcome.SKIP_TURN, mine, PlayerColor.RED, SurpriseAction.SKIP_NEXT_TURN, 0, 0, null));
-        // the piece must belong to the affected player
+                SurpriseOutcome.SKIP_TURN, PlayerColor.RED, mine, mine,
+                SurpriseAction.SKIP_NEXT_TURN, 0, 0, null));
+        // an own-piece outcome moves the piece that landed, not some other piece
         assertThrows(IllegalArgumentException.class, () -> new SurpriseResult(
-                SurpriseOutcome.BACK_THREE, victim, PlayerColor.RED, SurpriseAction.MOVE_STEPS, -3, 0, null));
+                SurpriseOutcome.BACK_THREE, PlayerColor.RED, mine, victim,
+                SurpriseAction.MOVE_STEPS, -3, 0, null));
+        // FR-40: a push never moves a piece of the active player
+        assertThrows(IllegalArgumentException.class, () -> new SurpriseResult(
+                SurpriseOutcome.OPPONENT_BACK, PlayerColor.RED, mine, alsoMine,
+                SurpriseAction.MOVE_STEPS, -2, 3, null));
+        // a piece that is not on the board cannot be moved
+        assertThrows(IllegalArgumentException.class, () -> new SurpriseResult(
+                SurpriseOutcome.OPPONENT_BACK, PlayerColor.RED, mine, inCastle,
+                SurpriseAction.MOVE_STEPS, -2, 3, null));
         // MOVE_STEPS of 0 steps, and steps on an action that moves none
         assertThrows(IllegalArgumentException.class, () -> new SurpriseResult(
-                SurpriseOutcome.BACK_THREE, mine, PlayerColor.RED, SurpriseAction.MOVE_STEPS, 0, 0, null));
+                SurpriseOutcome.BACK_THREE, PlayerColor.RED, mine, mine,
+                SurpriseAction.MOVE_STEPS, 0, 0, null));
         assertThrows(IllegalArgumentException.class, () -> new SurpriseResult(
-                SurpriseOutcome.JUMP_TO_FINISH, mine, PlayerColor.RED,
+                SurpriseOutcome.JUMP_TO_FINISH, PlayerColor.RED, mine, mine,
                 SurpriseAction.JUMP_TO_FINISH, -3, 0, null));
         // a die value no Regular die shows
         assertThrows(IllegalArgumentException.class, () -> new SurpriseResult(
-                SurpriseOutcome.BACK_THREE, mine, PlayerColor.RED, SurpriseAction.MOVE_STEPS, -3, 9, null));
+                SurpriseOutcome.BACK_THREE, PlayerColor.RED, mine, mine,
+                SurpriseAction.MOVE_STEPS, -3, 9, null));
         // NOTHING without a reason, and a reason on something that does happen
         assertThrows(IllegalArgumentException.class, () -> new SurpriseResult(
-                SurpriseOutcome.OPPONENT_BACK, null, PlayerColor.RED, SurpriseAction.NOTHING, 0, 0, null));
+                SurpriseOutcome.OPPONENT_BACK, PlayerColor.RED, mine, null,
+                SurpriseAction.NOTHING, 0, 0, null));
         assertThrows(IllegalArgumentException.class, () -> new SurpriseResult(
-                SurpriseOutcome.BACK_THREE, mine, PlayerColor.RED, SurpriseAction.MOVE_STEPS, -3, 0, "why"));
+                SurpriseOutcome.BACK_THREE, PlayerColor.RED, mine, mine,
+                SurpriseAction.MOVE_STEPS, -3, 0, "why"));
     }
 
     @Test
@@ -543,6 +573,211 @@ class SurpriseFactoryTest {
             drawn.add(prompt.outcome().name() + "/" + prompt.regularRoll());
         }
         return drawn;
+    }
+
+    // ----------------------------------- FR-42: an opponent's piece set off the square, mid-turn
+
+    @Test
+    @DisplayName("FR-42: a surprise set off by an opponent's piece keeps the turn holder apart from its owner")
+    void anOpponentTriggeredSurpriseKeepsBothPlayers() {
+        onTrack(red, 0, 4);
+        Piece greenTrigger = onTrack(green, 0, 12);
+
+        SurprisePrompt prompt = factory(new ScriptRandom(30))
+                .promptFor(SurpriseOutcome.BACK_THREE, greenTrigger, PlayerColor.RED);
+        assertSame(PlayerColor.RED, prompt.active(), "Red is still taking the turn");
+        assertSame(PlayerColor.GREEN, prompt.subjectOwner());
+        assertSame(greenTrigger, prompt.subject());
+        assertTrue(prompt.opponentTriggered());
+    }
+
+    @Test
+    @DisplayName("FR-40/FR-42 regression: a push in an opponent-triggered chain never offers the active "
+            + "player's own pieces, and still offers the pieces of the player who set it off")
+    void pushInAnOpponentTriggeredChainOffersTheActivePlayersOpponents() {
+        Piece minePiece = onTrack(red, 0, 4);
+        Piece greenTrigger = onTrack(green, 0, 12);
+        Piece greenOther = onTrack(green, 1, 25);
+        Piece bluePiece = onTrack(blue, 0, 20);
+
+        SurprisePrompt prompt = factory(new ScriptRandom(3))
+                .promptFor(SurpriseOutcome.OPPONENT_BACK, greenTrigger, PlayerColor.RED);
+
+        assertFalse(prompt.targets().contains(minePiece),
+                "the active player must never be offered its own piece (FR-40)");
+        assertEquals(List.of(greenTrigger, greenOther, bluePiece), prompt.targets(),
+                "every opponent of the active player is offered, the trigger's owner included");
+        assertTrue(prompt.needsChoice());
+    }
+
+    @Test
+    @DisplayName("FR-40/FR-42: the piece that set the square off may itself be chosen, being an opponent "
+            + "of the active player on the shared track")
+    void theTriggerPieceItselfMayBeChosen() {
+        onTrack(red, 0, 4);
+        Piece greenTrigger = onTrack(green, 0, 12);
+
+        SurprisePrompt prompt = factory(new ScriptRandom(5))
+                .promptFor(SurpriseOutcome.OPPONENT_BACK, greenTrigger, PlayerColor.RED);
+        assertEquals(List.of(greenTrigger), prompt.targets());
+
+        SurpriseResult result = prompt.resolve(greenTrigger);
+        assertSame(SurpriseAction.MOVE_STEPS, result.action());
+        assertSame(greenTrigger, result.piece());
+        assertEquals(-3, result.steps());
+        assertSame(PlayerColor.GREEN, result.affected());
+        assertTrue(result.opponentTriggered());
+    }
+
+    @Test
+    @DisplayName("FR-42: an own-piece outcome moves the piece that landed, even when it is an opponent's")
+    void ownPieceOutcomesMoveTheTriggerPiece() {
+        onTrack(red, 0, 4);
+        Piece greenTrigger = onTrack(green, 0, 12);
+        SurpriseFactory factory = factory(new Random(3));
+
+        for (SurpriseOutcome outcome : SurpriseOutcome.values()) {
+            if (!outcome.needsOwnPiece()) {
+                continue;
+            }
+            SurpriseResult result = factory.promptFor(outcome, greenTrigger, PlayerColor.RED).resolve();
+            assertSame(greenTrigger, result.piece(), outcome.name());
+            assertSame(PlayerColor.GREEN, result.affected(),
+                    outcome + " falls on the owner of the piece that moves");
+            assertSame(PlayerColor.RED, result.active(), outcome + ": Red still holds the turn");
+            assertSame(PlayerColor.GREEN, result.triggerOwner(), outcome.name());
+            assertTrue(result.opponentTriggered(), outcome.name());
+            assertFalse(result.turnTargetUndecided(), outcome + " moves a piece, so nothing is undecided");
+        }
+    }
+
+    @Test
+    @DisplayName("FR-42: a turn outcome in an opponent-triggered chain is flagged as an open decision")
+    void turnOutcomesInAnOpponentTriggeredChainAreFlagged() {
+        onTrack(red, 0, 4);
+        Piece greenTrigger = onTrack(green, 0, 12);
+        SurpriseFactory factory = factory(new Random(3));
+
+        for (SurpriseOutcome outcome : SurpriseOutcome.values()) {
+            if (!outcome.affectsTurnOnly()) {
+                continue;
+            }
+            SurpriseResult result = factory.promptFor(outcome, greenTrigger, PlayerColor.RED).resolve();
+            assertTrue(result.changesTurn(), outcome.name());
+            assertNull(result.piece(), outcome.name());
+            assertTrue(result.turnTargetUndecided(),
+                    outcome + " in an opponent-triggered chain is an open decision for the team");
+            assertSame(PlayerColor.RED, result.affected(),
+                    outcome + ": the provisional answer is the player whose turn it is");
+            assertSame(PlayerColor.GREEN, result.triggerOwner(), outcome.name());
+        }
+    }
+
+    @Test
+    @DisplayName("An ordinary chain, where the active player's own piece landed, flags nothing as undecided")
+    void ordinaryChainsAreNotFlagged() {
+        Piece mine = onTrack(red, 0, 4);
+        onTrack(green, 0, 12);
+        SurpriseFactory factory = factory(new Random(3));
+
+        for (SurpriseOutcome outcome : SurpriseOutcome.values()) {
+            SurprisePrompt prompt = factory.promptFor(outcome, mine, PlayerColor.RED);
+            assertFalse(prompt.opponentTriggered(), outcome.name());
+            assertSame(PlayerColor.RED, prompt.subjectOwner(), outcome.name());
+            SurpriseResult result = prompt.needsChoice()
+                    ? prompt.resolve(prompt.targets().get(0))
+                    : prompt.resolve();
+            assertFalse(result.opponentTriggered(), outcome.name());
+            assertFalse(result.turnTargetUndecided(), outcome.name());
+        }
+    }
+
+    @Test
+    @DisplayName("The short calls still mean \"the piece belongs to the active player\", unchanged")
+    void theShortCallsStillAssumeTheActivePlayersPiece() {
+        Piece mine = onTrack(red, 0, 4);
+        Piece victim = onTrack(green, 0, 12);
+
+        SurprisePrompt shortForm = factory(new ScriptRandom(3)).promptFor(SurpriseOutcome.OPPONENT_BACK, mine);
+        SurprisePrompt longForm = factory(new ScriptRandom(3))
+                .promptFor(SurpriseOutcome.OPPONENT_BACK, mine, PlayerColor.RED);
+        assertEquals(longForm, shortForm);
+        assertSame(PlayerColor.RED, shortForm.active());
+        assertFalse(shortForm.opponentTriggered());
+        assertEquals(List.of(victim), shortForm.targets());
+
+        assertSame(SurpriseOutcome.SKIP_TURN, factory(new ScriptRandom(60)).draw(mine).outcome());
+    }
+
+    @Test
+    @DisplayName("A colour that nobody in this game plays is refused as the active player")
+    void anUnknownActiveColourIsRefused() {
+        Piece mine = onTrack(red, 0, 4);
+        SurpriseFactory factory = factory(new Random(1));
+        assertThrows(NullPointerException.class, () -> factory.draw(mine, null));
+        assertThrows(IllegalArgumentException.class, () -> factory.draw(mine, PlayerColor.YELLOW));
+        assertThrows(IllegalArgumentException.class,
+                () -> factory.promptFor(SurpriseOutcome.BACK_THREE, mine, PlayerColor.YELLOW));
+    }
+
+    // ----------------------------------- stale and foreign picks
+
+    @Test
+    @DisplayName("FR-40: a pick that left the board after it was offered is refused, not moved")
+    void aPickCapturedAfterItWasOfferedIsRefused() {
+        Piece mine = onTrack(red, 0, 4);
+        Piece victim = onTrack(green, 0, 12);
+        SurprisePrompt prompt = factory(new ScriptRandom(3)).promptFor(SurpriseOutcome.OPPONENT_BACK, mine);
+        assertEquals(List.of(victim), prompt.targets());
+
+        victim.setProgress(Piece.IN_CASTLE); // captured by a later effect of the same chain
+        assertThrows(IllegalArgumentException.class, () -> prompt.resolve(victim));
+    }
+
+    @Test
+    @DisplayName("FR-40: a pick that turned into its home path after it was offered is refused by the factory")
+    void aPickThatLeftTheSharedTrackIsRefusedByTheFactory() {
+        Piece mine = onTrack(red, 0, 4);
+        Piece victim = onTrack(green, 0, 12);
+        SurpriseFactory factory = factory(new ScriptRandom(3));
+        SurprisePrompt prompt = factory.promptFor(SurpriseOutcome.OPPONENT_BACK, mine);
+
+        victim.setProgress(board.homeStartIndex()); // still on the board, but out of reach now
+        assertThrows(IllegalArgumentException.class, () -> factory.resolve(prompt, victim));
+    }
+
+    @Test
+    @DisplayName("FR-40: a piece of no player of this game is refused as a pick")
+    void aForeignPickIsRefused() {
+        Piece mine = onTrack(red, 0, 4);
+        onTrack(green, 0, 12);
+        SurpriseFactory factory = factory(new ScriptRandom(3));
+        SurprisePrompt prompt = factory.promptFor(SurpriseOutcome.OPPONENT_BACK, mine);
+
+        Player stranger = new Player("Stranger", PlayerColor.YELLOW, board.finishIndex());
+        Piece foreign = stranger.pieces().get(0);
+        foreign.setProgress(9);
+        assertThrows(IllegalArgumentException.class, () -> factory.resolve(prompt, foreign));
+        assertThrows(IllegalArgumentException.class, () -> prompt.resolve(foreign));
+    }
+
+    @Test
+    @DisplayName("The factory's resolve accepts a valid pick and refuses an outcome with no choice")
+    void factoryResolveChecksTheWholePick() {
+        Piece mine = onTrack(red, 0, 4);
+        Piece victim = onTrack(green, 0, 12);
+        SurpriseFactory factory = factory(new ScriptRandom(3));
+
+        SurprisePrompt push = factory.promptFor(SurpriseOutcome.OPPONENT_BACK, mine);
+        SurpriseResult result = factory.resolve(push, victim);
+        assertSame(victim, result.piece());
+        assertEquals(-2, result.steps());
+        assertEquals(push.resolve(victim), result);
+
+        SurprisePrompt noChoice = factory.promptFor(SurpriseOutcome.BACK_THREE, mine);
+        assertThrows(IllegalStateException.class, () -> factory.resolve(noChoice, victim));
+        assertThrows(NullPointerException.class, () -> factory.resolve(push, null));
+        assertThrows(NullPointerException.class, () -> factory.resolve(null, victim));
     }
 
     @Test

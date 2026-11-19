@@ -14,6 +14,18 @@ import java.util.Objects;
  * {@link #action()} and builds its own command. Nothing is moved, and no turn state is changed, by creating
  * one of these.
  *
+ * <p><b>Two different players (FR-42).</b> An effect may move an <i>opponent's</i> piece onto another special
+ * square, and that square is then activated during the active player's turn
+ * ({@code EffectQueue.Activation} of T2-10 carries the moved piece, whoever owns it). So a surprise has two
+ * players in it, and they are kept apart on purpose:
+ * <ul>
+ *   <li>{@link #active()} — the player whose <b>turn</b> it is. FR-40 says this is the player who chooses the
+ *       opponent piece to push, and FR-34 says this is the player who answers a question.</li>
+ *   <li>{@link #triggerOwner()} — the owner of the piece that <b>landed</b> on the special square. In an
+ *       ordinary chain the two are the same; after a push they need not be, and
+ *       {@link #opponentTriggered()} says which case this is.</li>
+ * </ul>
+ *
  * <p><b>How T2-10 uses it.</b> One {@code switch} over {@link #action()}:
  * <pre>{@code
  * switch (result.action()) {
@@ -30,15 +42,15 @@ import java.util.Objects;
  * {@link SurpriseAction#MOVE_STEPS}, so it fits {@code MoveStepsEffect} as it is.
  *
  * @param outcome the outcome that was drawn (FR-39)
+ * @param active the colour of the player whose turn it is
+ * @param trigger the piece that landed on the surprise square; its owner may be another player (FR-42)
  * @param piece the piece the action moves, or null when the action moves no piece
- * @param affected the colour of the player the outcome falls on: the active player, or the owner of the
- *        pushed piece for {@link SurpriseOutcome#OPPONENT_BACK}
  * @param action what must happen
  * @param steps signed steps for {@link SurpriseAction#MOVE_STEPS} (negative = backward), otherwise 0
  * @param regularRoll the Regular die rolled for a push (FR-40), 1 to 6, or 0 when no die was rolled
  * @param note why nothing happens, when {@code action} is {@link SurpriseAction#NOTHING}; otherwise null
  */
-public record SurpriseResult(SurpriseOutcome outcome, Piece piece, PlayerColor affected,
+public record SurpriseResult(SurpriseOutcome outcome, PlayerColor active, Piece trigger, Piece piece,
                              SurpriseAction action, int steps, int regularRoll, String note) {
 
     /**
@@ -62,15 +74,21 @@ public record SurpriseResult(SurpriseOutcome outcome, Piece piece, PlayerColor a
     }
 
     /**
-     * @throws NullPointerException if {@code outcome}, {@code affected} or {@code action} is null
+     * @throws NullPointerException if {@code outcome}, {@code active}, {@code trigger} or {@code action} is
+     *         null
      * @throws IllegalArgumentException if the parts contradict each other, for instance steps without a
-     *         {@link SurpriseAction#MOVE_STEPS} action, a moving action without a piece, or a Regular die
-     *         value outside 1-6
+     *         {@link SurpriseAction#MOVE_STEPS} action, a moving action without a piece, a push that moves
+     *         the active player's own piece, or a Regular die value outside 1-6
      */
     public SurpriseResult {
         Objects.requireNonNull(outcome, "outcome");
-        Objects.requireNonNull(affected, "affected");
+        Objects.requireNonNull(active, "active");
+        Objects.requireNonNull(trigger, "trigger");
         Objects.requireNonNull(action, "action");
+        if (!trigger.onBoard()) {
+            throw new IllegalArgumentException("A surprise square is reached by a piece on the board, not by "
+                    + trigger);
+        }
         boolean movesPiece = action == SurpriseAction.JUMP_TO_FINISH
                 || action == SurpriseAction.RETURN_TO_CASTLE
                 || action == SurpriseAction.MOVE_STEPS;
@@ -79,8 +97,18 @@ public record SurpriseResult(SurpriseOutcome outcome, Piece piece, PlayerColor a
                     ? action + " needs the piece it moves"
                     : action + " moves no piece, so it must not carry one");
         }
-        if (piece != null && piece.color() != affected) {
-            throw new IllegalArgumentException(piece + " does not belong to " + affected.label());
+        if (piece != null) {
+            if (outcome.needsOwnPiece() && piece != trigger) {
+                throw new IllegalArgumentException(outcome
+                        + " moves the piece that landed on the square, not " + piece);
+            }
+            if (outcome.needsOpponentPiece() && piece.color() == active) {
+                throw new IllegalArgumentException("A push moves an opponent of the active player "
+                        + active.label() + ", not " + piece + " (FR-40)");
+            }
+            if (!piece.onBoard()) {
+                throw new IllegalArgumentException(piece + " is not on the board, so it cannot be moved");
+            }
         }
         if ((action == SurpriseAction.MOVE_STEPS) == (steps == 0)) {
             throw new IllegalArgumentException(action == SurpriseAction.MOVE_STEPS
@@ -96,6 +124,45 @@ public record SurpriseResult(SurpriseOutcome outcome, Piece piece, PlayerColor a
                     ? "NOTHING must say why nothing happens"
                     : action + " does happen, so it must not carry a note");
         }
+    }
+
+    /**
+     * The player the outcome falls on: the owner of the piece that is moved, or, when no piece moves, the
+     * player whose turn it is.
+     *
+     * <p><b>Open decision for the team.</b> For {@link SurpriseAction#SKIP_NEXT_TURN} and
+     * {@link SurpriseAction#EXTRA_ROLL} in a chain that an opponent's piece set off ({@link
+     * #opponentTriggered()}), the approved requirements do not say whether the turn effect falls on the
+     * player whose turn it is or on the owner of the piece that landed. This method returns the player whose
+     * turn it is, as a <b>provisional</b> answer, and {@link #turnTargetUndecided()} is {@code true} in
+     * exactly that case so the open question is visible in code instead of hidden. Changing the answer is a
+     * one-line change here.
+     *
+     * @return the colour of the player the outcome falls on
+     */
+    public PlayerColor affected() {
+        return piece == null ? active : piece.color();
+    }
+
+    /** @return the owner of the piece that landed on the surprise square */
+    public PlayerColor triggerOwner() {
+        return trigger.color();
+    }
+
+    /**
+     * @return true when the piece that landed on the square belongs to another player than the one whose turn
+     *         it is, which an effect chain can cause (FR-42)
+     */
+    public boolean opponentTriggered() {
+        return trigger.color() != active;
+    }
+
+    /**
+     * @return true when this is a turn effect in a chain that an opponent's piece set off, so which player it
+     *         falls on is still an open decision for the team; see {@link #affected()}
+     */
+    public boolean turnTargetUndecided() {
+        return changesTurn() && opponentTriggered();
     }
 
     /** @return true when the action moves a piece and so becomes a {@code SquareEffect} command of T2-10 */
@@ -119,6 +186,8 @@ public record SurpriseResult(SurpriseOutcome outcome, Piece piece, PlayerColor a
                 + (piece == null ? "" : " on " + piece)
                 + (steps == 0 ? "" : " by " + steps)
                 + (regularRoll == 0 ? "" : " (Regular die " + regularRoll + ")")
+                + " [turn of " + active.label()
+                + (opponentTriggered() ? ", set off by " + trigger : "") + "]"
                 + (note == null ? "" : ": " + note);
     }
 }

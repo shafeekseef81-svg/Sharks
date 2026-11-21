@@ -93,10 +93,14 @@ The rows that run left open were completed on 14 Nov 2026 (table below), followi
 | 2.11 | Turn passes to the other player | FR-15, FR-23 | active player changes | **PASS** | "Rakan has no legal move with a 4; the turn passes. Next: Tester." Current-turn card and TURN tag moved to Tester (14 Nov) |
 | 2.12 | Game clock on the board | FR-46 | counts up, HH:MM:SS | **PASS** | 00:00:02 → 00:00:17 → 00:01:58 → 00:02:13 during the game (14 Nov) |
 | 2.13 | Response to a click | NFR-01–NFR-03 | no noticeable delay | **PASS** | every roll and click was shown at the next screenshot (under about 2 s, including the roll animation); the window stayed responding; no stopwatch measurement (14 Nov) |
-| 2.14 | Finish a game | FR-43–FR-47 | results screen, ranking, total time | **PASS** | on computer 2 by Rakan Ziyan on 10 Nov (a full game by hand on the JAR built from `main`, to the results screen; recorded in the Scrum Report), and by the automated full-game tests run on computer 2 on 14 Nov (GameController complete game to the results screen; T26: 120 complete games) |
+| 2.14 | Finish a game | FR-43–FR-47 | results screen, ranking, total time | **PASS** | on computer 2 (his own computer) by Rakan Ziyan on 10 Nov (a full game by hand on the JAR built from `main`, to the results screen; recorded in the Scrum Report), and by the automated full-game tests run on computer 2 on 14 Nov (GameController complete game to the results screen; T26: 120 complete games) |
 | 2.15 | Leave game confirmation | FR-03 | asks before leaving | **PASS** | Main Menu during a game showed "Leave this game?" with Keep Playing / Leave Game; Leave Game returned to the menu (14 Nov) |
 
 **Overall T28 verdict: PASS** — 16 of 16 rows passed on computer 2.
+
+**All three team computers:** in addition to the rows above, the team played full games by hand, to the
+results screen, on the computers of all three members — Rakan Ziyan, Shafeek Saif and Mohamed Zereny
+(confirmed by Rakan Ziyan, 14 Nov 2026).
 Computer-2 runs: 11 Nov 2026 by Mohamed Zereny (2.0, 2.4, 2.9, 2.10) and 14 Nov 2026 by Rakan Ziyan
 (all rows) · machine: Rakan Ziyan's computer. Screenshots of the 14 Nov run are kept by Rakan Ziyan.
 

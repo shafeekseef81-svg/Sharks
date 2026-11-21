@@ -175,25 +175,34 @@ Build under test: `Iteration2/EducationalLudo.jar`, built by `Iteration2/build.b
 | 3.4 | Move one of the two pieces away | The block is gone and the square can be used again (FR-30) | | | |
 | 3.5 | Bring the owner into a position where the only legal move is a block piece | The owner is forced to break the block (FR-30) | | | |
 
-### M4 - questions (FR-34..FR-38) - BLOCKED until #89 and #87/#92 are merged
+### M4 - questions (FR-34..FR-38) - BLOCKED until #89, #91 and #87/#92 are merged
+
+> D3 (the **No Answer** button) is decided and implemented in #91, so rows 4.4-4.4c have an approved rule.
+> They cannot be run until the card is opened by a running game.
 
 | # | Step | Expected result | Actual | Pass / Fail | Evidence |
 |---|---|---|---|---|---|
 | 4.1 | Land a piece on a question square | A dialog shows the question and four answers, to all players (FR-34); the question is of the **square's** level | | | screenshot |
 | 4.2 | Answer correctly | The dialog says it was correct and names the correct answer (FR-36); the piece moves **forward** 1 / 2 / 3 steps by the question's level (FR-35) | | | screenshot |
 | 4.3 | Answer incorrectly | It says so and names the correct answer (FR-36); the piece moves **back** the same number of steps (FR-35) | | | screenshot |
-| 4.4 | Close the dialog without answering | Counts as a wrong answer (FR-35) - **see the open Product Owner decision on NO_ANSWER** | | | |
+| 4.4 | Press the **No Answer** button | **D3, decided 21/11/2026:** it counts as a wrong answer - the verdict says "Not correct", the correct answer is named (FR-36), and the piece moves **backward** by the level (−1 Easy / −2 Medium / −3 Hard, FR-35). Continue is required | | | screenshot |
+| 4.4b | Try to answer again after pressing No Answer | Every button is disabled; nothing is judged a second time (D3) | | | |
+| 4.4c | Close or move the card without pressing any button | **Nothing is answered.** There is no timer, and closing is not an answer (D3) | | | |
 | 4.5 | Keep playing until a level's questions run out | No question of a level repeats before all of that level were asked (FR-37) | | | note the questions seen |
 | 4.6 | Land on an unprotected question square holding one opponent piece | The capture happens **first**, then the question (FR-38) | | | screenshot |
 
-### M5 - surprise outcomes (FR-39, FR-40) - BLOCKED until #90 and #87/#92 are merged
+### M5 - surprise outcomes (FR-39, FR-40) - BLOCKED until #90, #91 and #87/#92 are merged
+
+> D2 (a turn outcome falls on the active player) is decided and implemented in #90 and #91, so rows 5.4 and
+> 5.4b have an approved rule. They cannot be run until a surprise is triggered by a running game.
 
 | # | Step | Expected result | Actual | Pass / Fail | Evidence |
 |---|---|---|---|---|---|
 | 5.1 | Land on a surprise square | Exactly one outcome is triggered and shown (FR-39) | | | screenshot |
 | 5.2 | Repeat until every outcome has been seen at least once | Every outcome in the SRS occurs and does what it says (FR-39) | | | one screenshot per outcome; list which were seen |
 | 5.3 | Get the "move an opponent" outcome | The **active player** chooses which opponent piece moves (FR-40) | | | screenshot |
-| 5.4 | Get an extra roll / a skipped turn outcome | The turn order changes as the SRS says - **see the open Product Owner decisions on the recipient** | | | |
+| 5.4 | Get a skipped-turn or extra-roll outcome in an **ordinary** chain | The active player misses the next turn, or rolls again (FR-39) | | | |
+| 5.4b | Push an opponent onto a surprise square that draws **skip the next turn** or **extra roll** | **D2, decided 21/11/2026 - Option A:** the outcome falls on the **active** player (the one who pushed), never on the owner of the pushed piece. Red pushes Green, the square says "skip a turn": **Red** misses the next turn. The card shows no "undecided" note and names the active player | | | screenshot |
 
 ### M6 - chained effects (FR-41, FR-42) - BLOCKED until #87/#92 are merged
 
@@ -220,8 +229,8 @@ Build under test: `Iteration2/EducationalLudo.jar`, built by `Iteration2/build.b
 | M1 Medium full game | | | |
 | M2 Hard full game | | | |
 | M3 Double Blocks | | | |
-| M4 Questions | | | blocked 21/11 |
-| M5 Surprises | | | blocked 21/11 |
+| M4 Questions | | | blocked 21/11 - rule decided (D3), waiting on #91 and #92 |
+| M5 Surprises | | | blocked 21/11 - rule decided (D2), waiting on #90, #91 and #92 |
 | M6 Chains | | | blocked 21/11 |
 | M7 States | | | blocked 21/11 |
 
@@ -234,7 +243,11 @@ results screen.
 1. **The dependencies merge** (#89, #90, #87/#92, #79). Until then A5-A8 cannot be accepted at all.
 2. **Write the 12 planned tests of section 3**, in a second class, once they can run.
 3. **Run the manual script of section 4** on both release computers with the release JAR (with N2-06).
-4. **Open Product Owner decisions** that the script runs into: NO_ANSWER, the recipient of SKIP_TURN and
-   EXTRA_ROLL, and the push-back onto a start square. They are listed in
-   `Iteration2/docs/T2-15_PO_Decisions.md`; the manual steps that depend on them cannot be judged pass or
-   fail until they are decided.
+4. **Product Owner decisions.** `Iteration2/docs/T2-15_PO_Decisions.md` is the register.
+   - **D2** (the recipient of SKIP_TURN and EXTRA_ROLL) and **D3** (what "did not answer" means) were
+     **decided on 21/11/2026 and implemented**, so M4.4, M4.4b, M4.4c, M5.4 and M5.4b now have an approved
+     rule to judge against. **They have still not been run**: the dialogs are not opened by a running game
+     until T2-10 (#92) merges, so those rows stay empty.
+   - **D1** (a Double Block on a start square), **D4** (a push-back past the start square) and **D5**
+     (EXTRA_ROLL with SKIP_TURN in one chain) are **still open**, so **M3**, **M6.2** and the planned tests
+     P9 and P10 cannot be judged pass or fail yet.

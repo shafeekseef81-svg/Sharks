@@ -4,23 +4,29 @@ Owner: **Mohamed Zereny** (Product Owner). Opened 21/11/2026. Related: issue
 [#75](https://github.com/shafeekseef81-svg/Sharks/issues/75), PRs #87, #89, #90, #91, #92, and the acceptance
 plan `Iteration2/docs/T2-15_AcceptancePlan.md`.
 
-**Nothing in this file is a decision.** Each entry ends in a **proposal**, which becomes a decision only when
-the Product Owner records it as decided, with a date, and the team is told. Until then the code must keep
-behaving as it does today, and the acceptance steps that depend on it stay unjudged.
+**Status 21/11/2026: D2 and D3 are DECIDED and implemented. D1, D4 and D5 are still OPEN.**
+
+An entry marked OPEN ends in a **proposal**, which is not a decision: it becomes one only when the Product
+Owner records it as decided, with a date, and the team is told. Until then the code keeps behaving as it does
+today and the acceptance steps that depend on it stay unjudged.
 
 Why this register exists: five rules in Iteration 2 are not answered by the confirmed requirements. Each one
-is currently settled *somewhere in the code* by whoever wrote that code first. That is not wrong - it is how
-the work got done - but it means the rule is decided by an implementation detail rather than by the Product
-Owner, and two of the five are visible to the player. The point of this file is to make each one explicit,
-say where the evidence is, and keep the proposal separate from the code.
+was settled *somewhere in the code* by whoever wrote that code first. That is not wrong - it is how the work
+got done - but it meant the rule was decided by an implementation detail rather than by the Product Owner, and
+two of the five are visible to the player. The point of this file is to make each one explicit, say where the
+evidence is, and keep the proposal separate from the code.
 
-| # | Open rule | Visible to a player? | Decided today by | Blocks |
-|---|---|---|---|---|
-| D1 | A Double Block on a start square | **Yes** | `StandardMoveEngine.moveFor` | M3 in the acceptance script |
-| D2 | Who gets SKIP_TURN / EXTRA_ROLL after an opponent's piece set off the chain | **Yes** | `SurpriseResult.affected`, flagged undecided | M5.4, T2-09, T2-11, T2-13 |
-| D3 | What "did not answer" means, and whether it can happen at all | **Yes** | `QuestionFactory.judge` + no timer in T2-11 | M4.4 |
-| D4 | A push-back that would go past the pushed piece's start square | **Yes** | not implemented yet (T2-10) | M6.2, P10 |
-| D5 | EXTRA_ROLL and SKIP_TURN arriving in the same effect chain | Rarely | not implemented yet (T2-10, T2-13) | P9 |
+**Where the decision differed from the proposal, both are kept below.** For D2 and D3 the Product Owner chose
+differently from what this register proposed; the proposals are left in place, marked as superseded, so the
+record of what was considered stays honest.
+
+| # | Rule | Status | Visible to a player? | Decided by | Blocks |
+|---|---|---|---|---|---|
+| D1 | A Double Block on a start square | **OPEN** | **Yes** | `StandardMoveEngine.moveFor` (merged, Rakan) | M3 in the acceptance script |
+| D2 | Who gets SKIP_TURN / EXTRA_ROLL after an opponent's piece set off the chain | **DECIDED 21/11/2026 - Option A, the active player** | **Yes** | Product Owner; implemented in T2-09 and T2-11 | nothing - M5.4 can now be judged |
+| D3 | What "did not answer" means, and whether it can happen at all | **DECIDED 21/11/2026 - an explicit No Answer button** | **Yes** | Product Owner; implemented in T2-11 | nothing - M4.4 can now be judged |
+| D4 | A push-back that would go past the pushed piece's start square | **OPEN** | **Yes** | not implemented yet (T2-10, Shafeek) | M6.2, P10 |
+| D5 | EXTRA_ROLL and SKIP_TURN arriving in the same effect chain | **OPEN** | Rarely | not implemented yet (T2-10, T2-13) | P9 |
 
 ---
 
@@ -72,6 +78,47 @@ lock-out explicitly**, because it is player-visible and it is the kind of thing 
 
 ## D2 — Who gets SKIP_TURN or EXTRA_ROLL when an opponent's piece set off the chain
 
+> ## ✅ DECIDED — 21/11/2026 — **Option A: the active player**
+>
+> **The rule.** A `SKIP_TURN` or `EXTRA_ROLL` falls on the player whose **turn** it is, never on the owner of
+> the piece that landed on the surprise square, even when an effect chain set that square off with an
+> opponent's piece (FR-42). Red is the active player, Red pushes Green onto a surprise square, the square
+> draws "skip the next turn": **Red** misses the next turn. An `EXTRA_ROLL` likewise goes to **Red**.
+>
+> **Rationale given by the Product Owner.** FR-34 already gives the question in exactly this situation to the
+> active player, so keeping the turn-level consequence with the active player is the consistent reading, and
+> it keeps every turn-level consequence with the player who caused the chain.
+>
+> **This is Option A below, not the Option B that this register proposed.** The proposal is left in place,
+> marked superseded.
+>
+> **Requirements affected:** FR-39, FR-40, FR-42 (FR-34 as the consistency argument). The meaning of the other
+> four outcomes is unchanged, and the push is still chosen by the active player.
+>
+> **Implemented 21/11/2026:**
+>
+> | Where | What changed | Commit |
+> |---|---|---|
+> | `Iteration2/src/Model/SurpriseResult.java` | `affected()` keeps returning the active player for a turn outcome - behaviour unchanged, since a turn outcome carries no piece - and its javadoc now records D2 as an approved rule. New `turnAffected()` returns the active player and refuses when the outcome does not change the turn, so D2 is named at the call site. `turnTargetUndecided()` **removed**. | `016d3c1` (#90) |
+> | `Iteration2/test/Model/SurpriseFactoryTest.java` | 45 -> 47 tests: a turn outcome in an opponent-triggered chain falls on the active player and explicitly **not** on the owner of the landed piece; the same in an ordinary chain; `turnAffected()` refused for every piece-moving outcome. | `016d3c1` (#90) |
+> | `Iteration2/src/View/SurpriseDialog.java` | `UNDECIDED_NOTE`, the `surprise.undecided` label, `recipientUndecided()`, `neutralTitle(...)` and `neutralDescription(...)` **removed**. The card now always shows the Model's own title and sentence, which are addressed to the player whose turn it is - correct under D2 - beside the pill naming that player. `surprise.chainNote` stays and never claims the opponent is affected. | `ae6e52a` (#91) |
+> | `Iteration2/test/View/SurpriseDialogTest.java` | the undecided test is rewritten as the D2 rule: the resolved result reports the **active** player as affected, with the owner of the landed piece explicitly different. | `ae6e52a` (#91) |
+>
+> **Before removing `turnTargetUndecided()`, every caller on every branch was checked.** Only my own four
+> files referred to it (`SurpriseResult`, `SurpriseDialog`, `SurpriseFactoryTest`, `SurpriseDialogTest`). No
+> file owned by Shafeek or Rakan calls it on any branch, including #92, #95 and #96. `GameModel`,
+> `EffectQueue`, `ResolvingState` and `StandardTurnManager` do not reference it at all.
+>
+> **For T2-10 (#92):** `turn.skipNextTurn(result.turnAffected())` is now the intended call. `affected()`
+> returns the same value for a turn outcome, so existing code keeps working unchanged.
+>
+> **Test evidence, Java 17 (Temurin 17.0.17), measured 21/11/2026:** 476/476 on the T2-09 branch (from
+> 474/474) and 512/512 on the T2-11 branch. `SurpriseFactoryTest` 47/47, `SurpriseDialogTest` 16/16,
+> `MvcDependencyTest` 4/4.
+>
+> **Not verified:** no manual gameplay was performed. A surprise is still not triggered in a running game,
+> because T2-10 (#92) is not merged, so M5.4 has an approved rule to judge against but has **not** been run.
+
 **The exact rule in question.** Red is taking the turn. A surprise moves **Green's** piece (FR-40), and
 Green's piece lands on a surprise square, which draws "skip the next turn" or "roll again" (FR-39, FR-42).
 Does **Red** (whose turn it is) skip or roll again, or does **Green** (whose piece landed)?
@@ -103,13 +150,62 @@ in unmerged code owned by me. This is the cheapest of the five to change and the
 gameplay consequence. It must be decided before #90 and #91 merge, otherwise the `UNDECIDED_NOTE` ships to a
 player.
 
-**Proposal (not decided).** **B** - the owner of the piece that landed. It reads the way a board game reads,
-it makes FR-40's push meaningful, and it cannot be abused to benefit the active player. Cost: one line in
-`SurpriseResult.affected()`, one test, and removing `UNDECIDED_NOTE` from the dialog.
+**~~Proposal~~ — SUPERSEDED by the decision above.** This register proposed **B**, the owner of the piece that
+landed, arguing that it reads the way a board game reads and makes FR-40's push meaningful. **The Product Owner
+chose Option A instead**, on the grounds of consistency with FR-34, which gives the question in the same
+situation to the active player. Option A is the rule; this paragraph is kept only as a record of what was
+considered.
 
 ---
 
 ## D3 — What "did not answer" means, and whether a player can refuse to answer
+
+> ## ✅ DECIDED — 21/11/2026 — **an explicit "No Answer" button**
+>
+> **The rule.** The question card carries an explicit button labelled **No Answer**. Pressing it submits
+> `QuestionResult.NO_ANSWER` through the existing Model judging rule, which counts it as an incorrect answer
+> under FR-35 and produces the backward movement of the question's level (−1 Easy, −2 Medium, −3 Hard). The
+> normal feedback follows, including the correct answer (FR-36), and the player must press **Continue** to go
+> on. **No timer is introduced**, and **accidentally closing the card is not an answer.** The four answer
+> buttons behave exactly as before.
+>
+> **This is neither Option A nor Option B below.** The register proposed A (make the card non-closable and
+> leave `NO_ANSWER` unreachable from the interface); the Product Owner chose to give the player an explicit,
+> deliberate way to decline instead, which implements FR-35 fully without inventing a timer and without
+> punishing a misclick. The proposal is left in place, marked superseded.
+>
+> **Requirements affected:** FR-35, FR-36, NFR-05 (presentation only).
+>
+> **Implemented 21/11/2026, commit `ae6e52a` (#91):**
+>
+> | Where | What |
+> |---|---|
+> | `Iteration2/src/View/QuestionDialog.java` | new button `question.noAnswer` (`QuestionDialog.NO_ANSWER_NAME`), label **No Answer**, built from the existing `CustomButton` with `Variant.GHOST` so it is the quietest option on the card. Its only action is `submit(QuestionResult.NO_ANSWER)`. The first submission now disables the four answer buttons **and** this one. Keyboard-accessible as a `JButton` (Tab, Space, Enter) with an accessible description. |
+> | `Iteration2/test/View/QuestionDialogTest.java` | 12 -> 20 tests (see below). |
+>
+> **No question logic was duplicated in the View.** The button submits an index; `QuestionFactory.judge`
+> decides that it is wrong and by how many steps. `QuestionResult` and `QuestionFactory` were **not changed** -
+> `NO_ANSWER` and its judging already existed and were already tested in `QuestionFactoryTest`.
+>
+> **Test evidence, Java 17 (Temurin 17.0.17), measured 21/11/2026 — 8 new tests, all passing:**
+>
+> 1. clicking it submits `NO_ANSWER` through the Model and is judged incorrect, asked exactly once;
+> 2. the backward movement is −1 / −2 / −3 for Easy / Medium / Hard, straight from the Model (FR-35);
+> 3. the verdict and the correct answer are still shown, and Continue is required (FR-36);
+> 4. afterwards every button is disabled, and a second click or a direct `submit` of a real answer changes
+>    nothing and never asks the Model twice;
+> 5. answering normally also disables the No Answer button, so the two routes cannot both be used;
+> 6. Continue after No Answer calls the completion callback exactly once, however often it is clicked;
+> 7. the button is focusable and carries an accessible description, and the keyboard path produces
+>    `NO_ANSWER`;
+> 8. re-laying out the card answers nothing and no timer runs, so closing it cannot answer for the player.
+>
+> `QuestionDialogTest` 20/20, full suite on the T2-11 branch **512/512**, `MvcDependencyTest` 4/4.
+> **Checked by mutation:** removing the single line that disables the button on submission makes exactly 2 of
+> these tests fail, so they are not vacuous.
+>
+> **Not verified:** no manual gameplay was performed. The question card is still not opened by a running game,
+> because T2-10 (#92) is not merged, so M4.4 has an approved rule to judge against but has **not** been run.
 
 **The exact rule in question.** FR-35 is confirmed: not answering counts as a wrong answer, so the piece moves
 back 1, 2 or 3 steps. But *how* does a player not answer? There is no time limit anywhere in the SRS, and
@@ -135,11 +231,11 @@ T2-11 deliberately implements no timer.
 **Impact.** A and B are both small changes in my own unmerged T2-11 code. C is new scope and a number nobody
 has specified - it should not be done in Iteration 2.
 
-**Proposal (not decided).** **A for the interface, keep the model as it is.** Make the question dialog
-non-closable so a player cannot lose steps by accident, and keep `NO_ANSWER` in the model, tested, for the
-timer that Iteration 3 may add. The system report should then say plainly that FR-35's "did not answer" clause
-is implemented in the model but cannot be triggered from the interface in Iteration 2 - which is honest, and
-better than inventing a timer.
+**~~Proposal~~ — SUPERSEDED by the decision above.** This register proposed **A**: make the card non-closable,
+keep `NO_ANSWER` in the model as tested-but-unreachable code, and say so plainly in the system report. **The
+Product Owner chose a third option** - an explicit button - which implements FR-35 fully, needs no timer, and
+cannot punish a misclick because declining is a deliberate press rather than a closed window. This paragraph
+is kept only as a record of what was considered.
 
 ---
 
@@ -213,12 +309,23 @@ both be set in one turn, and cover it in the planned test P9.
 
 ## How these get closed
 
-1. Product Owner (me) reviews each proposal and records a decision with a date in this file.
-2. The decision goes into the relevant issue or PR as a comment, so the implementer sees it.
-3. D2 and D3 must be closed **before #90 and #91 merge**, because they change my own unmerged code and D2
-   currently ships an "undecided" note to the player.
-4. D1 needs an explicit acceptance of the lock-out, or a change in Rakan's merged code - the first is cheap,
-   the second is not.
-5. D4 and D5 are confirmations to request from Shafeek and Rakan rather than new rules.
-6. Once decided, the matching rows of `T2-15_AcceptancePlan.md` (M3, M4.4, M5.4, M6.2, P9, P10) can be judged
-   pass or fail instead of staying unjudged.
+**Done on 21/11/2026:**
+
+1. ~~D2 and D3 must be closed before #90 and #91 merge.~~ **Both decided and implemented.** D2 is in
+   `016d3c1` (#90) and `ae6e52a` (#91); D3 is in `ae6e52a` (#91). The "undecided" note no longer ships to the
+   player. Both PRs had approvals before these commits, so **those approvals are now stale and the PRs need a
+   fresh review** - that is expected, not hidden.
+
+**Still to do:**
+
+2. **D1** needs an explicit Product Owner acceptance of the start-square lock-out, or a change in Rakan's
+   merged code - the first is cheap, the second is not. Blocks M3.
+3. **D4** and **D5** are confirmations to request from Shafeek (T2-10) and Rakan (T2-13) rather than new
+   rules. D4 is already settled by FR-32 if T2-10 implements it; D5 is partly settled inside #92, where
+   `TurnState.skipNextTurn` is documented as also cancelling a pending roll from a 6 - that should be a
+   recorded rule rather than a javadoc line. Block P9 and P10.
+4. M3 in `T2-15_AcceptancePlan.md` stays unjudged until D1 is decided. **M4.4 and M5.4 now have an approved
+   rule to judge against**, but neither has been run: the dialogs are still not opened by a running game
+   until T2-10 (#92) merges.
+5. Each decision above is also to be posted as a comment on the PR that implements it, so the implementer
+   sees it without reading this file.

@@ -30,8 +30,8 @@ justifications written here are the developer's own and can be corrected without
 | D1 | A Double Block on a start square | **OPEN** | **Yes** | `StandardMoveEngine.moveFor` (merged, Rakan) | M3 in the acceptance script |
 | D2 | Who gets SKIP_TURN / EXTRA_ROLL after an opponent's piece set off the chain | **DECIDED 21/11/2026 - Option A, the active player** | **Yes** | Product Owner; implemented in T2-09 and T2-11 | nothing - M5.4 can now be judged |
 | D3 | What "did not answer" means, and whether it can happen at all | **DECIDED 21/11/2026 - an explicit No Answer button** | **Yes** | Product Owner; implemented in T2-11 | nothing - M4.4 can now be judged |
-| D4 | A push-back that would go past the pushed piece's start square | **OPEN** | **Yes** | not implemented yet (T2-10, Shafeek) | M6.2, P10 |
-| D5 | EXTRA_ROLL and SKIP_TURN arriving in the same effect chain | **OPEN** | Rarely | not implemented yet (T2-10, T2-13) | P9 |
+| D4 | A push-back that would go past the pushed piece's start square | **OPEN — ratification only** | **Yes** | already implemented in `EffectMover`, independently tested in #95 | M6.2, P10 |
+| D5 | EXTRA_ROLL and SKIP_TURN arriving in the same effect chain | **OPEN — ratification only** | Rarely | already implemented as two independent fields in `StandardTurnManager`; test P9 still missing | P9 |
 
 ---
 
@@ -289,8 +289,21 @@ piece go back into its castle?
 this is less a decision than a **check that T2-10 implements A** - but it is player-visible and currently
 untested, so it belongs in this register until somebody has run it.
 
-**Proposal (not decided).** **A**, because FR-32 says so. Action: ask Shafeek to confirm T2-10 stops the piece
-at its own start square, and add the acceptance test P10 and the manual step M6.2 as the evidence.
+**Verified on 21/11/2026 in the integration build — Option A is already implemented and independently
+tested.** Checked in a worktree holding `iteration-2` plus #79, #91, #92, #95 and #97:
+
+- `Iteration2/src/Model/EffectMover.java` states it in its own javadoc ("Backward movement stops at the
+  owner's starting square and never crosses it (FR-32)") and implements it at the method that computes the
+  progress a backward effect reaches ("never behind the starting square (FR-32), never past a block").
+- Four tests name FR-32, and one of them is **exactly the D4 case**: *"FR-32: a pushed opponent stops on its
+  own start square and does not cross it"*. It lives in
+  `Iteration2/test/Model/EffectChainIndependentTest.java` — **Rakan's independent T2-12 tests (#95)**, so it
+  also satisfies SDP 5.3.4: it was written by someone who did not write the effect mover.
+
+**Proposal (not decided).** Ratify **A**. There is nothing left to build or test — this is now a formality
+that brings the register in line with code that already behaves this way and is independently covered. The
+earlier action item ("ask Shafeek to confirm") is **done**; what remains is the Product Owner saying so, after
+which M6.2 and the planned test P10 can be judged.
 
 ---
 
@@ -320,10 +333,29 @@ one win, or do both apply (roll again now, and miss the next turn)?
 **Impact.** Unmerged code owned by Shafeek (T2-10) and Rakan (T2-13). Rare in play, so low risk either way -
 but it should not be left to whichever line of code runs last.
 
-**Proposal (not decided).** **A**, both apply, because it is the only option where every outcome the player
-saw drawn actually happens. It also needs no new rule - just that the extra roll and the skip flag are
-independent, which they already are. Action: confirm with Rakan that `skipNextTurn` and the surprise roll can
-both be set in one turn, and cover it in the planned test P9.
+**Verified on 21/11/2026 in the integration build — the code already behaves as Option A, and the
+six-vs-surprise half of the question is already settled against SRS Table 2.** In
+`Iteration2/src/Model/StandardTurnManager.java`:
+
+- `markSkip(player)` adds the player to a `skipNext` set, and clears `bonusRoll` only when that player is the
+  current one — i.e. a skip **cancels a pending roll from a 6** (documented as Table 2, Q56).
+- `addSurpriseRoll()` increments a separate `surpriseRolls` counter, documented as "taken **before** a pending
+  roll from a 6" (Q27).
+- The two live in **independent fields**, so a chain that produces both does both: the surprise extra roll is
+  taken now, and the skip applies to the next turn. A skip cancels the **6's** pending roll but **not** a
+  surprise extra roll.
+
+So the class already answers more than D5 asked: the ordering against the rule of 6 is decided and carries
+Table 2 references (Q56, Q27), citing "SRS section 2, open rule question 4".
+
+**Proposal (not decided).** Ratify **A** (both apply), and record the two refinements above as part of the
+rule, because they are player-visible and currently live only in javadoc:
+1. a skip cancels a pending roll from a **6**, but not a surprise extra roll;
+2. a surprise extra roll is taken **before** a pending roll from a 6.
+
+**Still missing:** no test covers a chain that produces **both** a skip and an extra roll. That is the planned
+test **P9** and belongs with T2-12 (#95, Rakan) as an independent test. This is the one genuine gap left in
+D5 — the behaviour is right, but nothing pins it down.
 
 ---
 
@@ -340,10 +372,14 @@ both be set in one turn, and cover it in the planned test P9.
 
 2. **D1** needs an explicit Product Owner acceptance of the start-square lock-out, or a change in Rakan's
    merged code - the first is cheap, the second is not. Blocks M3.
-3. **D4** and **D5** are confirmations to request from Shafeek (T2-10) and Rakan (T2-13) rather than new
-   rules. D4 is already settled by FR-32 if T2-10 implements it; D5 is partly settled inside #92, where
-   `TurnState.skipNextTurn` is documented as also cancelling a pending roll from a 6 - that should be a
-   recorded rule rather than a javadoc line. Block P9 and P10.
+3. **D4** and **D5** are now **ratifications, not investigations.** Both were checked against the
+   integration build on 21/11/2026 and the code already behaves as this register proposed:
+   - **D4** is implemented in `EffectMover` and covered by Rakan's independent test
+     *"FR-32: a pushed opponent stops on its own start square and does not cross it"* (#95). Nothing to
+     build; the Product Owner only has to ratify Option A.
+   - **D5** is implemented as two independent fields in `StandardTurnManager`, and the ordering against the
+     rule of 6 is already decided with SRS Table 2 references (Q56, Q27). The one real gap is that **no test
+     covers a chain producing both a skip and an extra roll** — planned test P9, for T2-12 (#95).
 4. M3 in `T2-15_AcceptancePlan.md` stays unjudged until D1 is decided. **M4.4 and M5.4 now have an approved
    rule to judge against**, but neither has been run: the dialogs are still not opened by a running game
    until T2-10 (#92) merges.

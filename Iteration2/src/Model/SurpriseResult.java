@@ -141,8 +141,8 @@ public record SurpriseResult(SurpriseOutcome outcome, PlayerColor active, Piece 
      * <b>active</b> player - the player whose turn it is - even when an opponent's piece set the chain off
      * ({@link #opponentTriggered()}). So if Red is taking the turn and Red's push moves Green's piece onto a
      * surprise square that draws "skip the next turn", <b>Red</b> misses the next turn, not Green; and an
-     * extra roll likewise goes to Red. This follows FR-34, which gives the active player the question in the
-     * same situation, and keeps every turn-level consequence with the player who caused it.
+     * extra roll likewise goes to Red. (Engineering note, not part of the decision: the rule is consistent
+     * with FR-34, which gives the active player the question in the same situation.)
      *
      * <p>A turn outcome moves no piece, so {@code piece} is null for both of them and this method returns
      * {@link #active()}. The rule is therefore structural rather than a special case, and

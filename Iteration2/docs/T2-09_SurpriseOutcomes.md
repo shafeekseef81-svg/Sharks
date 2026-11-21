@@ -169,9 +169,11 @@ remains the question factory of T2-08.
    Red is taking the turn, Red's push moved Green's piece onto a surprise square, and that square draws
    "skip the next turn". **Red** misses the next turn, not Green; an `EXTRA_ROLL` likewise goes to **Red**.
 
-   *Rationale recorded by the Product Owner:* FR-34 already gives the question in exactly this situation to
-   the active player, so the turn-level consequence staying with the active player is the consistent reading,
-   and it keeps every turn-level consequence with the player who caused the chain.
+   *Engineering explanation (written by the developer, **not** supplied by the Product Owner):* the rule is
+   consistent with FR-34, which already gives the question in exactly this situation to the active player, so
+   keeping the turn-level consequence with the active player avoids two different answers to the same
+   question. **The approved decision is the rule itself; this paragraph is only the technical reading of why
+   it fits.**
 
    *What this changed in the code* (this task, T2-09):
    - `SurpriseResult.affected()` keeps returning the active player for a turn outcome - a turn outcome moves

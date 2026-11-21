@@ -20,6 +20,11 @@ evidence is, and keep the proposal separate from the code.
 differently from what this register proposed; the proposals are left in place, marked as superseded, so the
 record of what was considered stays honest.
 
+**How to read the decision blocks.** The sentence under *The rule* is the approved decision. Anything labelled
+*Engineering explanation* is the developer's technical reading of why the rule fits the specification — it was
+**not** supplied by the Product Owner and is not a quotation. The Product Owner approved the rules; the
+justifications written here are the developer's own and can be corrected without reopening the decision.
+
 | # | Rule | Status | Visible to a player? | Decided by | Blocks |
 |---|---|---|---|---|---|
 | D1 | A Double Block on a start square | **OPEN** | **Yes** | `StandardMoveEngine.moveFor` (merged, Rakan) | M3 in the acceptance script |
@@ -85,9 +90,12 @@ lock-out explicitly**, because it is player-visible and it is the kind of thing 
 > opponent's piece (FR-42). Red is the active player, Red pushes Green onto a surprise square, the square
 > draws "skip the next turn": **Red** misses the next turn. An `EXTRA_ROLL` likewise goes to **Red**.
 >
-> **Rationale given by the Product Owner.** FR-34 already gives the question in exactly this situation to the
-> active player, so keeping the turn-level consequence with the active player is the consistent reading, and
-> it keeps every turn-level consequence with the player who caused the chain.
+> **Engineering explanation — written by the developer, not supplied by the Product Owner.** The rule is
+> consistent with FR-34, which already gives the question in exactly this situation to the active player, so
+> keeping the turn-level consequence with the active player avoids two different answers to the same
+> question. **What the Product Owner approved is the rule itself**, quoted above; this paragraph is only the
+> technical reading of why it fits the rest of the specification, and it should not be read as the Product
+> Owner's words or reasoning.
 >
 > **This is Option A below, not the Option B that this register proposed.** The proposal is left in place,
 > marked superseded.
@@ -196,16 +204,28 @@ considered.
 >    nothing and never asks the Model twice;
 > 5. answering normally also disables the No Answer button, so the two routes cannot both be used;
 > 6. Continue after No Answer calls the completion callback exactly once, however often it is clicked;
-> 7. the button is focusable and carries an accessible description, and the keyboard path produces
->    `NO_ANSWER`;
-> 8. re-laying out the card answers nothing and no timer runs, so closing it cannot answer for the player.
+> 7. re-laying out the card answers nothing and no timer runs, so closing it cannot answer for the player;
+> 8. **SPACE** is really bound on the button (`InputMap(WHEN_FOCUSED)` → `ActionMap`), and firing those
+>    bindings submits `NO_ANSWER` — this replaces an earlier test that only called `doClick()`, which proves
+>    nothing about the keyboard;
+> 9. **ENTER is pinned down as *not* bound on the button** — a `JButton` binds only SPACE, and ENTER
+>    activates the screen's default button instead;
+> 10. the conditions a Tab traversal needs are asserted (in the tree, focusable, enabled, does not swallow
+>    Tab) for this button and the four answers;
+> 11. the button is focusable and carries an accessible description.
 >
-> `QuestionDialogTest` 20/20, full suite on the T2-11 branch **512/512**, `MvcDependencyTest` 4/4.
+> **Tab order itself is NOT verified automatically** and is manual step **M4.4d**. The card is shown inside a
+> `ModalOverlay`, which is a focus cycle root, but `LayoutFocusTraversalPolicy` only returns components that
+> are *showing*, and nothing is showing without a real window — tried, and the policy returned no components
+> at all. No `JFrame` is created in the suite, so this cannot be closed off-screen.
+>
+> `QuestionDialogTest` 23/23, full suite on the T2-11 branch **515/515**, `MvcDependencyTest` 4/4.
 > **Checked by mutation:** removing the single line that disables the button on submission makes exactly 2 of
 > these tests fail, so they are not vacuous.
 >
 > **Not verified:** no manual gameplay was performed. The question card is still not opened by a running game,
 > because T2-10 (#92) is not merged, so M4.4 has an approved rule to judge against but has **not** been run.
+> The Tab-order part of the keyboard requirement (M4.4d) also needs a real window and has **not** been run.
 
 **The exact rule in question.** FR-35 is confirmed: not answering counts as a wrong answer, so the piece moves
 back 1, 2 or 3 steps. But *how* does a player not answer? There is no time limit anywhere in the SRS, and

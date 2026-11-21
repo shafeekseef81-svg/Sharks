@@ -188,6 +188,7 @@ Build under test: `Iteration2/EducationalLudo.jar`, built by `Iteration2/build.b
 | 4.4 | Press the **No Answer** button | **D3, decided 21/11/2026:** it counts as a wrong answer - the verdict says "Not correct", the correct answer is named (FR-36), and the piece moves **backward** by the level (−1 Easy / −2 Medium / −3 Hard, FR-35). Continue is required | | | screenshot |
 | 4.4b | Try to answer again after pressing No Answer | Every button is disabled; nothing is judged a second time (D3) | | | |
 | 4.4c | Close or move the card without pressing any button | **Nothing is answered.** There is no timer, and closing is not an answer (D3) | | | |
+| 4.4d | **Keyboard only:** press **Tab** repeatedly from the question card, then **Space** on the No Answer button | Tab reaches all four answers and the **No Answer** button, the focused button is visibly highlighted, and **Space** submits it. **Note:** Space is already verified automatically; **Tab order needs this manual check**, because a focus traversal policy only returns components that are showing and the tests create no window. **Enter does NOT press this button** - it activates the screen default button - so do not record Enter as a pass | | | screenshot of the focused button |
 | 4.5 | Keep playing until a level's questions run out | No question of a level repeats before all of that level were asked (FR-37) | | | note the questions seen |
 | 4.6 | Land on an unprotected question square holding one opponent piece | The capture happens **first**, then the question (FR-38) | | | screenshot |
 

@@ -163,13 +163,33 @@ remains the question factory of T2-08.
 
 ## 8. Open points that need the team or the PO
 
-1. **Who gets `SKIP_TURN` or `EXTRA_ROLL` in a chain set off by an opponent's piece.** Red is taking the turn,
-   Red's push moved Green's piece onto a surprise square, and that square draws "skip the next turn". Does Red
-   skip, or Green? The confirmed requirements cover FR-39, FR-40, FR-34 and FR-42 but **do not answer this**,
-   so T2-09 does not decide it. The code returns the **player whose turn it is** as a *provisional* answer and
-   sets `SurpriseResult.turnTargetUndecided()` to `true` in exactly that case, so the open question is visible
-   in code rather than hidden. Changing the answer is a one-line change in `SurpriseResult.affected()`.
-   **Needs: a PO ruling, then one line plus one test.**
+1. ~~**Who gets `SKIP_TURN` or `EXTRA_ROLL` in a chain set off by an opponent's piece.**~~
+   **DECIDED - Product Owner decision D2, approved 21/11/2026: Option A, the active player.**
+
+   Red is taking the turn, Red's push moved Green's piece onto a surprise square, and that square draws
+   "skip the next turn". **Red** misses the next turn, not Green; an `EXTRA_ROLL` likewise goes to **Red**.
+
+   *Rationale recorded by the Product Owner:* FR-34 already gives the question in exactly this situation to
+   the active player, so the turn-level consequence staying with the active player is the consistent reading,
+   and it keeps every turn-level consequence with the player who caused the chain.
+
+   *What this changed in the code* (this task, T2-09):
+   - `SurpriseResult.affected()` keeps returning the active player for a turn outcome - a turn outcome moves
+     no piece, so `piece == null` and the rule is structural rather than a special case. Its javadoc now
+     states D2 as an approved rule instead of a provisional answer.
+   - `SurpriseResult.turnAffected()` is **new**: it returns the active player and refuses when the outcome
+     does not change the turn, so the D2 rule is named at the call site instead of being inferred from
+     `piece == null`. T2-10 should call `turn.skipNextTurn(result.turnAffected())`.
+   - `SurpriseResult.turnTargetUndecided()` is **removed**. Before removing it, every caller on every branch
+     was checked: only this task's own files referred to it (`SurpriseResult`, `SurpriseDialog`,
+     `SurpriseFactoryTest`, `SurpriseDialogTest`). No file owned by Shafeek or Rakan called it, on any branch,
+     including #92, #95 and #96.
+   - The `UNDECIDED_NOTE` shown to the player is removed in T2-11 (see `T2-11_Dialogs.md`).
+
+   *Affected requirements:* FR-39, FR-40, FR-42 (and FR-34 as the consistency argument).
+
+   FR-39 and FR-40 themselves are unchanged: the other four outcomes still act on the piece they name, and
+   the push is still chosen by the active player.
 2. **Who answers a question in such a chain.** FR-34 is confirmed: **only the active player may answer**. So
    when a pushed opponent piece lands on a question square, the *active* player answers and the *opponent's*
    piece moves by the result. That is now unambiguous, but it still has to be implemented in T2-10 (which
@@ -185,7 +205,8 @@ remains the question factory of T2-08.
 ## 9. Tests
 
 `Iteration2/test/Model/SurpriseOutcomeTest.java` (14 tests) and
-`Iteration2/test/Model/SurpriseFactoryTest.java` (45 tests), 59 in all; full suite **474/474** on this branch.
+`Iteration2/test/Model/SurpriseFactoryTest.java` (47 tests), 61 in all; full suite **476/476** on this branch,
+measured 21/11/2026 with `Iteration2/test.sh` on Java 17 (Temurin 17.0.17) after the D2 change.
 
 They cover: the six outcomes and their texts; the probability sum of exactly 100%; every point of 0–99 mapped
 once and each outcome getting its own share; the exact boundary of every share (0/9, 10/19, 20/29, 30/59,
@@ -201,8 +222,10 @@ rejected; the no-eligible-opponent case; read-only target lists; and every contr
 The FR-42 chain cases added by the integration review: the turn holder kept apart from the owner of the piece
 that landed; **a push in an opponent-triggered chain never offering the active player's own pieces** and still
 offering the pieces of the player who set it off; the trigger piece itself being choosable; own-piece outcomes
-moving the trigger piece and falling on *its* owner; turn outcomes in such a chain flagged as undecided;
-ordinary chains flagging nothing; the short calls still meaning "the active player's piece"; an active colour
+moving the trigger piece and falling on *its* owner; **D2: a turn outcome in an opponent-triggered chain
+falling on the active player and not on the owner of the piece that landed, and the same in an ordinary
+chain, and `turnAffected()` refusing an outcome that does not change the turn**;
+ordinary chains not being opponent-triggered; the short calls still meaning "the active player's piece"; an active colour
 no player of the game plays rejected; a pick captured back to its castle after it was offered rejected; a pick
 that turned into its home path after it was offered rejected by the board-aware `resolve`.
 

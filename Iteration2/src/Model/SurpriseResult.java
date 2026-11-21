@@ -26,14 +26,20 @@ import java.util.Objects;
  *       {@link #opponentTriggered()} says which case this is.</li>
  * </ul>
  *
+ * <p><b>Which of the two a turn outcome falls on was Product Owner decision D2, approved 21/11/2026:</b> a
+ * {@code SKIP_NEXT_TURN} or {@code EXTRA_ROLL} always falls on {@link #active()}, never on
+ * {@link #triggerOwner()}, even when an opponent's piece set the chain off. See {@link #affected()} and
+ * {@link #turnAffected()}. The outcomes that move a piece are unaffected by D2: they still act on the piece
+ * they name.
+ *
  * <p><b>How T2-10 uses it.</b> One {@code switch} over {@link #action()}:
  * <pre>{@code
  * switch (result.action()) {
  *     case JUMP_TO_FINISH  -> queue.run(new JumpToFinishEffect(result.piece()));
  *     case RETURN_TO_CASTLE -> queue.run(new ReturnToCastleEffect(result.piece()));
  *     case MOVE_STEPS      -> queue.run(new MoveStepsEffect(result.piece(), result.steps()));
- *     case SKIP_NEXT_TURN  -> turn.skipNextTurn(result.affected());
- *     case EXTRA_ROLL      -> turn.grantSurpriseRoll();
+ *     case SKIP_NEXT_TURN  -> turn.skipNextTurn(result.turnAffected());   // always the active player (D2)
+ *     case EXTRA_ROLL      -> turn.grantSurpriseRoll();                   // to the active player (D2)
  *     case NOTHING         -> queue.skip();
  * }
  * }</pre>
@@ -65,7 +71,7 @@ public record SurpriseResult(SurpriseOutcome outcome, PlayerColor active, Piece 
         RETURN_TO_CASTLE,
         /** Move the piece {@link SurpriseResult#steps()} steps, forward if positive, backward if negative. */
         MOVE_STEPS,
-        /** The player of {@link SurpriseResult#affected()} misses the next turn; no piece moves. */
+        /** The active player misses the next turn (D2); no piece moves. */
         SKIP_NEXT_TURN,
         /** The active player rolls again at once with the Regular + UltraBoost dice; no piece moves. */
         EXTRA_ROLL,
@@ -130,18 +136,41 @@ public record SurpriseResult(SurpriseOutcome outcome, PlayerColor active, Piece 
      * The player the outcome falls on: the owner of the piece that is moved, or, when no piece moves, the
      * player whose turn it is.
      *
-     * <p><b>Open decision for the team.</b> For {@link SurpriseAction#SKIP_NEXT_TURN} and
-     * {@link SurpriseAction#EXTRA_ROLL} in a chain that an opponent's piece set off ({@link
-     * #opponentTriggered()}), the approved requirements do not say whether the turn effect falls on the
-     * player whose turn it is or on the owner of the piece that landed. This method returns the player whose
-     * turn it is, as a <b>provisional</b> answer, and {@link #turnTargetUndecided()} is {@code true} in
-     * exactly that case so the open question is visible in code instead of hidden. Changing the answer is a
-     * one-line change here.
+     * <p><b>Product Owner decision D2, approved 21/11/2026.</b> A turn outcome
+     * ({@link SurpriseAction#SKIP_NEXT_TURN}, {@link SurpriseAction#EXTRA_ROLL}) always falls on the
+     * <b>active</b> player - the player whose turn it is - even when an opponent's piece set the chain off
+     * ({@link #opponentTriggered()}). So if Red is taking the turn and Red's push moves Green's piece onto a
+     * surprise square that draws "skip the next turn", <b>Red</b> misses the next turn, not Green; and an
+     * extra roll likewise goes to Red. This follows FR-34, which gives the active player the question in the
+     * same situation, and keeps every turn-level consequence with the player who caused it.
      *
-     * @return the colour of the player the outcome falls on
+     * <p>A turn outcome moves no piece, so {@code piece} is null for both of them and this method returns
+     * {@link #active()}. The rule is therefore structural rather than a special case, and
+     * {@link #changesTurn()} tells a caller when it applies. The branch of this method that returns
+     * {@code piece.color()} is only reached by the outcomes that <i>move a piece</i>, where the owner of the
+     * moved piece is the player affected - that is unchanged by D2.
+     *
+     * @return the colour of the player the outcome falls on; always {@link #active()} when
+     *         {@link #changesTurn()} is true (D2)
      */
     public PlayerColor affected() {
         return piece == null ? active : piece.color();
+    }
+
+    /**
+     * The player a turn outcome falls on, by Product Owner decision D2 (21/11/2026): always the active
+     * player. Use this where the intent is specifically a turn outcome, so the D2 rule is named at the call
+     * site instead of being inferred from {@code piece == null}.
+     *
+     * @return the colour of the active player
+     * @throws IllegalStateException if this outcome does not change the turn, i.e. {@link #changesTurn()} is
+     *         false; the caller wants {@link #affected()} in that case
+     */
+    public PlayerColor turnAffected() {
+        if (!changesTurn()) {
+            throw new IllegalStateException(action + " does not change the turn, so it has no turn target");
+        }
+        return active;
     }
 
     /** @return the owner of the piece that landed on the surprise square */
@@ -155,14 +184,6 @@ public record SurpriseResult(SurpriseOutcome outcome, PlayerColor active, Piece 
      */
     public boolean opponentTriggered() {
         return trigger.color() != active;
-    }
-
-    /**
-     * @return true when this is a turn effect in a chain that an opponent's piece set off, so which player it
-     *         falls on is still an open decision for the team; see {@link #affected()}
-     */
-    public boolean turnTargetUndecided() {
-        return changesTurn() && opponentTriggered();
     }
 
     /** @return true when the action moves a piece and so becomes a {@code SquareEffect} command of T2-10 */

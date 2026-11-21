@@ -1,5 +1,6 @@
 package Model;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -47,4 +48,50 @@ public interface TurnManager {
      * @return a message to show when the turn passed without a move (FR-23), or {@code null}
      */
     String endTurn();
+
+    // ------------------------------------------------------------------ special squares (T2-10 part 2)
+
+    /**
+     * @return the question or surprise square that waits for its effect, with the piece that reached it, while
+     *         the phase is {@link TurnPhase#RESOLVING}; otherwise {@code null} (FR-34, FR-39, FR-42)
+     */
+    EffectQueue.Activation pendingEffect();
+
+    /**
+     * Carries out the effect of the waiting square. A piece it brings home counts for its owner (FR-43); when
+     * the chain is over the turn goes on as after a move.
+     *
+     * @param effect the command made from the answer or the surprise
+     * @return the result of the command
+     * @throws IllegalStateException if no special square waits
+     */
+    MoveResult runEffect(SquareEffect effect);
+
+    /**
+     * Resolves the waiting square without moving a piece: a push with no opponent to push (FR-40), or one of the
+     * two turn surprises after {@link #skipNextTurn} or {@link #grantSurpriseRoll}.
+     *
+     * @throws IllegalStateException if no special square waits
+     */
+    void skipEffect();
+
+    /**
+     * The surprise "skip the next turn" (SRS Table 2, Q56): the player misses their next turn, and a pending roll
+     * from a 6 of the active player is cancelled. Call {@link #skipEffect()} afterwards.
+     *
+     * @param player the player who misses the turn
+     * @throws IllegalStateException if no special square waits
+     */
+    void skipNextTurn(Player player);
+
+    /**
+     * The surprise "extra roll" (SRS Table 2, Q27): one more roll with the Regular and UltraBoost dice, outside
+     * the rule of 6, before a pending roll from a 6. Call {@link #skipEffect()} afterwards.
+     *
+     * @throws IllegalStateException if no special square waits
+     */
+    void grantSurpriseRoll();
+
+    /** @return the players whose turn was passed over by the last change of turn (Q56); possibly empty */
+    List<Player> skippedTurns();
 }

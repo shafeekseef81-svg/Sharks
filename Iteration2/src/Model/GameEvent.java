@@ -28,7 +28,11 @@ public record GameEvent(Type type, Player player, DiceRoll roll, MoveResult move
         /** A player finished all four pieces (FR-43). */
         PLAYER_FINISHED,
         /** The game is over (FR-44). */
-        GAME_OVER
+        GAME_OVER,
+        /** A question or surprise square waits for its effect; see {@link GameModel#pendingEffect()} (T2-10). */
+        EFFECT_PENDING,
+        /** A player misses this turn because of the surprise "skip the next turn" (SRS Table 2, T2-10). */
+        TURN_SKIPPED
     }
 
     /**

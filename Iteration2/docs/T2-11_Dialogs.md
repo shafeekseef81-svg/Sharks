@@ -58,34 +58,67 @@ The card is asked for a resolver only when there is a pick to check; every other
 | Question with four choices | `QuestionDialog`, buttons `question.answer.0` … `.3` |
 | Difficulty of the question shown | pill `question.level`, coloured by `Theme.level(...)` |
 | Only the active player answers (FR-34) | the card names the player it was given; the controller passes the active player |
-| No duplicate submission | `submit(int)` returns at once once `result != null`; all answer buttons are disabled on the first click; `Continue` hands the result over exactly once |
+| No duplicate submission | `submit(int)` returns at once once `result != null`; all four answer buttons **and the No Answer button** are disabled on the first click; `Continue` hands the result over exactly once |
 | Correctness and the correct answer shown (FR-36) | `question.verdict`, `question.correctAnswer`, `question.movement` |
-| Not answering counts as wrong (FR-35) | `submit(QuestionResult.NO_ANSWER)` — a controller or a future timer can call it; there is no timer in this task |
+| Not answering counts as wrong (FR-35) | **D3:** the `question.noAnswer` button, labelled **No Answer**, calls `submit(QuestionResult.NO_ANSWER)`; the Model rule decides the rest. No timer, and closing the card is not an answer |
 | Selected surprise and its explanation | `surprise.title`, `surprise.chance`, `surprise.description` |
 | Eligible pieces offered to the **active** player (FR-40) | chips `surprise.target.0…`, built from `SurprisePrompt.targets()` |
 | Invalid selection prevented | the confirm button starts disabled for a push, `confirm()` refuses without a pick, and a pick the Model refuses is shown as a message with the choice cleared |
 | No eligible target supported | `surprise.noTargets` shows `SurprisePrompt.NO_TARGET_NOTE`; one `Continue` button resolves it to `NOTHING` |
 
-## 5. The undecided SKIP_TURN / EXTRA_ROLL recipient
+## 5. D2 — the SKIP_TURN / EXTRA_ROLL recipient: DECIDED
 
-Open point 1 of PR #90: when an effect chain set the square off with **another** player's piece (FR-42), the
-approved requirements do not say who misses the next turn or who gets the extra roll.
+**Product Owner decision D2, approved 21/11/2026: Option A — the active player.**
 
-**This task does not hardcode an answer.** In that case the card:
+When an effect chain sets a surprise square off with **another** player's piece (FR-42), a `SKIP_TURN` or an
+`EXTRA_ROLL` falls on the player whose **turn** it is, never on the owner of the piece that landed. Red pushes
+Green onto a "skip the next turn" square: **Red** misses the next turn.
 
-- replaces the Model's own title and sentence, which are written to one player ("Skip **your** next turn",
-  "**You** will miss your next turn…"), with wording that names no recipient: "A turn will be skipped" /
-  "One player misses their next turn, and any extra roll from a 6 is cancelled with it." Beside the pill that
-  says whose turn it is, the second person would read as a decision the team has not taken. This is
-  presentation only; nothing about what the Model does changes;
-- adds `surprise.chainNote`, which states the fact that is certain: whose piece reached the square, during
-  whose turn;
-- adds `surprise.undecided` with `SurpriseDialog.UNDECIDED_NOTE`, saying the team is still agreeing it.
+*Rationale recorded by the Product Owner:* FR-34 already gives the question in exactly this situation to the
+active player, so keeping the turn-level consequence with the active player is the consistent reading, and it
+keeps every turn-level consequence with the player who caused the chain.
 
-Tests assert that, for every outcome that only affects the turn, neither a player's name nor a second person
-("you", "your") appears in the title or the sentence, and that the Model still reports
-`SurpriseResult.turnTargetUndecided()`. Outside a chain the Model's own wording is shown unchanged. When the
-team decides, the note and that one branch come out; nothing else changes.
+**What changed in this task (the View side of D2).** The card previously named nobody and warned that the
+rule was open. That is all removed, because the rule is now decided:
+
+| Removed | Why |
+|---|---|
+| `SurpriseDialog.UNDECIDED_NOTE` and the `surprise.undecided` label | the rule is decided, so there is nothing to warn about |
+| `recipientUndecided()` | no branch depends on it any more |
+| `neutralTitle(...)` and `neutralDescription(...)` | the Model's own wording is written to the player whose turn it is ("Skip **your** next turn"), which under D2 is exactly right |
+
+**What stayed.** The card shows `SurpriseOutcome.title()` and `description()` unchanged in every case, beside
+the `surprise.activePlayer` pill that names the active player. `surprise.chainNote` still appears when an
+opponent's piece set the square off — it states the fact ("this square was reached by Shafeek's piece during
+Mohamed's turn"), names both players, and never claims the opponent is the one affected. That is what keeps
+the requirement "displaying SKIP_TURN or EXTRA_ROLL must never identify the opponent as the affected player".
+
+The Model side of D2 is in `T2-09_SurpriseOutcomes.md` section 8: `SurpriseResult.turnAffected()` is new,
+`turnTargetUndecided()` is removed, and `affected()` is unchanged in behaviour.
+
+MVC is unchanged: the card still decides nothing. It reads the outcome and the prompt from the Model and sends
+the pick back through the `Resolver`.
+
+## 5a. D3 — the No Answer button: DECIDED
+
+**Product Owner decision D3, approved 21/11/2026: an explicit No Answer button.**
+
+FR-35 counts not answering as a wrong answer, but until now nothing in the interface could produce it —
+`submit(QuestionResult.NO_ANSWER)` existed for a controller or a future timer only. The decision is that the
+player gets an explicit button instead.
+
+| What | Where |
+|---|---|
+| The button | `QuestionDialog`, name `QuestionDialog.NO_ANSWER_NAME` = `question.noAnswer`, label **No Answer** |
+| Variant | `CustomButton.Variant.GHOST` — the existing component, visually the quietest option on the card, so it never competes with the four answers |
+| What it does | one line: `submit(QuestionResult.NO_ANSWER)`. **No question logic is duplicated in the View**; the Model's `QuestionFactory.judge` decides that it is wrong and by how many steps |
+| Backward movement | whatever the Model returns: −1 Easy, −2 Medium, −3 Hard (FR-35), shown by `question.movement` |
+| Feedback | the ordinary `question.verdict`, `question.correctAnswer` and `question.movement`, so FR-36 is met for this route too |
+| Continue | unchanged: the player must press `question.continue`, and the callback runs exactly once |
+| No second submission | `submit` returns immediately once `result != null`, and the first submission disables the four answer buttons **and** this one |
+| Keyboard | it is a `CustomButton extends JButton`, so Tab reaches it and Space or Enter presses it; it also carries an accessible description for a screen reader |
+| No timer | none was added, as the decision requires |
+| Closing is not answering | the card owns no close control and starts no timer, so nothing can answer on the player's behalf |
 
 ## 6. NFR-05 — "the dialog opens within 1 s" — NOT verified
 
@@ -143,8 +176,24 @@ wrong inside a chain, for the reason PR #90 documents.
 
 ## 8. Tests
 
-`Iteration2/test/View/QuestionDialogTest.java` (12 tests) and
-`Iteration2/test/View/SurpriseDialogTest.java` (16 tests), 28 in all; full suite **502/502** on this branch.
+`Iteration2/test/View/QuestionDialogTest.java` (20 tests) and
+`Iteration2/test/View/SurpriseDialogTest.java` (16 tests), 36 in all; full suite **512/512** on this branch,
+measured 21/11/2026 with `Iteration2/test.sh` on Java 17 (Temurin 17.0.17) after D2 and D3.
+
+**D3 adds 8 tests to `QuestionDialogTest`** (12 -> 20): the button submits `NO_ANSWER` through the Model and
+is judged wrong; it moves backward by the level for Easy, Medium and Hard (−1/−2/−3); the verdict and the
+correct answer are still shown and Continue is required; after it every button is disabled and a second click
+or a direct `submit` of a real answer changes nothing and never asks the Model twice; answering normally
+disables the No Answer button so the two routes cannot both be used; Continue after No Answer calls back
+exactly once; the button is focusable and carries an accessible description; and closing or re-laying out the
+card answers nothing, with no timer running. Checked by mutation: removing the one line that disables the
+button makes exactly 2 of these tests fail.
+
+**D2 changes `SurpriseDialogTest`** (16 tests, count unchanged): the test that asserted the undecided note and
+that the card named nobody now asserts the decided rule instead — the card shows the Model's own title and
+sentence, the `surprise.undecided` label is gone, the active player is named in the pill, the chain note still
+names both players, and the resolved `SurpriseResult` reports the **active** player as affected with the owner
+of the landed piece explicitly different. The now-unused `assertNoSecondPerson` helper was removed.
 
 Both wire the cards to the **real** Model factories, as a controller would, and build every component on the
 event dispatch thread without a `JFrame`, so they run headless like the other `View` tests.

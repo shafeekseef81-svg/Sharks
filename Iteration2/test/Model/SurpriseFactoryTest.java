@@ -3,6 +3,7 @@ package Model;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -647,35 +648,86 @@ class SurpriseFactoryTest {
             assertSame(PlayerColor.RED, result.active(), outcome + ": Red still holds the turn");
             assertSame(PlayerColor.GREEN, result.triggerOwner(), outcome.name());
             assertTrue(result.opponentTriggered(), outcome.name());
-            assertFalse(result.turnTargetUndecided(), outcome + " moves a piece, so nothing is undecided");
+            assertFalse(result.changesTurn(), outcome + " moves a piece, so it is not a turn outcome");
         }
     }
 
     @Test
-    @DisplayName("FR-42: a turn outcome in an opponent-triggered chain is flagged as an open decision")
-    void turnOutcomesInAnOpponentTriggeredChainAreFlagged() {
+    @DisplayName("D2 FR-42: a turn outcome set off by an OPPONENT piece still falls on the active player")
+    void turnOutcomesInAnOpponentTriggeredChainFallOnTheActivePlayer() {
+        // Product Owner decision D2, approved 21/11/2026: Red holds the turn, Red pushed Green onto the
+        // surprise square, and SKIP_TURN / EXTRA_ROLL fall on RED - never on Green.
         onTrack(red, 0, 4);
         Piece greenTrigger = onTrack(green, 0, 12);
         SurpriseFactory factory = factory(new Random(3));
 
+        int checked = 0;
         for (SurpriseOutcome outcome : SurpriseOutcome.values()) {
             if (!outcome.affectsTurnOnly()) {
                 continue;
             }
             SurpriseResult result = factory.promptFor(outcome, greenTrigger, PlayerColor.RED).resolve();
             assertTrue(result.changesTurn(), outcome.name());
-            assertNull(result.piece(), outcome.name());
-            assertTrue(result.turnTargetUndecided(),
-                    outcome + " in an opponent-triggered chain is an open decision for the team");
-            assertSame(PlayerColor.RED, result.affected(),
-                    outcome + ": the provisional answer is the player whose turn it is");
+            assertNull(result.piece(), outcome + " moves no piece");
+            assertTrue(result.opponentTriggered(), outcome + ": the chain was set off by a Green piece");
             assertSame(PlayerColor.GREEN, result.triggerOwner(), outcome.name());
+
+            assertSame(PlayerColor.RED, result.affected(),
+                    outcome + " (D2) falls on the active player Red, not on the owner of the piece");
+            assertSame(PlayerColor.RED, result.turnAffected(),
+                    outcome + " (D2): turnAffected() is the active player");
+            assertNotSame(result.triggerOwner(), result.affected(),
+                    outcome + " (D2): the owner of the landed piece must NOT be the affected player here");
+            checked++;
+        }
+        assertEquals(2, checked, "both SKIP_TURN and EXTRA_ROLL were checked");
+    }
+
+    @Test
+    @DisplayName("D2: a turn outcome in an ordinary chain also falls on the active player")
+    void turnOutcomesInAnOrdinaryChainFallOnTheActivePlayer() {
+        Piece mine = onTrack(red, 0, 4);
+        onTrack(green, 0, 12);
+        SurpriseFactory factory = factory(new Random(3));
+
+        int checked = 0;
+        for (SurpriseOutcome outcome : SurpriseOutcome.values()) {
+            if (!outcome.affectsTurnOnly()) {
+                continue;
+            }
+            SurpriseResult result = factory.promptFor(outcome, mine, PlayerColor.RED).resolve();
+            assertFalse(result.opponentTriggered(), outcome.name());
+            assertSame(PlayerColor.RED, result.affected(), outcome + " (D2) falls on the active player");
+            assertSame(PlayerColor.RED, result.turnAffected(), outcome.name());
+            assertSame(result.triggerOwner(), result.affected(),
+                    outcome + ": in an ordinary chain the two players are the same anyway");
+            checked++;
+        }
+        assertEquals(2, checked, "both SKIP_TURN and EXTRA_ROLL were checked");
+    }
+
+    @Test
+    @DisplayName("D2: turnAffected() is refused for an outcome that does not change the turn")
+    void turnAffectedIsRefusedForAPieceMovingOutcome() {
+        Piece mine = onTrack(red, 0, 4);
+        Piece victim = onTrack(green, 0, 12);
+        SurpriseFactory factory = factory(new Random(3));
+
+        for (SurpriseOutcome outcome : SurpriseOutcome.values()) {
+            if (outcome.affectsTurnOnly()) {
+                continue;
+            }
+            SurprisePrompt prompt = factory.promptFor(outcome, mine, PlayerColor.RED);
+            SurpriseResult result = prompt.needsChoice() ? prompt.resolve(victim) : prompt.resolve();
+            assertFalse(result.changesTurn(), outcome.name());
+            assertThrows(IllegalStateException.class, result::turnAffected,
+                    outcome + " does not change the turn, so turnAffected() must refuse");
         }
     }
 
     @Test
-    @DisplayName("An ordinary chain, where the active player's own piece landed, flags nothing as undecided")
-    void ordinaryChainsAreNotFlagged() {
+    @DisplayName("An ordinary chain, where the piece of the active player landed, is not opponent-triggered")
+    void ordinaryChainsAreNotOpponentTriggered() {
         Piece mine = onTrack(red, 0, 4);
         onTrack(green, 0, 12);
         SurpriseFactory factory = factory(new Random(3));
@@ -688,7 +740,6 @@ class SurpriseFactoryTest {
                     ? prompt.resolve(prompt.targets().get(0))
                     : prompt.resolve();
             assertFalse(result.opponentTriggered(), outcome.name());
-            assertFalse(result.turnTargetUndecided(), outcome.name());
         }
     }
 

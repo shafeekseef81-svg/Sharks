@@ -74,9 +74,10 @@ When an effect chain sets a surprise square off with **another** player's piece 
 `EXTRA_ROLL` falls on the player whose **turn** it is, never on the owner of the piece that landed. Red pushes
 Green onto a "skip the next turn" square: **Red** misses the next turn.
 
-*Rationale recorded by the Product Owner:* FR-34 already gives the question in exactly this situation to the
-active player, so keeping the turn-level consequence with the active player is the consistent reading, and it
-keeps every turn-level consequence with the player who caused the chain.
+*Engineering explanation (written by the developer, **not** supplied by the Product Owner):* the rule is
+consistent with FR-34, which already gives the question in exactly this situation to the active player, so
+keeping the turn-level consequence with the active player avoids two different answers to the same question.
+**The approved decision is the rule itself; this paragraph is only the technical reading of why it fits.**
 
 **What changed in this task (the View side of D2).** The card previously named nobody and warned that the
 rule was open. That is all removed, because the rule is now decided:
@@ -116,9 +117,23 @@ player gets an explicit button instead.
 | Feedback | the ordinary `question.verdict`, `question.correctAnswer` and `question.movement`, so FR-36 is met for this route too |
 | Continue | unchanged: the player must press `question.continue`, and the callback runs exactly once |
 | No second submission | `submit` returns immediately once `result != null`, and the first submission disables the four answer buttons **and** this one |
-| Keyboard | it is a `CustomButton extends JButton`, so Tab reaches it and Space or Enter presses it; it also carries an accessible description for a screen reader |
+| Keyboard | **SPACE: verified.** `CustomButton extends JButton`, and the button's `InputMap(WHEN_FOCUSED)` really binds `pressed SPACE` and `released SPACE` to actions that submit the answer - tested by walking the InputMap/ActionMap and firing those actions, not by `doClick()`. **ENTER: does not press this button** - a `JButton` binds only SPACE; ENTER activates the `JRootPane` default button, which `NavigationController` sets per screen. **Tab: manual check pending** - see below. The button also carries an accessible description for a screen reader |
 | No timer | none was added, as the decision requires |
 | Closing is not answering | the card owns no close control and starts no timer, so nothing can answer on the player's behalf |
+
+### What the keyboard evidence actually is
+
+An earlier note on #91 said "Tab reaches it and Space or Enter presses it", resting on `doClick()`.
+`doClick()` proves nothing about the keyboard - it is a programmatic press. That claim has been narrowed to
+what was really measured:
+
+| Key | Status | Evidence |
+|---|---|---|
+| **SPACE** | **verified automatically** | The button's `InputMap(WHEN_FOCUSED)` binds `pressed SPACE` and `released SPACE`; both bindings resolve to real `Action`s in the `ActionMap`; firing those actions - the exact path `JComponent.processKeyBinding` takes on a real key press - submits `NO_ANSWER` and asks the Model exactly once. |
+| **ENTER** | **verified NOT to press this button** | `ENTER` is not bound on the button in any of the three input-map conditions. A `JButton` binds only SPACE; `ENTER` activates the root pane's default button, which `NavigationController.setDefaultButton` sets per screen. A test now pins this down so the wrong claim cannot drift back. |
+| **Tab order** | **manual check pending** | Only the *conditions* for Tab are asserted: the button is in the card's component tree, focusable, enabled, and does not swallow Tab. The real order cannot be checked off-screen - the card is shown inside a `ModalOverlay`, which is a focus cycle root, but `LayoutFocusTraversalPolicy` only returns components that are *showing*, and nothing is showing without a window. This was tried and the policy returned no components at all. Pressing Tab in the running game is step **M4.4d** of the manual script. |
+
+No `JFrame` is created by these tests, so they stay headless like the rest of the `View` suite.
 
 ## 6. NFR-05 — "the dialog opens within 1 s" — NOT verified
 
@@ -176,17 +191,19 @@ wrong inside a chain, for the reason PR #90 documents.
 
 ## 8. Tests
 
-`Iteration2/test/View/QuestionDialogTest.java` (20 tests) and
-`Iteration2/test/View/SurpriseDialogTest.java` (16 tests), 36 in all; full suite **512/512** on this branch,
+`Iteration2/test/View/QuestionDialogTest.java` (23 tests) and
+`Iteration2/test/View/SurpriseDialogTest.java` (16 tests), 39 in all; full suite **515/515** on this branch,
 measured 21/11/2026 with `Iteration2/test.sh` on Java 17 (Temurin 17.0.17) after D2 and D3.
 
-**D3 adds 8 tests to `QuestionDialogTest`** (12 -> 20): the button submits `NO_ANSWER` through the Model and
+**D3 adds 11 tests to `QuestionDialogTest`** (12 -> 23): the button submits `NO_ANSWER` through the Model and
 is judged wrong; it moves backward by the level for Easy, Medium and Hard (−1/−2/−3); the verdict and the
 correct answer are still shown and Continue is required; after it every button is disabled and a second click
 or a direct `submit` of a real answer changes nothing and never asks the Model twice; answering normally
 disables the No Answer button so the two routes cannot both be used; Continue after No Answer calls back
-exactly once; the button is focusable and carries an accessible description; and closing or re-laying out the
-card answers nothing, with no timer running. Checked by mutation: removing the one line that disables the
+exactly once; closing or re-laying out the card answers nothing, with no timer running; **the SPACE key
+binding really exists and submits `NO_ANSWER`**; **ENTER is pinned down as not bound on the button**; the
+conditions Tab needs are asserted while the real Tab order is left to the manual script; and the button is
+focusable with an accessible description. Checked by mutation: removing the one line that disables the
 button makes exactly 2 of these tests fail.
 
 **D2 changes `SurpriseDialogTest`** (16 tests, count unchanged): the test that asserted the undecided note and

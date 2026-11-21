@@ -10,6 +10,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.awt.Component;
 import java.awt.Container;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,7 +19,10 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.swing.Action;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
+import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 
 import org.junit.jupiter.api.DisplayName;
@@ -28,6 +33,8 @@ import Model.Question;
 import Model.QuestionBank;
 import Model.QuestionFactory;
 import Model.QuestionResult;
+
+import View.components.CustomButton;
 
 /**
  * Tests for the question card of T2-11 (SRS FR-34, FR-35, FR-36; NFR-05). Owner: Mohamed Zereny.
@@ -417,20 +424,104 @@ class QuestionDialogTest {
     }
 
     @Test
-    @DisplayName("D3: the No Answer button is reachable and pressable from the keyboard")
-    void theNoAnswerButtonIsKeyboardAccessible() throws Exception {
+    @DisplayName("D3 keyboard: SPACE is really bound on the No Answer button, and its binding submits NO_ANSWER")
+    void theNoAnswerButtonIsActivatedByTheSpaceKeyBinding() throws Exception {
+        // This does NOT use doClick(), which proves nothing about the keyboard. It walks the real Swing
+        // key-binding machinery: InputMap lookup for the keystroke, then the Action that the binding names,
+        // then actionPerformed - exactly the path JComponent.processKeyBinding takes on a real key press.
+        QuestionFactory factory = factories.get(Difficulty.MEDIUM);
+        Question question = factory.ask();
+        CountingJudge judge = new CountingJudge(factory, question);
+        QuestionDialog dialog = build(question, judge, new ArrayList<>());
+        CustomButton button = dialog.noAnswerButton();
+
+        KeyStroke spaceDown = KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0, false);
+        KeyStroke spaceUp = KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0, true);
+
+        Object downName = button.getInputMap(JComponent.WHEN_FOCUSED).get(spaceDown);
+        Object upName = button.getInputMap(JComponent.WHEN_FOCUSED).get(spaceUp);
+        assertNotNull(downName, "SPACE pressed must be bound on the focused button");
+        assertNotNull(upName, "SPACE released must be bound on the focused button");
+        Action downAction = button.getActionMap().get(downName);
+        Action upAction = button.getActionMap().get(upName);
+        assertNotNull(downAction, "the SPACE pressed binding must point at a real action");
+        assertNotNull(upAction, "the SPACE released binding must point at a real action");
+
+        onEdt(() -> {
+            downAction.actionPerformed(new ActionEvent(button, ActionEvent.ACTION_PERFORMED,
+                    String.valueOf(downName)));
+            upAction.actionPerformed(new ActionEvent(button, ActionEvent.ACTION_PERFORMED,
+                    String.valueOf(upName)));
+        });
+
+        assertEquals(1, judge.calls.get(), "the SPACE binding submitted the answer exactly once");
+        assertEquals(QuestionResult.NO_ANSWER, dialog.result().chosenIndex(),
+                "pressing SPACE on the focused button submits NO_ANSWER");
+    }
+
+    @Test
+    @DisplayName("D3 keyboard: ENTER is not bound on the button itself; it belongs to the screen default button")
+    void enterIsNotBoundOnTheNoAnswerButton() throws Exception {
+        // Recorded because an earlier note on #91 claimed "Space or Enter presses it". That is wrong for
+        // ENTER: a JButton binds only SPACE. ENTER activates the JRootPane default button, which
+        // NavigationController sets per screen (NavigationController.setDefaultButton), not this button.
+        // Keeping this as a test so the claim cannot drift back.
+        QuestionFactory factory = factories.get(Difficulty.MEDIUM);
+        Question question = factory.ask();
+        QuestionDialog dialog = build(question, new CountingJudge(factory, question), new ArrayList<>());
+        CustomButton button = dialog.noAnswerButton();
+
+        KeyStroke enter = KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0, false);
+        for (int condition : new int[] {JComponent.WHEN_FOCUSED,
+                                        JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT,
+                                        JComponent.WHEN_IN_FOCUSED_WINDOW}) {
+            assertNull(button.getInputMap(condition).get(enter),
+                    "ENTER is not bound on the button in condition " + condition);
+        }
+    }
+
+    @Test
+    @DisplayName("D3 keyboard: the No Answer button meets every condition Tab needs - real Tab order is a manual check")
+    void theNoAnswerButtonMeetsTheConditionsForTabOrder() throws Exception {
+        // What can honestly be checked without a window: the button is in the card's component tree, is
+        // focusable and enabled, and does not consume the Tab key itself (focus traversal keys enabled).
+        // Those are the conditions a focus traversal policy uses.
+        //
+        // What CANNOT be checked here: the actual Tab order. The card is shown inside a ModalOverlay, which
+        // is a focus cycle root, but LayoutFocusTraversalPolicy only returns components that are *showing*,
+        // and nothing is showing without a real window. Verified: off-screen the policy returns no
+        // components at all. So pressing Tab in the running game is a MANUAL check - see
+        // Iteration2/docs/T2-15_AcceptancePlan.md step M4.4d. It is deliberately not asserted here.
+        QuestionFactory factory = factories.get(Difficulty.MEDIUM);
+        Question question = factory.ask();
+        QuestionDialog dialog = build(question, new CountingJudge(factory, question), new ArrayList<>());
+        CustomButton button = dialog.noAnswerButton();
+
+        assertSame(button, find(dialog, QuestionDialog.NO_ANSWER_NAME),
+                "the button is in the component tree of the card");
+        assertTrue(button.isFocusable(), "a traversal policy only offers focusable components");
+        assertTrue(button.isEnabled(), "a disabled button is skipped by Tab");
+        assertTrue(button.getFocusTraversalKeysEnabled(),
+                "the button must not swallow Tab, or focus could never leave it");
+
+        // The same conditions must hold for the four answer buttons, so the whole card is navigable.
+        for (int i = 0; i < Question.ANSWER_COUNT; i++) {
+            assertTrue(dialog.answerButton(i).isFocusable(), "answer " + i + " is focusable");
+            assertTrue(dialog.answerButton(i).getFocusTraversalKeysEnabled(), "answer " + i + " passes Tab on");
+        }
+    }
+
+    @Test
+    @DisplayName("D3 keyboard: the No Answer button is focusable and describes itself to a screen reader")
+    void theNoAnswerButtonIsFocusableAndDescribed() throws Exception {
         QuestionFactory factory = factories.get(Difficulty.MEDIUM);
         Question question = factory.ask();
         QuestionDialog dialog = build(question, new CountingJudge(factory, question), new ArrayList<>());
 
-        assertTrue(dialog.noAnswerButton().isFocusable(), "Tab must be able to reach it");
+        assertTrue(dialog.noAnswerButton().isFocusable(), "Tab can only reach a focusable component");
         assertTrue(dialog.noAnswerButton().isEnabled());
         assertNotNull(dialog.noAnswerButton().getAccessibleContext().getAccessibleDescription(),
                 "a screen reader must be told what it does");
-
-        // doClick() is what the Space and Enter key bindings of a JButton call, so this is the keyboard path.
-        onEdt(() -> dialog.noAnswerButton().doClick());
-        assertEquals(QuestionResult.NO_ANSWER, dialog.result().chosenIndex());
     }
 
     @Test

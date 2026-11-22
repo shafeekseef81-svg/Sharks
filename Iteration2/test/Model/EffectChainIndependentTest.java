@@ -869,4 +869,104 @@ class EffectChainIndependentTest {
         assertEquals(ps + 6, red().progress());
         assertSame(PlayerColor.GREEN, model.currentPlayer().color(), "a 6 on the extra roll gives no further roll");
     }
+
+    // ------------------------------------------------------------------ PO decision D2: chains through an opponent
+
+    /**
+     * Red lands on a surprise square and pushes a Green piece back one step (Regular 2, FR-40) onto another surprise
+     * square, which the chain activates for Green's piece (FR-42). Returns with that second surprise waiting.
+     */
+    private void pushGreenOntoASurprise(PlayerColor... colors) {
+        startWhere(Difficulty.HARD, m -> {
+            List<Integer> surprises = redProgressOf(SquareType.SURPRISE, null);
+            for (int p : surprises) {
+                if (p < 3) {
+                    continue;
+                }
+                for (Square s2 : board().squares()) {
+                    if (s2.type() != SquareType.SURPRISE || s2.cell().equals(board().cellAt(PlayerColor.RED, p))) {
+                        continue;
+                    }
+                    int g2 = board().path(PlayerColor.GREEN).indexOf(s2.cell());
+                    if (g2 <= 0 || g2 + 1 >= board().homeStartIndex()) {
+                        continue;
+                    }
+                    boolean clear = true; // Green's two cells are away from Red's dice move
+                    for (int g = g2; g <= g2 + 1 && clear; g++) {
+                        for (int r = p - 3; r <= p && clear; r++) {
+                            clear = !board().cellAt(PlayerColor.GREEN, g).equals(board().cellAt(PlayerColor.RED, r));
+                        }
+                    }
+                    for (int step = 1; step <= 5 && clear; step++) { // Green can later move off it to a plain cell
+                        int t = g2 + step;
+                        if (t < board().homeStartIndex() && !special(board().squareAt(board().cellAt(PlayerColor.GREEN, t)))) {
+                            ps = p;
+                            pg = g2;
+                            pq = step;
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }, colors);
+        Piece green = piece(PlayerColor.GREEN, 0);
+        green.setProgress(pg + 1);
+        landRed(ps, 3);
+        push(green, 2); // ⌈2/2⌉ = 1 step back, onto the second surprise square
+        assertEquals(pg, green.progress());
+        assertEquals(TurnPhase.RESOLVING, model.phase(), "the pushed piece reached a surprise square (FR-42)");
+        assertSame(green, model.pendingEffect().piece());
+        assertEquals(SquareType.SURPRISE, model.pendingEffect().type());
+        assertSame(PlayerColor.RED, model.currentPlayer().color(), "still Red's turn");
+    }
+
+    /** The turn outcome for the piece that waits, built for the active player (D2: the turn holder). */
+    private SurpriseResult turnOutcome(SurpriseOutcome outcome) {
+        EffectQueue.Activation waiting = model.pendingEffect();
+        return new SurprisePrompt(outcome, waiting.piece(), model.currentPlayer().color(), 0, List.of()).resolve();
+    }
+
+    @Test
+    @DisplayName("T2-12 PO D2: when Red's chain puts a Green piece on 'skip the next turn', Red misses the turn, not "
+            + "Green")
+    void skipFromAnOpponentsPieceFallsOnTheActivePlayer() {
+        pushGreenOntoASurprise(PlayerColor.RED, PlayerColor.GREEN, PlayerColor.YELLOW);
+        SurpriseResult skip = turnOutcome(SurpriseOutcome.SKIP_TURN);
+        assertSame(PlayerColor.GREEN, skip.triggerOwner(), "Green's piece set it off");
+        assertSame(PlayerColor.RED, skip.turnAffected(), "D2: the turn outcome falls on the turn holder");
+        model.applySurprise(skip);
+
+        assertSame(PlayerColor.GREEN, model.currentPlayer().color(), "Green plays its next turn normally");
+        dice.next.add(DiceRoll.regularOnly(pq)); // Green moves its piece to a plain cell
+        model.roll();
+        model.move(piece(PlayerColor.GREEN, 0));
+        assertSame(PlayerColor.YELLOW, model.currentPlayer().color());
+        events.clear();
+        dice.next.add(DiceRoll.regularOnly(3)); // Yellow has no piece out: the turn passes
+        model.roll();
+        assertSame(PlayerColor.GREEN, model.currentPlayer().color(), "Red misses this turn");
+        assertTrue(events.stream().anyMatch(e -> e.type() == GameEvent.Type.TURN_SKIPPED
+                && e.player() == player(PlayerColor.RED)), "the skipped player announced is Red");
+        assertFalse(events.stream().anyMatch(e -> e.type() == GameEvent.Type.TURN_SKIPPED
+                && e.player() == player(PlayerColor.GREEN)), "Green is not skipped");
+    }
+
+    @Test
+    @DisplayName("T2-12 PO D2: when Red's chain puts a Green piece on 'extra roll', Red rolls again, not Green")
+    void extraRollFromAnOpponentsPieceGoesToTheActivePlayer() {
+        pushGreenOntoASurprise(PlayerColor.RED, PlayerColor.GREEN);
+        SurpriseResult extra = turnOutcome(SurpriseOutcome.EXTRA_ROLL);
+        assertSame(PlayerColor.GREEN, extra.triggerOwner());
+        assertSame(PlayerColor.RED, extra.turnAffected());
+        model.applySurprise(extra);
+
+        assertEquals(TurnPhase.AWAITING_ROLL, model.phase());
+        assertSame(PlayerColor.RED, model.currentPlayer().color(), "D2: the extra roll belongs to Red");
+        dice.asked.clear();
+        dice.next.add(DiceRoll.regularOnly(1));
+        model.roll();
+        assertEquals(List.of(Difficulty.HARD), dice.asked, "Regular + UltraBoost dice");
+        assertSame(PlayerColor.RED, model.currentPlayer().color(), "Red, not Green, takes the extra roll");
+    }
 }

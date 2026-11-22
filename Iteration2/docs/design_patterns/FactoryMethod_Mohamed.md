@@ -7,7 +7,9 @@ Owner: **Mohamed Zereny**. Graded design pattern of this member (Iteration 2 pla
 
 > Headings 1–6 follow the shared structure in `iteration2_dp_Sharks.md` section 3, so the four sections read
 > as one document. Every class name, file path, line number and test count below was checked against the code
-> of this task on 21/11/2026 (branch `feature/mohamed/T2-08-question-factory`, commit `3352d4f`).
+> of this task on 22/11/2026, against the merged code on `iteration-2` (`d445a38`); T2-08 reached it through
+> PR #89. The line numbers below are unchanged from the branch they were written on (`3352d4f`), because the
+> merge did not touch these files.
 
 ## 1. The design pattern used
 
@@ -46,14 +48,28 @@ holding*, that is, by polymorphism.
 | GoF role | Class in this project | What it does |
 |---|---|---|
 | **Creator** (abstract) | `Model.QuestionFactory` | Declares the **factory method** `protected abstract Question createQuestion()` and uses it in its own operation `public final Question ask()`. Also holds `judge(question, answer)`, the rule that turns an answer into ±1/2/3 steps (FR-35, FR-36) — the same rule at every level, so it belongs to the creator, not to the subclasses. |
-| **Concrete Creator** | `Model.EasyQuestionFactory` | Overrides the factory method to deal the next **Easy** question; ±1 step. |
-| **Concrete Creator** | `Model.MediumQuestionFactory` | Overrides it to deal the next **Medium** question; ±2 steps. |
-| **Concrete Creator** | `Model.HardQuestionFactory` | Overrides it to deal the next **Hard** question; ±3 steps. |
-| **Product** | `Model.Question` | An immutable question: id, level, text, exactly four different answers and the index of the one correct answer (FR-34). |
+| **Concrete Creator** | `Model.EasyQuestionFactory` | Owns the **Easy** `QuestionDeck` and overrides the factory method to deal the next Easy question. |
+| **Concrete Creator** | `Model.MediumQuestionFactory` | The same for **Medium**. |
+| **Concrete Creator** | `Model.HardQuestionFactory` | The same for **Hard**. |
+| **Product** | `Model.Question` | A `record`, so immutable: id, level, text, exactly four different answers and the index of the one correct answer (FR-34). Its `steps()` reads the step count of its own level. |
 | Supporting | `Model.QuestionDeck` | One level's questions, shuffled and dealt without repeats until the level is used up, then shuffled again (FR-37). Each concrete creator owns one. |
 | Supporting | `Model.QuestionBank` | The read-only set of questions of a game, grouped by level. |
 | Supporting | `Model.QuestionResult` | Whether the answer was right, which answer was right, and the signed number of steps (FR-35, FR-36). |
 | Supporting | `Model.CourseQuestions` | The 36 course questions (12 per level), reused from the Assignment 3 prototype through the reuse gate (SDP 6.1). |
+
+**What a Concrete Creator does and does not do.** Each one differs from the others in exactly one respect:
+**which `QuestionDeck` it deals from**, and therefore which level of question it produces. None of them
+implements the movement of FR-35. The step count belongs to the level — `Question.steps()` returns
+`level.questionSteps()`, which reaches `LevelConfig` — and the **sign** is applied once, in the abstract
+Creator's `judge()`:
+
+```java
+return new QuestionResult(question, chosenIndex, correct,
+        correct ? question.steps() : -question.steps());
+```
+
+So "Easy means ±1" is a fact about the *level*, not behaviour coded into `EasyQuestionFactory`. That is why
+`judge()` is `final` on the Creator: one rule for every level, and a subclass cannot drift from it.
 
 ### The structure
 
@@ -128,8 +144,22 @@ All paths are relative to the repository root. Line numbers are from commit `335
 The only place in the whole program that names the three concrete creators is
 `QuestionFactory.forBank(bank, random)` (line 120), which builds them once when a game starts and returns an
 `EnumMap<Difficulty, QuestionFactory>`. After that the game looks a creator up by the square's level and calls
-`ask()`. Adding a fourth question level means adding one class and one line in `forBank`; nothing that already
-works is touched (Open/Closed principle).
+`ask()`.
+
+**What Open/Closed does and does not buy here.** Adding a fourth *question* level leaves this pattern's own
+code untouched: one new `QuestionFactory` subclass, plus one line in `forBank`. That is the real benefit, and
+it is worth stating precisely rather than overstating it - **a fourth difficulty level of the game is a much
+larger change than that**, and it would also need at least:
+
+* a new constant in the `Difficulty` enum;
+* a `LevelConfig` entry for it: grid size, outer rings, track sizes, and the counts of protection, arrow,
+  question and surprise squares, plus its `questionSteps`;
+* questions of that level in `CourseQuestions` / `QuestionBank`, or `forBank` refuses the level (FR-34);
+* a `DiceStrategy` and its movement formula (FR-16, FR-17);
+* board geometry in `BoardFactory`, and the level offered on the setup screen (FR-05).
+
+So the claim is narrow and holds only for the question factory: **this pattern is not the part that would have
+to change.** Nothing that already works inside it is touched.
 
 ### Screenshots for the Word/PDF document
 
@@ -139,7 +169,7 @@ list, in the order they should appear in this section:
 | # | Screenshot | Exact location | Shows |
 |---|---|---|---|
 | S1 | The abstract Creator with the factory method | `Iteration2/src/Model/QuestionFactory.java`, lines 39–70 (class declaration, `level()`, `createQuestion()`, `ask()`) | that the Creator is abstract and declares the factory method, and that `ask()` is written against the abstract product |
-| S2 | One Concrete Creator in full | `Iteration2/src/Model/EasyQuestionFactory.java`, lines 13–40 | the `extends`, the `@Override` of `createQuestion()`, and the ±1 step of the level |
+| S2 | One Concrete Creator in full | `Iteration2/src/Model/EasyQuestionFactory.java`, lines 13–40 | the `extends`, the `@Override` of `createQuestion()`, and that the whole class is just a deck and one dealt question - no movement rule in it |
 | S3 | The three creators built in one place | `Iteration2/src/Model/QuestionFactory.java`, lines 120–130 (`forBank`) | that the only mention of the concrete classes is one call per game, not a `switch` in the game logic |
 | S4 | The judging rule | `Iteration2/src/Model/QuestionFactory.java`, lines 93–118 (`judge`) | FR-35 and FR-36 in one place for every level |
 | S5 | The no-repeat deck | `Iteration2/src/Model/QuestionDeck.java`, the `deal()` method | FR-37 kept per level |
@@ -154,11 +184,15 @@ belongs to the T2-15 and N2-04 evidence as well.
 
 `Iteration2/test/Model/QuestionFactoryTest.java` — **18 tests, all passing.**
 
-Measured on 21/11/2026 on branch `feature/mohamed/T2-08-question-factory` (`3352d4f`), Java 17
-(Temurin 17.0.17), with `Iteration2/test.sh`:
+Measured twice, both with `Iteration2/test.sh` on Java 17 (Temurin 17.0.17):
 
-* the class alone: **18 tests found, 18 successful, 0 failed**;
-* the whole suite of the branch: **415 tests found, 415 successful, 0 failed** (41 containers).
+| When | Where | `Model.QuestionFactoryTest` | Whole suite |
+|---|---|---|---|
+| 21/11/2026 | the T2-08 branch, before #89 merged (`3352d4f`) | 18 found, **18 passed**, 0 failed | 415 found, **415 passed**, 0 failed (41 containers) |
+| 22/11/2026 | `iteration-2` `d445a38`, after #89 merged | 18 found, **18 passed**, 0 failed | 531 found, **531 passed**, 0 failed |
+
+The suite grew from 415 to 531 because other tasks merged in the meantime, not because this task changed; its
+own 18 tests are the same 18.
 
 What the tests show, grouped by what they verify:
 
@@ -223,11 +257,25 @@ This is the point the pattern is usually graded on, so it is worth being precise
 
 **Scope of this task, and what is deliberately not in it**
 
-* **The step values (1 / 2 / 3) come from `LevelConfig.questionSteps()`**, which the team recorded from SRS
-  Table 1 in Iteration 1. The copy of the SRS in this repository stops at the end of section 2, so FR-35 could
-  not be read in the original; the values were taken from the team's own record and from the Assignment 3
-  prototype, which states the same rule. No staff approval is needed for the pattern itself, which is one of
-  the patterns taught in the course.
+* **The step values (1 / 2 / 3) are FR-35, read from the SRS in this repository.** An earlier draft of this
+  section said the repository's SRS "stops at the end of section 2, so FR-35 could not be read in the
+  original". **That was wrong, and it is corrected here.** The full specification, with the complete FR table
+  (FR-01 to FR-65), is in the repository at **`Assignment3_Prototype/Sharks_SRS.pdf`** - 20 pages - and
+  **FR-35 is on page 13**:
+
+  > **FR-35** "Correct answers shall move the piece forward 1 (Easy), 2 (Medium), or 3 (Hard) steps;
+  > incorrect answers move it back equally."
+
+  That is exactly the +1 / +2 / +3 and −1 / −2 / −3 rule this task implements, so the values are specified and
+  not inferred. (The 10-page `SRS_Sharks.pdf` at the repository root is the Assignment 2 document and does end
+  after section 2 - it contains no FR table at all. Confusing the two is what produced the wrong claim.)
+
+  FR-34 on the same page is also worth quoting, because it is the requirement the pattern exists to serve:
+
+  > **FR-34** "Landing on a question square shall display to all players a random question of matching
+  > difficulty with four options; only the active player may answer."
+
+  No staff approval is needed for the pattern itself, which is one of the patterns taught in the course.
 * **The question level is the square's level, not the board's.** This follows the SRS and the project
   description, and the prototype documented the same decision where the task brief read differently
   (`Assignment3_Prototype/README.md`, "Where the documents differ"). It is an existing team decision, not a

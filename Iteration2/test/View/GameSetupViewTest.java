@@ -11,6 +11,7 @@ import java.awt.Container;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import javax.swing.AbstractButton;
 import javax.swing.JButton;
@@ -19,8 +20,9 @@ import javax.swing.SwingUtilities;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import Model.DiceRoll;
 import Model.Difficulty;
-import Model.DieType;
+import Model.GameModel;
 import Model.GameSettings;
 import Model.PlayerColor;
 
@@ -137,62 +139,88 @@ class GameSetupViewTest {
     }
 
     @Test
-    @DisplayName("FR-05 partial: only Easy can be chosen; Medium and Hard are disabled and say why")
-    void onlyEasyCanBeChosenInIterationOne() {
+    @DisplayName("T2-01 FR-05: every level can be chosen; no card is disabled or marked as coming later")
+    void everyLevelCanBeChosen() {
         onEdt(() -> {
             GameSetupView view = new GameSetupView();
-            assertTrue(toggle(view, "setup.level.easy").isEnabled(), "Easy is playable in Iteration 1");
             assertTrue(toggle(view, "setup.level.easy").isSelected(), "Easy is chosen from the start");
             assertEquals(Difficulty.EASY, view.difficulty());
 
-            for (Difficulty later : new Difficulty[] {Difficulty.MEDIUM, Difficulty.HARD}) {
-                AbstractButton card = toggle(view, "setup.level." + later.name().toLowerCase());
-                assertFalse(card.isEnabled(), later + " cannot be played in Iteration 1");
+            for (Difficulty d : Difficulty.values()) {
+                AbstractButton card = toggle(view, "setup.level." + d.name().toLowerCase());
+                assertTrue(card.isEnabled(), d + " must be choosable from Iteration 2 (T2-04 gave it dice)");
                 String tip = card.getToolTipText();
-                assertNotNull(tip, later + " must explain why it cannot be chosen");
-                assertTrue(tip.contains("Iteration 2"), later + " tip must name the iteration: " + tip);
+                assertNotNull(tip, d + " should describe itself");
+                assertFalse(tip.contains("Iteration 2"), d + " must not be marked as coming later: " + tip);
             }
         });
     }
 
     @Test
-    @DisplayName("FR-05 partial: asking for Medium or Hard in code keeps the chosen level at Easy")
-    void choosingAnUnavailableLevelIsIgnored() {
+    @DisplayName("T2-01 FR-05: choosing Medium or Hard really changes the chosen level and the selected card")
+    void choosingMediumOrHardIsKept() {
         onEdt(() -> {
             GameSetupView view = new GameSetupView();
-            view.setDifficulty(Difficulty.MEDIUM);
-            assertEquals(Difficulty.EASY, view.difficulty(), "Medium may not become the chosen level");
-            view.setDifficulty(Difficulty.HARD);
-            assertEquals(Difficulty.EASY, view.difficulty(), "Hard may not become the chosen level");
-            assertTrue(toggle(view, "setup.level.easy").isSelected(), "Easy stays the chosen card");
+            for (Difficulty d : Difficulty.values()) {
+                view.setDifficulty(d);
+                assertEquals(d, view.difficulty(), d + " must become the chosen level");
+                assertTrue(toggle(view, "setup.level." + d.name().toLowerCase()).isSelected(),
+                        d + " must be the selected card");
+                for (Difficulty other : Difficulty.values()) {
+                    if (other != d) {
+                        assertFalse(toggle(view, "setup.level." + other.name().toLowerCase()).isSelected(),
+                                other + " must not stay selected next to " + d);
+                    }
+                }
+            }
         });
     }
 
     @Test
-    @DisplayName("FR-05 partial: a game can only ever be started on a level whose dice exist")
-    void onlyAPlayableLevelIsEverStarted() {
+    @DisplayName("T2-01 FR-05: the level chosen on the screen is the level the controller is asked to start")
+    void everyLevelIsHandedToTheController() {
         onEdt(() -> {
-            RecordingStart start = new RecordingStart();
-            GameSetupView view = setupWith(start);
-            view.setDifficulty(Difficulty.HARD);        // refused
-            fillNames(view, "Ann", "Bob");
-            click(view, "setup.start");
+            for (Difficulty d : Difficulty.values()) {
+                RecordingStart start = new RecordingStart();
+                GameSetupView view = setupWith(start);
+                view.setDifficulty(d);
+                fillNames(view, "Ann", "Bob");
+                click(view, "setup.start");
 
-            assertEquals(1, start.started());
-            assertEquals(Difficulty.EASY, start.levels.get(0),
-                    "the controller must never be handed a level whose dice are not implemented");
+                assertEquals(1, start.started(), d + ": the game must start");
+                assertEquals(d, start.levels.get(0), d + ": the controller got another level");
+            }
         });
     }
 
     @Test
-    @DisplayName("FR-05 partial: the playable rule follows the dice of the level, not a hard-coded name")
-    void thePlayableRuleFollowsTheDice() {
+    @DisplayName("T2-01 FR-05, FR-16: a game built from what the screen submits rolls on every level")
+    void aGameFromTheScreenRollsOnEveryLevel() {
+        onEdt(() -> {
+            for (Difficulty d : Difficulty.values()) {
+                RecordingStart start = new RecordingStart();
+                GameSetupView view = setupWith(start);
+                view.setDifficulty(d);
+                fillNames(view, "Ann", "Bob");
+                click(view, "setup.start");
+
+                // Exactly the settings the controller would build from this screen (FR-09).
+                GameModel game = new GameModel(new GameSettings(start.levels.get(0), start.submitted.get(0)),
+                        new Random(2026));
+                assertEquals(d, game.difficulty(), d.label());
+                DiceRoll roll = game.roll();
+                assertTrue(roll.regular() >= 1 && roll.regular() <= 6, d + ": the first roll must work");
+                assertEquals(d.specialDie(), roll.specialType(), d + ": the special die of the level (FR-16)");
+            }
+        });
+    }
+
+    @Test
+    @DisplayName("T2-01 FR-05: the playable rule accepts every level and refuses no level at all")
+    void thePlayableRuleAcceptsEveryLevel() {
         for (Difficulty d : Difficulty.values()) {
-            // RandomDice refuses exactly the levels that need a special die, so the screen must match.
-            assertEquals(d.specialDie() == DieType.NONE, GameSetupView.playable(d),
-                    "the screen and the dice disagree about " + d);
+            assertTrue(GameSetupView.playable(d), "every level has its dice from T2-04: " + d);
         }
-        assertTrue(GameSetupView.playable(Difficulty.EASY));
         assertFalse(GameSetupView.playable(null), "no level at all is not playable");
     }
 

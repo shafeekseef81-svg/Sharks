@@ -8,7 +8,8 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Iteration 1 move engine (FR-19 partial, FR-20, FR-25 partial). Task 16, owner: Rakan Ziyan.
+ * Move engine (FR-19, FR-20, FR-25 partial, FR-28..FR-30). Task 16 (Iteration 1) and T2-06 (Iteration 2, Double
+ * Blocks), owner: Rakan Ziyan.
  *
  * <p>A piece's position is its progress along the owner's path from {@link Board#path(PlayerColor)}: that path
  * already runs clockwise from the owner's start square, passes over the arrows of the other colours and turns
@@ -21,9 +22,17 @@ import java.util.Objects;
  *   <li>Steps and exact finish (FR-17, FR-18, FR-31): asked from {@link HomePathRules} (Task 18).</li>
  *   <li>Captures and protected squares (FR-26, FR-27): asked from {@link SquareRules} (Task 17). This class
  *       only sends the returned pieces back to their castles.</li>
- *   <li>Double Blocks (FR-28..FR-30) are Iteration 2: {@link #isPassable} is always {@code true}, but every
- *       cell of a move is already checked through it.</li>
+ *   <li>Double Blocks (FR-28..FR-30, T2-06): two or more pieces of one colour on one cell form a Double
+ *       Block. It is worked out from the positions of the pieces every time it is needed and never stored, so
+ *       it lasts as long as the pieces stay (FR-30) and is gone as soon as one of them moves. Every cell of a
+ *       move, and the start square of a castle exit (FR-19), is checked with {@link #isPassable}.</li>
  * </ul>
+ *
+ * <p>Stopping before a Double Block (project description, "Double Block"): a piece whose way is blocked stops on
+ * the cell just before the block, even without using all its steps, but only when it is the only movement the
+ * player can make. So {@link #legalMoves} first looks for moves that use the whole roll (a castle exit on a
+ * Regular 6 counts as one); only when there is none does it offer each blocked piece a move to the cell before
+ * the first block. A block right next to the piece leaves it without a move (zero steps are no move).
  *
  * <p>Only a move returned by the latest {@link #legalMoves} call can be applied, and only once: a roll moves
  * exactly one piece (FR-20). A refused move changes nothing.
@@ -79,36 +88,77 @@ public final class StandardMoveEngine implements MoveEngine {
                     moves.put(piece, move);
                 }
             }
+            if (moves.isEmpty()) {
+                // No piece can use the whole roll: a blocked piece may stop before the Double Block.
+                for (Piece piece : player.pieces()) {
+                    Move move = stopBeforeBlock(piece, player, roll);
+                    if (move != null) {
+                        moves.put(piece, move);
+                    }
+                }
+            }
         }
         offered = Collections.unmodifiableMap(moves);
         return offered;
     }
 
-    /** The one move this piece can make with the roll, or {@code null}. */
+    /** The one move this piece can make with the whole roll, or {@code null}. */
     private Move moveFor(Piece piece, Player owner, DiceRoll roll) {
         if (piece.finished()) {
             return null;
         }
         if (piece.inCastle()) {
-            // FR-19: a Regular 6 places the piece on its start square; the special die is ignored.
+            // FR-19: a Regular 6 places the piece on its start square; the special die is ignored. An opponent
+            // Double Block on the start square keeps the piece in its castle (FR-29).
             boolean canExit = roll.regular() == EXIT_ROLL && isPassable(board.startCell(owner.color()), owner);
             return canExit ? new Move(piece, 0) : null;
         }
+        int target = targetOf(piece, roll);
+        if (target < 0) {
+            return null;
+        }
+        return firstBlocked(piece, owner, target) < 0 ? new Move(piece, target) : null;
+    }
+
+    /**
+     * The move to the cell just before the first opponent Double Block on the piece's way, or {@code null} if the
+     * way is free, the piece has no steps, or the block is on the very next cell.
+     */
+    private Move stopBeforeBlock(Piece piece, Player owner, DiceRoll roll) {
+        if (piece.finished() || piece.inCastle()) {
+            return null; // a castle exit is a single jump: it is either possible or not
+        }
+        int target = targetOf(piece, roll);
+        if (target < 0) {
+            return null;
+        }
+        int blocked = firstBlocked(piece, owner, target);
+        int stop = blocked - 1;
+        return blocked >= 0 && stop > piece.progress() ? new Move(piece, stop) : null;
+    }
+
+    /** The progress the roll takes this board piece to, or -1 when it has no steps or would overshoot (FR-31). */
+    private int targetOf(Piece piece, DiceRoll roll) {
         int steps = homePathRules.stepsFor(piece, roll);
         if (steps <= 0 || !homePathRules.canReach(piece, steps)) {
-            return null; // FR-31: an overshooting piece has no move
+            return -1; // FR-31: an overshooting piece has no move
         }
         int target = piece.progress() + steps;
         if (target > piece.finishIndex()) {
             // HomePathRules allowed a step past the finish: refuse it instead of corrupting the piece.
             throw new IllegalStateException("HomePathRules allowed " + piece + " to move past the finish");
         }
+        return target;
+    }
+
+    /** The first progress after the piece, up to {@code target}, that the owner may not enter, or -1 (FR-29). */
+    private int firstBlocked(Piece piece, Player owner, int target) {
         for (int p = piece.progress() + 1; p <= target; p++) {
             if (!isPassable(board.cellAt(owner.color(), p), owner)) {
-                return null;
+                return p;
             }
         }
-        return new Move(piece, target);
+        return -1;
     }
 
     /**
@@ -170,9 +220,33 @@ public final class StandardMoveEngine implements MoveEngine {
                 landedOn, pieceFinished, pieceFinished && owner.allFinished(), isGameOver());
     }
 
-    /** Iteration 1 has no Double Blocks (FR-28..FR-30 come in Iteration 2). */
+    /**
+     * {@inheritDoc}
+     *
+     * <p>A cell is not passable when two or more pieces of one opponent colour stand on it (FR-28, FR-29). Pieces
+     * in their castle or on the finishing square do not count. The player's own pieces never block it, and the
+     * answer does not depend on the direction, so backward moves (questions, surprises) can use it as well.
+     *
+     * @throws NullPointerException if an argument is null
+     */
     @Override
     public boolean isPassable(Cell cell, Player player) {
+        Objects.requireNonNull(cell, "cell");
+        Objects.requireNonNull(player, "player");
+        for (Player other : players) {
+            if (other.color() == player.color()) {
+                continue;
+            }
+            int onCell = 0;
+            for (Piece piece : other.pieces()) {
+                if (piece.onBoard() && cell.equals(board.cellAt(piece.color(), piece.progress()))) {
+                    onCell++;
+                }
+            }
+            if (onCell >= 2) {
+                return false;
+            }
+        }
         return true;
     }
 

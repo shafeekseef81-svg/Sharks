@@ -258,7 +258,8 @@ class MovementAcceptanceTest {
     }
 
     @Test
-    @DisplayName("T22 FR-26 (PO decision, issue 13): two opponent pieces on a plain square are not captured")
+    @DisplayName("T22 FR-26, FR-29 (PO decision, issue 13; Double Block since T2-06): two pieces of one opponent are "
+            + "not captured; they form a Double Block and the only movable piece stops just before it")
     void twoOpponentsAreNotCaptured() {
         start(b -> plain(b, PlayerColor.RED, 22));
         Piece hunter = red.pieces().get(0);
@@ -268,7 +269,7 @@ class MovementAcceptanceTest {
         green.pieces().get(1).setProgress(shared);
         MoveResult r = play(4, hunter);
         assertTrue(r.captures().isEmpty());
-        assertEquals(22, hunter.progress());
+        assertEquals(21, hunter.progress(), "Iteration 2: stops before the Double Block (was 22 in Iteration 1)");
         assertEquals(shared, green.pieces().get(0).progress());
         assertEquals(shared, green.pieces().get(1).progress());
     }

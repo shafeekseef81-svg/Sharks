@@ -1,6 +1,7 @@
 package Model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -31,6 +32,7 @@ class SquareEffectTest {
     private Board board;
     private EffectMover mover;
     private EffectQueue queue;
+    private MoveEngine engine;
     /**
      * Dice moves go through a turn without effects, so the queue under test is the only one. Since T2-10 part 2
      * the turn inside {@link GameModel} has a queue of its own, which these unit tests of the queue leave out.
@@ -53,7 +55,7 @@ class SquareEffectTest {
         List<Player> players = model.players();
         SquareRules squareRules = new StandardSquareRules(board, players);
         HomePathRules homePathRules = new StandardHomePathRules(board);
-        MoveEngine engine = new StandardMoveEngine(board, players, squareRules, homePathRules);
+        engine = new StandardMoveEngine(board, players, squareRules, homePathRules);
         mover = new EffectMover(board, players, squareRules, homePathRules, engine);
         queue = new EffectQueue(mover);
         turns = new StandardTurnManager(players, Difficulty.MEDIUM, level -> roll(2), engine,
@@ -409,5 +411,29 @@ class SquareEffectTest {
                 "red 2 is still in its castle");
         assertSame(red(0), queue.next().piece(), "the square still waits");
         assertThrows(NullPointerException.class, () -> queue.run(null));
+    }
+    @Test
+    @DisplayName("T2-10, T2-13: while a square waits (RESOLVING) the turn cannot end, roll or move, and nothing changes")
+    void resolvingRefusesTheOtherRequests() {
+        List<Player> players = model.players();
+        StandardTurnManager resolving = new StandardTurnManager(players, Difficulty.MEDIUM, level -> roll(3), engine,
+                new StandardRankingTracker(players), queue);
+        mark(5, SquareType.QUESTION);
+        Piece piece = put(red(0), 2);
+        resolving.roll();
+        resolving.move(piece);
+        assertEquals(TurnPhase.RESOLVING, resolving.phase());
+        Player red = resolving.current();
+
+        assertThrows(IllegalStateException.class, resolving::endTurn);
+        assertThrows(IllegalStateException.class, resolving::roll);
+        assertThrows(IllegalStateException.class, () -> resolving.move(piece));
+        assertFalse(resolving.canRoll());
+        assertTrue(resolving.legalMoves().isEmpty());
+
+        assertEquals(TurnPhase.RESOLVING, resolving.phase(), "the refusals change nothing");
+        assertSame(red, resolving.current());
+        assertEquals(on(PlayerColor.RED, 5), piece.progress());
+        assertSame(piece, queue.next().piece(), "the square still waits");
     }
 }

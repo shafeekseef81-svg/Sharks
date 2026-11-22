@@ -155,14 +155,6 @@ class SurpriseDialogTest {
         return html == null ? "" : html.replaceAll("<[^>]*>", "").replace("‎", "").strip();
     }
 
-    /** Fails if the text speaks to one player, which would say whose outcome it is. */
-    private static void assertNoSecondPerson(String text, String where) {
-        for (String word : new String[] {"you", "your", "yours", "yourself"}) {
-            assertFalse(text.toLowerCase(java.util.Locale.ROOT).matches(".*\\b" + word + "\\b.*"),
-                    where + " must name no recipient, but says \"" + word + "\": " + text);
-        }
-    }
-
     // ------------------------------------------------------------------ what the player sees (FR-39)
 
     @Test
@@ -432,11 +424,15 @@ class SurpriseDialogTest {
     }
 
     @Test
-    @DisplayName("FR-42: a turn outcome in such a chain names nobody and says the team has not decided")
-    void turnOutcomesInSuchAChainNameNobody() throws Exception {
+    @DisplayName("D2 FR-42: a turn outcome in such a chain is shown as the active player's, and resolves to them")
+    void turnOutcomesInSuchAChainBelongToTheActivePlayer() throws Exception {
+        // Product Owner decision D2, approved 21/11/2026: the outcome falls on the active player (Mohamed,
+        // RED), never on the owner of the piece that landed (Shafeek, GREEN). The obsolete "undecided" note
+        // and the neutral wording that named nobody are gone.
         onTrack(red, 0, 4);
         Piece greenTrigger = onTrack(green, 0, 12);
 
+        int checked = 0;
         for (SurpriseOutcome outcome : SurpriseOutcome.values()) {
             if (!outcome.affectsTurnOnly()) {
                 continue;
@@ -446,25 +442,33 @@ class SurpriseDialogTest {
             List<SurpriseResult> resolved = new ArrayList<>();
             SurpriseDialog dialog = build(prompt, names(), factory::resolve, resolved);
 
-            assertEquals(SurpriseDialog.UNDECIDED_NOTE, text(dialog, "surprise.undecided"), outcome.name());
+            assertNull(find(dialog, "surprise.undecided"),
+                    outcome + ": the undecided note is gone now that D2 is decided");
 
-            // Neither a name nor a second person: "you"/"your" beside the pill that says whose turn it is
-            // would assign the outcome to that player, which is exactly what is not decided yet.
-            for (String name : new String[] {"Mohamed", "Shafeek", "Rakan"}) {
-                assertFalse(text(dialog, "surprise.description").contains(name), outcome + " / " + name);
-                assertFalse(text(dialog, "surprise.title").contains(name), outcome + " / " + name);
-            }
-            assertNoSecondPerson(text(dialog, "surprise.title"), outcome + " title");
-            assertNoSecondPerson(text(dialog, "surprise.description"), outcome + " description");
+            // The card shows the Model's own wording, which is written to the player whose turn it is.
+            assertEquals(outcome.title(), text(dialog, "surprise.title"), outcome.name());
+            assertEquals(outcome.description(), text(dialog, "surprise.description"), outcome.name());
+
+            // The pill names the active player, and the chain note explains how the square was reached
+            // without ever claiming the opponent is the one affected.
+            assertTrue(text(dialog, "surprise.activePlayer").contains("Mohamed"),
+                    outcome + ": the active player is named");
+            String chain = text(dialog, "surprise.chainNote");
+            assertTrue(chain.contains("Shafeek") && chain.contains("Mohamed"), outcome + ": " + chain);
 
             onEdt(() -> dialog.confirmButton().doClick());
-            assertTrue(resolved.get(0).turnTargetUndecided(),
-                    outcome + ": the Model still reports the decision as open");
+            SurpriseResult result = resolved.get(0);
+            assertSame(PlayerColor.RED, result.affected(),
+                    outcome + " (D2) falls on the active player, not on the owner of the piece");
+            assertSame(PlayerColor.RED, result.turnAffected(), outcome.name());
+            assertSame(PlayerColor.GREEN, result.triggerOwner(), outcome.name());
+            checked++;
         }
+        assertEquals(2, checked, "both SKIP_TURN and EXTRA_ROLL were checked");
     }
 
     @Test
-    @DisplayName("An ordinary surprise shows no chain note and no undecided note")
+    @DisplayName("An ordinary surprise shows no chain note, and no card ever shows an undecided note")
     void ordinarySurprisesShowNoNotes() throws Exception {
         Piece mine = onTrack(red, 0, 4);
         onTrack(green, 0, 12);
@@ -475,6 +479,7 @@ class SurpriseDialogTest {
             SurpriseDialog dialog = build(prompt, names(), factory::resolve, new ArrayList<>());
             assertNull(find(dialog, "surprise.chainNote"), outcome.name());
             assertNull(find(dialog, "surprise.undecided"), outcome.name());
+            assertEquals(outcome.title(), text(dialog, "surprise.title"), outcome.name());
         }
     }
 

@@ -63,8 +63,13 @@ The same method was used by Shafeek for the Double Block tests T2-07 (#85): with
   - the forced break.
 - **Independent tests:** `DoubleBlockIndependentTest` (Shafeek, T2-07, #85), 19 tests through the facade.
 - **Review:** two Deep reviews (Shafeek, Mohamed).
-- **Open point:** a Double Block on a start square (staff answers Q7/Q35 against FR-19). The code follows FR-19 until
-  the Product Owner decides.
+- **Implemented behaviour:** an opponent Double Block on a player's start square keeps that player's piece in its
+  castle, even on a Regular 6 (`StandardMoveEngine.moveFor` checks `isPassable` on the start cell). This is the
+  exception written into FR-19 itself: "a Regular 6 shall allow placing a piece on its starting square ... **unless an
+  opponent Double Block occupies that square** (Q40)", and it is the blocking rule of FR-29.
+- **Open point (PO decision D1):** staff answers Q7/Q35 say that two pieces of one colour on a *start square* do not
+  form a Double Block at all. If the Product Owner follows them, the castle exit would no longer be blocked there. The
+  code keeps the FR-19/Q40 behaviour until that decision.
 
 ## 4. Release checks (N2-06, NFR-10)
 

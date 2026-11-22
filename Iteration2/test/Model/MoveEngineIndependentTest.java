@@ -338,24 +338,25 @@ class MoveEngineIndependentTest {
         Player green = byColor.get(PlayerColor.GREEN);
         Player blue = byColor.get(PlayerColor.BLUE);
         Piece mover = red.pieces().get(3);
-        mover.setProgress(20);
-        Cell target = expectedCell(PlayerColor.RED, 25);
+        mover.setProgress(18); // T2-06: 18 -> 23 (was 20 -> 25), a square that Yellow passes as well
+        Cell target = expectedCell(PlayerColor.RED, 23);
         Piece g = green.pieces().get(1);
         Piece b = blue.pieces().get(2);
-        Piece bystander = blue.pieces().get(0);
+        // T2-06: a Yellow bystander, because a second Blue piece on the target would form a Double Block (FR-28).
+        Piece bystander = byColor.get(PlayerColor.YELLOW).pieces().get(0);
         g.setProgress(progressOn(PlayerColor.GREEN, target));
         b.setProgress(progressOn(PlayerColor.BLUE, target));
-        bystander.setProgress(progressOn(PlayerColor.BLUE, target));
+        bystander.setProgress(progressOn(PlayerColor.YELLOW, target));
         rules.answer = List.of(g, b);
 
         engine.legalMoves(red, die(5));
-        MoveResult r = engine.apply(new Move(mover, 25));
+        MoveResult r = engine.apply(new Move(mover, 23));
 
         assertEquals(List.of(mover), rules.movers);
         assertEquals(List.of(target), rules.targets);
         assertTrue(g.inCastle());
         assertTrue(b.inCastle());
-        assertEquals(progressOn(PlayerColor.BLUE, target), bystander.progress(), "only listed pieces go back");
+        assertEquals(progressOn(PlayerColor.YELLOW, target), bystander.progress(), "only listed pieces go back");
         assertEquals(List.of(new MoveResult.Capture(g, target), new MoveResult.Capture(b, target)), r.captures());
     }
 

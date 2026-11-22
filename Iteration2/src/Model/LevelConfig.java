@@ -13,6 +13,9 @@ import java.util.stream.Collectors;
  * <p>{@link Difficulty} only identifies a level; the values belong here. Read them with
  * {@link #of(Difficulty)}. The surprise probabilities of SRS Table 2, also named by NFR-19, are added here with
  * the surprise rules in Iteration 2.
+ *
+ * <p>Iteration 2 (T2-04): each level holds its {@link DiceStrategy}, and the special die of the level is read
+ * from that strategy, so the dice of a level are defined in one place.
  */
 public final class LevelConfig {
 
@@ -26,9 +29,12 @@ public final class LevelConfig {
     private static final Map<Difficulty, LevelConfig> LEVELS = new EnumMap<>(Difficulty.class);
 
     static {
-        LEVELS.put(Difficulty.EASY, new LevelConfig(15, new int[] {52}, 4, 4, 0, 0, DieType.NONE, 1));
-        LEVELS.put(Difficulty.MEDIUM, new LevelConfig(17, new int[] {52, 64}, 8, 8, 6, 2, DieType.BOOST, 2));
-        LEVELS.put(Difficulty.HARD, new LevelConfig(19, new int[] {52, 64, 72}, 12, 12, 9, 3, DieType.ULTRA_BOOST, 3));
+        LEVELS.put(Difficulty.EASY,
+                new LevelConfig(15, new int[] {52}, 4, 4, 0, 0, new RegularDiceStrategy(), 1));
+        LEVELS.put(Difficulty.MEDIUM,
+                new LevelConfig(17, new int[] {52, 64}, 8, 8, 6, 2, new BoostDiceStrategy(), 2));
+        LEVELS.put(Difficulty.HARD,
+                new LevelConfig(19, new int[] {52, 64, 72}, 12, 12, 9, 3, new UltraBoostDiceStrategy(), 3));
     }
 
     private final int gridSize;
@@ -37,18 +43,18 @@ public final class LevelConfig {
     private final int arrowSquares;
     private final int questionSquares;
     private final int surpriseSquares;
-    private final DieType specialDie;
+    private final DiceStrategy diceStrategy;
     private final int questionSteps;
 
     private LevelConfig(int gridSize, int[] trackSizes, int protectionSquares, int arrowSquares,
-                        int questionSquares, int surpriseSquares, DieType specialDie, int questionSteps) {
+                        int questionSquares, int surpriseSquares, DiceStrategy diceStrategy, int questionSteps) {
         this.gridSize = gridSize;
         this.trackSizes = trackSizes;
         this.protectionSquares = protectionSquares;
         this.arrowSquares = arrowSquares;
         this.questionSquares = questionSquares;
         this.surpriseSquares = surpriseSquares;
-        this.specialDie = specialDie;
+        this.diceStrategy = diceStrategy;
         this.questionSteps = questionSteps;
     }
 
@@ -125,9 +131,19 @@ public final class LevelConfig {
         return surpriseSquares;
     }
 
-    /** @return Boost, UltraBoost or NONE (Easy uses the Regular die only) */
+    /** @return Boost, UltraBoost or NONE (Easy uses the Regular die only); taken from {@link #diceStrategy()} */
     public DieType specialDie() {
-        return specialDie;
+        return diceStrategy.specialDie();
+    }
+
+    /**
+     * The dice of this level and their movement formula (FR-16, FR-17): the concrete strategy of the
+     * {@link DiceStrategy} pattern that {@link RandomDice} uses for this level. Task T2-04.
+     *
+     * @return the shared, stateless strategy of this level
+     */
+    public DiceStrategy diceStrategy() {
+        return diceStrategy;
     }
 
     /** @return the steps moved for a correct (forward) or wrong (backward) answer at this level (FR-35) */
@@ -137,6 +153,6 @@ public final class LevelConfig {
 
     /** @return a description of the dice of this level */
     public String diceDescription() {
-        return specialDie == DieType.NONE ? "Regular die" : "Regular + " + specialDie.label() + " dice";
+        return diceStrategy.toString();
     }
 }

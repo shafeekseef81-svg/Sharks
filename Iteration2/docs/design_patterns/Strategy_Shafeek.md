@@ -74,7 +74,14 @@ The `Dice` interface, `DiceRoll`, the move engine, the Controller and the View d
 - Independent tests by Rakan Ziyan (T2-05, PR #78): die sizes, the formula and the routes, plus 10,000 draws per level for NFR-13. They were written from the SRS, not from this code.
 - All Iteration 1 tests still pass (397/397 at the merge).
 
-## 6. Use in the rest of Iteration 2
-The surprise "extra Regular + UltraBoost roll" (T2-09, #60) doesn't need a new die or a change to the context. It can call `rollWith(new UltraBoostDiceStrategy())` on the game's `RandomDice`, whatever the level of the game.
+## 6. Trade-offs
+**The extension proved the design.** The surprise "extra Regular + UltraBoost roll" (SRS Table 2) needed no new die and no change to the context. In T2-10 part 2 (#92), `StandardTurnManager.rollDice` takes it with `dice.roll(SURPRISE_ROLL_DICE)`, where `SURPRISE_ROLL_DICE = Difficulty.HARD`, so `LevelConfig` hands over the UltraBoost strategy on Medium and Hard alike. The call goes through the `Dice` interface and not through `RandomDice.rollWith`, so the turn tests can still script the dice.
 
-*Screenshots for the Word version: `DiceStrategy.java` (interface with Javadoc), `SpecialDiceStrategy.movement`, the two methods of `RandomDice`, and the static level table in `LevelConfig`.*
+**What it costs**
+- More types: an interface, the shared abstract `SpecialDiceStrategy` and three concrete dice, where a `switch` would be one method. Each new die is one more class.
+- The strategies are single shared instances in the static level table of `LevelConfig`. That is safe only because they keep no state: the random generator stays in the context (`RandomDice`) and is passed to `roll(random)`. This is also why a seeded game still rolls the same values, and a seeded Easy game the Iteration 1 values. A die that had to remember something would need one instance per game.
+- Which dice a level uses is set in `LevelConfig`, not in the dice classes, so a reader looks in two places.
+
+**Why not the simpler solution:** a `switch` on the level in `RandomDice` (section 2) would mix the formula with the random generator and change for every new die. The surprise roll would also need its own branch in it.
+
+*Screenshots for the Word version: `DiceStrategy.java` (interface with Javadoc), `SpecialDiceStrategy.movement`, the two methods of `RandomDice`, the static level table in `LevelConfig`, and the surprise roll in `StandardTurnManager.rollDice` (after #92).*

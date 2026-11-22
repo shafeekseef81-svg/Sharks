@@ -263,8 +263,8 @@ public final class GameModel {
     /**
      * Carries out a surprise (FR-39..FR-42): a move of the piece that reached the square or of the chosen
      * opponent piece through the effect queue, or a change of turn. "Skip the next turn" and "extra roll" fall
-     * on the active player, the provisional answer of T2-09 ({@link SurpriseResult#affected()}) proposed on
-     * issue #75.
+     * on the active player, even when an opponent's piece set the chain off: Product Owner decision D2,
+     * approved 21/11/2026 ({@link SurpriseResult#turnAffected()}).
      *
      * @param result the result for the waiting surprise: {@link SurprisePrompt#resolve()} or
      *               {@link #resolveSurprise}
@@ -288,7 +288,7 @@ public final class GameModel {
             case RETURN_TO_CASTLE -> moved = turns.runEffect(new ReturnToCastleEffect(result.piece()));
             case MOVE_STEPS -> moved = turns.runEffect(new MoveStepsEffect(result.piece(), result.steps()));
             case SKIP_NEXT_TURN -> {
-                turns.skipNextTurn(playerOf(result.affected()));
+                turns.skipNextTurn(playerOf(result.turnAffected()));
                 turns.skipEffect();
             }
             case EXTRA_ROLL -> {

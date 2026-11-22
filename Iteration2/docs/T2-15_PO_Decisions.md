@@ -31,7 +31,7 @@ justifications written here are the developer's own and can be corrected without
 | D2 | Who gets SKIP_TURN / EXTRA_ROLL after an opponent's piece set off the chain | **DECIDED 21/11/2026 - Option A, the active player** | **Yes** | Product Owner; implemented in T2-09 and T2-11 | nothing - M5.4 can now be judged |
 | D3 | What "did not answer" means, and whether it can happen at all | **DECIDED 21/11/2026 - an explicit No Answer button** | **Yes** | Product Owner; implemented in T2-11 | nothing - M4.4 can now be judged |
 | D4 | A push-back that would go past the pushed piece's start square | **OPEN — ratification only** | **Yes** | already implemented in `EffectMover`, independently tested in #95 | M6.2, P10 |
-| D5 | EXTRA_ROLL and SKIP_TURN arriving in the same effect chain | **OPEN — ratification only** | Rarely | already implemented as two independent fields in `StandardTurnManager`; test P9 still missing | P9 |
+| D5 | EXTRA_ROLL and SKIP_TURN in one turn (they can **never** share one chain — corrected 22/11) | **OPEN — ratification only** | Rarely | implemented and **now tested** by Shafeek (`e89e0c2`, #92); P9 done | — |
 
 ---
 
@@ -333,6 +333,31 @@ one win, or do both apply (roll again now, and miss the next turn)?
 **Impact.** Unmerged code owned by Shafeek (T2-10) and Rakan (T2-13). Rare in play, so low risk either way -
 but it should not be left to whichever line of code runs last.
 
+> ### ⚠️ Correction, 22/11/2026 — the question as written below is based on a wrong premise
+>
+> Shafeek established, with a test, that **`SKIP_TURN` and `EXTRA_ROLL` can never arrive in the same effect
+> chain at all.** A turn outcome moves no piece, so `EffectQueue.skip` ends the chain as soon as one is
+> drawn. The two can only meet **within one turn**, and then in exactly **one** order: a Regular 6 lands on
+> `EXTRA_ROLL`, and the movement of that surprise roll then reaches a `SKIP_TURN` square.
+>
+> So the alternatives A/B/C below ("both apply" / "cancel out" / "last one wins") never arise, and my earlier
+> recommendation to "ratify A, both apply" was answering a question that cannot occur.
+>
+> **What really happens in the one reachable case**, pinned down by
+> `EffectResolutionTest.skipTurnAfterTheExtraRollCancelsTheSix` (commit `e89e0c2`, #92): the surprise extra
+> roll is taken, and the later `SKIP_TURN` then **also cancels the pending roll from the 6** (SRS Table 2,
+> Q56) and the player misses **exactly one** turn. Shafeek mutation-checked it: without the 6 being cancelled
+> in `markSkip`, that test and `skipTurnCancelsTheSixAndPassesOverThePlayerOnce` both fail.
+>
+> **So D5 is no longer a rule to invent — it is a behaviour to ratify, and it is now tested.** What the
+> Product Owner is being asked to confirm is narrower than the original question:
+>
+> 1. a surprise extra roll is taken **before** a pending roll from a 6 (Q27);
+> 2. a later `SKIP_TURN` cancels that pending 6 as well (Q56), and exactly one turn is missed.
+>
+> The planned test **P9** is therefore **done**, by Shafeek rather than in T2-12. The text below is kept
+> because it records what was considered before the chain behaviour was understood.
+
 **Verified on 21/11/2026 in the integration build — the code already behaves as Option A, and the
 six-vs-surprise half of the question is already settled against SRS Table 2.** In
 `Iteration2/src/Model/StandardTurnManager.java`:
@@ -353,9 +378,10 @@ rule, because they are player-visible and currently live only in javadoc:
 1. a skip cancels a pending roll from a **6**, but not a surprise extra roll;
 2. a surprise extra roll is taken **before** a pending roll from a 6.
 
-**Still missing:** no test covers a chain that produces **both** a skip and an extra roll. That is the planned
-test **P9** and belongs with T2-12 (#95, Rakan) as an independent test. This is the one genuine gap left in
-D5 — the behaviour is right, but nothing pins it down.
+**~~Still missing~~ — CLOSED 22/11/2026.** This said no test covered a chain producing both a skip and an
+extra roll. Shafeek has since shown that such a chain **cannot exist** (see the correction at the top of this
+entry) and has tested the one case that can actually happen, in
+`EffectResolutionTest.skipTurnAfterTheExtraRollCancelsTheSix` (`e89e0c2`, #92). Planned test **P9 is done**.
 
 ---
 
@@ -377,9 +403,11 @@ D5 — the behaviour is right, but nothing pins it down.
    - **D4** is implemented in `EffectMover` and covered by Rakan's independent test
      *"FR-32: a pushed opponent stops on its own start square and does not cross it"* (#95). Nothing to
      build; the Product Owner only has to ratify Option A.
-   - **D5** is implemented as two independent fields in `StandardTurnManager`, and the ordering against the
-     rule of 6 is already decided with SRS Table 2 references (Q56, Q27). The one real gap is that **no test
-     covers a chain producing both a skip and an extra roll** — planned test P9, for T2-12 (#95).
+   - **D5** was re-framed on 22/11: Shafeek showed that a chain can never contain both outcomes (a turn
+     outcome ends the chain), and tested the one case that can occur within a turn — a 6 onto `EXTRA_ROLL`,
+     whose surprise roll then reaches `SKIP_TURN`, where the pending 6 is cancelled too and one turn is
+     missed (`e89e0c2`, #92). Planned test **P9 is done**. The Product Owner now only has to ratify those
+     two sentences.
 4. M3 in `T2-15_AcceptancePlan.md` stays unjudged until D1 is decided. **M4.4 and M5.4 now have an approved
    rule to judge against**, but neither has been run: the dialogs are still not opened by a running game
    until T2-10 (#92) merges.

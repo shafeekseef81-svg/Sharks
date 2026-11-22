@@ -13,7 +13,7 @@ From the repository root, in Git Bash:
 
 ```bash
 git fetch origin
-python tools/make_iteration2_zip.py --ref origin/iteration-2 --test
+python tools/make_iteration2_zip.py --ref origin/iteration-2
 ```
 
 The script (`tools/make_iteration2_zip.py`, outside `Iteration2/` so it is not shipped) follows the Iteration 1
@@ -21,7 +21,9 @@ procedure (`Iteration1/docs/N07_Release.md`):
 1. `git archive` of `Iteration2/` from the given ref, renamed to `iteration2_Sharks/`, so only versioned files go in;
 2. `build.sh` builds `EducationalLudo.jar` with `--release 17`; `build/` is removed afterwards;
 3. checks the JAR: `Main-Class: Controller.Main`, and every class file is version 61 (Java 17);
-4. `--test` runs `test.sh` in the staged copy and stops if a test fails;
+4. runs `test.sh` in the staged copy and reads the JUnit summary. It stops if a test failed or aborted, **and if no test
+   ran at all** (the JUnit launcher exits 0 when it finds no tests; review of #81). `--no-test` skips this step and is not
+   for a release;
 5. writes `iteration2_Sharks.zip` with Python `zipfile` (forward slashes, one top folder) and prints the file count
    and the SHA-256.
 
@@ -31,7 +33,7 @@ procedure (`Iteration1/docs/N07_Release.md`):
 |---|---|---|---|---|
 | 1 | Script finishes; ZIP has one folder `iteration2_Sharks/` with forward slashes | PASS, 106 files | | |
 | 2 | JAR: Main-Class `Controller.Main`, Java 17 class files | PASS, 194,338 bytes | | |
-| 3 | `test.sh` in the staged copy: 0 failed | PASS, 380/380 | | |
+| 3 | `test.sh` in the staged copy: tests ran, 0 failed (count recorded) | PASS, 380/380 | | |
 | 4 | Unzipped into a path with Hebrew letters, `java -jar EducationalLudo.jar` starts without errors | PASS (computer 1) | | |
 | 5 | **Double-click** `run.bat` (Windows) opens the game window | | | |
 | 6 | Double-click `EducationalLudo.jar` opens the game window | | | |

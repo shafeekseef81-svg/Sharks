@@ -4,12 +4,12 @@ Task **T2-15** · Issue [#66](https://github.com/shafeekseef81-svg/Sharks/issues
 
 Stories: [US-2.1 #48](https://github.com/shafeekseef81-svg/Sharks/issues/48), [US-2.2 #49](https://github.com/shafeekseef81-svg/Sharks/issues/49), [US-2.3 #50](https://github.com/shafeekseef81-svg/Sharks/issues/50), [US-2.4 #51](https://github.com/shafeekseef81-svg/Sharks/issues/51).
 
-**Status 21/11/2026.** Part automated and passing, part blocked on unmerged code, part manual by design.
+**Status 22/11/2026.** Part automated and passing, part manual by design. The dependency that blocked the US-2.3 acceptance has been written against: see P12 below.
 Nothing in this file is recorded as passed unless it was actually run and its numbers are given.
 
 ## 1. What this task has to accept, and what the baseline allows today
 
-The baseline for acceptance is `iteration-2`, today at `6e13bcf`. Merged into it: T2-01 (#84), T2-04
+The baseline for acceptance is `iteration-2`, today at **`d445a38`** (it was `6e13bcf` on 21/11). Merged into it: T2-01 (#84), T2-04
 (#76, #80), T2-05 (#78), T2-06 (#77). **Not** merged: T2-08 (#89), T2-09 (#90), T2-10 (#87, #92),
 T2-11 (#91), T2-13 (#79), T2-14 (#93).
 
@@ -40,12 +40,15 @@ Games are played to their end through the `GameModel` facade with the real dice,
 all the real rule classes; there are no stubs and no fixed dice, so a pass means a player really can play
 that game. Deterministic seeds are used so a failure can be reproduced exactly.
 
-Measured on 21/11/2026, branch `feature/mohamed/T2-15-acceptance` off `iteration-2` (`6e13bcf`), Java 17
+Measured on 22/11/2026, branch `feature/mohamed/T2-15-acceptance` merged with `iteration-2` (`d445a38`), Java 17
 (Temurin 17.0.17), `Iteration2/test.sh`:
 
 * `Model.MediumHardAcceptanceTest` alone: **7 found, 7 successful, 0 failed**
 * the whole suite with it: **440 found, 440 successful, 0 failed** (43 containers)
-* the suite without it, i.e. the `iteration-2` baseline: 433 tests
+* the suite without it, i.e. the `iteration-2` baseline: **531** tests
+* re-verified 22/11 on `d445a38`: the seven tests **7/7**, whole suite **538/538**, 0 failed
+  (the 21/11 figures on the older `6e13bcf` baseline were 7/7 and 440/440; the suite grew because other
+  tasks merged, not because this task changed)
 
 | Test | Accepts | Requirements |
 |---|---|---|
@@ -110,10 +113,48 @@ be steered onto a chosen square.
 | P9 | an effect that lands on another special square runs the next effect, and a chain cannot loop | FR-41, FR-42 and the chain guard | FR-41, FR-42 | #87/#92 |
 | P10 | backward movement never goes past the start square | FR-32 | FR-32 | #87/#92 |
 | P11 | the turn passes through its States in the legal order, and an illegal action is refused in each | the State pattern of D3 | NFR-09 | #79 |
-| P12 | a complete Medium and a complete Hard game with questions, surprises and chains all active ends with a winner | the whole of US-2.3 end to end | FR-34..FR-45 | all of the above |
+| ~~P12~~ | **DONE 22/11/2026** - see below. A complete Medium and a complete Hard game with questions, surprises and chains all active ends with a winner | the whole of US-2.3 end to end | FR-34..FR-45 | written on a branch stacked on #92 |
 
-**P12 is the real acceptance of US-2.3** and it cannot be written, let alone passed, before the effect
-queue is merged. It must not be reported as Completed in the Scrum Report until it has actually run.
+### P12 is written and passing - `Iteration2/test/Model/EffectsAcceptanceTest.java` (PR #103)
+
+**P12 is the real acceptance of US-2.3**, and it is now implemented. It needs the effect queue, so it could not
+go on this PR: it lives on `feature/mohamed/T2-15-effects-acceptance`, **stacked on T2-10 part 2 (#92)** as
+Draft PR **#103**, and merges after #92. This PR is deliberately unchanged so it keeps working on plain
+`iteration-2`.
+
+Seven acceptance tests, all playing complete games through the `GameModel` facade with the real dice, boards,
+factories and effect queue - nothing scripted, nothing stubbed:
+
+| Test | Accepts |
+|---|---|
+| five complete **Hard** games with questions, surprises and chains live | US-2.3 end to end; one winner, all but one finished |
+| three complete **Medium** games, same | US-2.3 on Medium |
+| a game completes when **every answer is wrong** | FR-35 backward movement cannot deadlock a game |
+| a game completes when the player **always declines** | **D3** through real play |
+| distinct questions keep being dealt over a whole game | FR-37 in real play |
+| phases always declared; `RESOLVING` only while a square waits | **US-2.4** / NFR-09 invariant |
+| rolling refused and no move offered while a square waits | NFR-09 reached by playing |
+
+**Measured on 22/11/2026** (Java 17, Temurin 17.0.17): full suite on that branch **602/602**, of which 7 are
+new; `EffectsAcceptanceTest` **7/7**; JAR builds. What the games really exercised:
+
+| Level | Seeds | Questions | Surprises | Chained effects | Finished |
+|---|---|---|---|---|---|
+| Hard | 1-5 | **94** (all distinct ids) | **22** | 2 | 3 of 4 every game |
+| Medium | 1-3 | **81** | **22** | 3 | 3 of 4 every game |
+
+**Two limits worth knowing, because they change what still needs covering:**
+
+1. **The cross-player D2 case never occurred** in any of the eight games - the counter stayed at 0. A turn
+   outcome landing in a chain an *opponent's* piece set off is too rare to appear naturally. The D2 assertion
+   in P12 is a standing guard, **not evidence**. What covers D2 is Rakan's scripted
+   `skipFromAnOpponentsPieceFallsOnTheActivePlayer` in T2-12 (#95) - his mutation check shows it is the only
+   test in the suite that catches a broken D2.
+2. **Chained effects are rare in natural play** - 2 in five Hard games. P12 shows chains happen and terminate;
+   it does not systematically exercise them. The scripted chain tests of T2-12 remain the real FR-42 coverage.
+
+Neither of these is a reason to weaken P12; they are the reason the independent scripted tests of T2-12 are
+not redundant with it.
 
 ## 4. Manual test script
 
@@ -131,8 +172,8 @@ Build under test: `Iteration2/EducationalLudo.jar`, built by `Iteration2/build.b
 | OS and Java version | |
 | Commit of the build | |
 
-**Reference numbers for the tester**, read from `Model.LevelConfig` on `iteration-2` (`6e13bcf`) on
-21/11/2026, so the board can be checked by counting:
+**Reference numbers for the tester**, read from `Model.LevelConfig` (unchanged on `iteration-2` `d445a38`,
+re-checked 22/11/2026), so the board can be checked by counting:
 
 | Level | Grid | Outer rings | Track squares | Home path | Start | Protection | Arrow | Question (per level) | Surprise | Special die | Question steps |
 |---|---|---|---|---|---|---|---|---|---|---|---|

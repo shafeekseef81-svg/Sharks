@@ -10,6 +10,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.awt.Component;
 import java.awt.Container;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,7 +19,10 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.swing.Action;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
+import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 
 import org.junit.jupiter.api.DisplayName;
@@ -28,6 +33,8 @@ import Model.Question;
 import Model.QuestionBank;
 import Model.QuestionFactory;
 import Model.QuestionResult;
+
+import View.components.CustomButton;
 
 /**
  * Tests for the question card of T2-11 (SRS FR-34, FR-35, FR-36; NFR-05). Owner: Mohamed Zereny.
@@ -286,6 +293,258 @@ class QuestionDialogTest {
         assertEquals(QuestionResult.NO_ANSWER, dialog.result().chosenIndex());
         assertNull(dialog.result().chosenAnswer());
         assertTrue(text(dialog, "question.correctAnswer").contains(question.correctAnswer()));
+    }
+
+    // ------------------------------------------------------------------ D3: the No Answer button
+
+    @Test
+    @DisplayName("D3: clicking No Answer submits NO_ANSWER through the Model and is judged wrong")
+    void theNoAnswerButtonSubmitsNoAnswer() throws Exception {
+        // Product Owner decision D3, approved 21/11/2026.
+        QuestionFactory factory = factories.get(Difficulty.MEDIUM);
+        Question question = factory.ask();
+        CountingJudge judge = new CountingJudge(factory, question);
+        QuestionDialog dialog = build(question, judge, new ArrayList<>());
+
+        assertNotNull(find(dialog, QuestionDialog.NO_ANSWER_NAME), "the No Answer button is on the card");
+        assertEquals("No Answer", dialog.noAnswerButton().getText(), "the label the decision asks for");
+        assertTrue(dialog.noAnswerButton().isEnabled(), "it is clickable before an answer");
+        assertFalse(dialog.answered(), "nothing is answered before it is clicked");
+
+        onEdt(() -> dialog.noAnswerButton().doClick());
+
+        assertEquals(1, judge.calls.get(), "the Model judged it exactly once");
+        assertTrue(dialog.answered());
+        assertEquals(QuestionResult.NO_ANSWER, dialog.result().chosenIndex(), "NO_ANSWER was submitted");
+        assertFalse(dialog.result().correct(), "FR-35: not answering counts as a wrong answer");
+        assertNull(dialog.result().chosenAnswer(), "no answer was chosen");
+    }
+
+    @Test
+    @DisplayName("D3 FR-35: No Answer moves backward by the level of the question, for Easy, Medium and Hard")
+    void theNoAnswerButtonMovesBackwardByTheLevel() throws Exception {
+        for (Difficulty level : Difficulty.values()) {
+            QuestionFactory factory = factories.get(level);
+            Question question = factory.ask();
+            QuestionDialog dialog = build(question, new CountingJudge(factory, question), new ArrayList<>());
+
+            onEdt(() -> dialog.noAnswerButton().doClick());
+
+            int steps = dialog.result().steps();
+            assertEquals(-question.steps(), steps,
+                    level + ": NO_ANSWER moves back the steps of the question level");
+            assertTrue(steps < 0, level + ": the movement is backward, not forward");
+            assertEquals(level == Difficulty.EASY ? -1 : level == Difficulty.MEDIUM ? -2 : -3, steps,
+                    level + ": Easy -1, Medium -2, Hard -3 (FR-35)");
+            assertTrue(text(dialog, "question.movement").contains("backward"),
+                    level + ": " + text(dialog, "question.movement"));
+            assertTrue(text(dialog, "question.movement").contains(String.valueOf(question.steps())),
+                    level + ": the number of steps is shown");
+        }
+    }
+
+    @Test
+    @DisplayName("D3 FR-36: No Answer still shows the verdict and the correct answer")
+    void theNoAnswerButtonShowsTheFeedback() throws Exception {
+        QuestionFactory factory = factories.get(Difficulty.HARD);
+        Question question = factory.ask();
+        QuestionDialog dialog = build(question, new CountingJudge(factory, question), new ArrayList<>());
+
+        onEdt(() -> dialog.noAnswerButton().doClick());
+
+        assertEquals("Not correct", text(dialog, "question.verdict"));
+        assertTrue(text(dialog, "question.correctAnswer").contains(question.correctAnswer()),
+                "FR-36: the correct answer is named even though nothing was answered");
+        assertTrue(dialog.continueButton().isVisible(), "the player must press Continue to go on");
+    }
+
+    @Test
+    @DisplayName("D3: after No Answer every button is disabled and the question cannot be judged again")
+    void theNoAnswerButtonCannotBeUsedTwice() throws Exception {
+        QuestionFactory factory = factories.get(Difficulty.MEDIUM);
+        Question question = factory.ask();
+        CountingJudge judge = new CountingJudge(factory, question);
+        QuestionDialog dialog = build(question, judge, new ArrayList<>());
+
+        onEdt(() -> dialog.noAnswerButton().doClick());
+        QuestionResult after = dialog.result();
+
+        assertFalse(dialog.noAnswerButton().isEnabled(), "No Answer is disabled after it was used");
+        for (int i = 0; i < Question.ANSWER_COUNT; i++) {
+            assertFalse(dialog.answerButton(i).isEnabled(), "answer " + i + " is still clickable");
+        }
+
+        // A second click, and a direct submit of a real answer, must both change nothing.
+        onEdt(() -> dialog.noAnswerButton().doClick());
+        onEdt(() -> dialog.answerButton(question.correctIndex()).doClick());
+        onEdt(() -> dialog.submit(question.correctIndex()));
+
+        assertSame(after, dialog.result(), "the result must not change");
+        assertEquals(QuestionResult.NO_ANSWER, dialog.result().chosenIndex());
+        assertEquals(1, judge.calls.get(), "the Model must be asked only once");
+    }
+
+    @Test
+    @DisplayName("D3: an answer button still disables No Answer, so the two routes cannot both be used")
+    void answeringNormallyDisablesTheNoAnswerButton() throws Exception {
+        QuestionFactory factory = factories.get(Difficulty.EASY);
+        Question question = factory.ask();
+        CountingJudge judge = new CountingJudge(factory, question);
+        QuestionDialog dialog = build(question, judge, new ArrayList<>());
+
+        onEdt(() -> dialog.answerButton(question.correctIndex()).doClick());
+
+        assertTrue(dialog.result().correct(), "the ordinary answer route is unchanged");
+        assertFalse(dialog.noAnswerButton().isEnabled(), "No Answer is disabled once an answer was given");
+
+        onEdt(() -> dialog.noAnswerButton().doClick());
+        assertTrue(dialog.result().correct(), "clicking it afterwards must not turn a right answer into wrong");
+        assertEquals(1, judge.calls.get(), "the Model must be asked only once");
+    }
+
+    @Test
+    @DisplayName("D3: Continue after No Answer hands the result over exactly once")
+    void continueAfterNoAnswerCallsBackOnce() throws Exception {
+        QuestionFactory factory = factories.get(Difficulty.MEDIUM);
+        Question question = factory.ask();
+        List<QuestionResult> continued = new ArrayList<>();
+        QuestionDialog dialog = build(question, new CountingJudge(factory, question), continued);
+
+        onEdt(() -> dialog.continueButton().doClick());
+        assertTrue(continued.isEmpty(), "nothing is handed over before No Answer is pressed");
+
+        onEdt(() -> dialog.noAnswerButton().doClick());
+        onEdt(() -> dialog.continueButton().doClick());
+        onEdt(() -> dialog.continueButton().doClick());
+        onEdt(() -> dialog.continueButton().doClick());
+
+        assertEquals(1, continued.size(), "the callback ran exactly once");
+        assertSame(dialog.result(), continued.get(0));
+        assertEquals(QuestionResult.NO_ANSWER, continued.get(0).chosenIndex());
+    }
+
+    @Test
+    @DisplayName("D3 keyboard: SPACE is really bound on the No Answer button, and its binding submits NO_ANSWER")
+    void theNoAnswerButtonIsActivatedByTheSpaceKeyBinding() throws Exception {
+        // This does NOT use doClick(), which proves nothing about the keyboard. It walks the real Swing
+        // key-binding machinery: InputMap lookup for the keystroke, then the Action that the binding names,
+        // then actionPerformed - exactly the path JComponent.processKeyBinding takes on a real key press.
+        QuestionFactory factory = factories.get(Difficulty.MEDIUM);
+        Question question = factory.ask();
+        CountingJudge judge = new CountingJudge(factory, question);
+        QuestionDialog dialog = build(question, judge, new ArrayList<>());
+        CustomButton button = dialog.noAnswerButton();
+
+        KeyStroke spaceDown = KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0, false);
+        KeyStroke spaceUp = KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0, true);
+
+        Object downName = button.getInputMap(JComponent.WHEN_FOCUSED).get(spaceDown);
+        Object upName = button.getInputMap(JComponent.WHEN_FOCUSED).get(spaceUp);
+        assertNotNull(downName, "SPACE pressed must be bound on the focused button");
+        assertNotNull(upName, "SPACE released must be bound on the focused button");
+        Action downAction = button.getActionMap().get(downName);
+        Action upAction = button.getActionMap().get(upName);
+        assertNotNull(downAction, "the SPACE pressed binding must point at a real action");
+        assertNotNull(upAction, "the SPACE released binding must point at a real action");
+
+        onEdt(() -> {
+            downAction.actionPerformed(new ActionEvent(button, ActionEvent.ACTION_PERFORMED,
+                    String.valueOf(downName)));
+            upAction.actionPerformed(new ActionEvent(button, ActionEvent.ACTION_PERFORMED,
+                    String.valueOf(upName)));
+        });
+
+        assertEquals(1, judge.calls.get(), "the SPACE binding submitted the answer exactly once");
+        assertEquals(QuestionResult.NO_ANSWER, dialog.result().chosenIndex(),
+                "pressing SPACE on the focused button submits NO_ANSWER");
+    }
+
+    @Test
+    @DisplayName("D3 keyboard: ENTER is not bound on the button itself; it belongs to the screen default button")
+    void enterIsNotBoundOnTheNoAnswerButton() throws Exception {
+        // Recorded because an earlier note on #91 claimed "Space or Enter presses it". That is wrong for
+        // ENTER: a JButton binds only SPACE. ENTER activates the JRootPane default button, which
+        // NavigationController sets per screen (NavigationController.setDefaultButton), not this button.
+        // Keeping this as a test so the claim cannot drift back.
+        QuestionFactory factory = factories.get(Difficulty.MEDIUM);
+        Question question = factory.ask();
+        QuestionDialog dialog = build(question, new CountingJudge(factory, question), new ArrayList<>());
+        CustomButton button = dialog.noAnswerButton();
+
+        KeyStroke enter = KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0, false);
+        for (int condition : new int[] {JComponent.WHEN_FOCUSED,
+                                        JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT,
+                                        JComponent.WHEN_IN_FOCUSED_WINDOW}) {
+            assertNull(button.getInputMap(condition).get(enter),
+                    "ENTER is not bound on the button in condition " + condition);
+        }
+    }
+
+    @Test
+    @DisplayName("D3 keyboard: the No Answer button meets every condition Tab needs - real Tab order is a manual check")
+    void theNoAnswerButtonMeetsTheConditionsForTabOrder() throws Exception {
+        // What can honestly be checked without a window: the button is in the card's component tree, is
+        // focusable and enabled, and does not consume the Tab key itself (focus traversal keys enabled).
+        // Those are the conditions a focus traversal policy uses.
+        //
+        // What CANNOT be checked here: the actual Tab order. The card is shown inside a ModalOverlay, which
+        // is a focus cycle root, but LayoutFocusTraversalPolicy only returns components that are *showing*,
+        // and nothing is showing without a real window. Verified: off-screen the policy returns no
+        // components at all. So pressing Tab in the running game is a MANUAL check - see
+        // Iteration2/docs/T2-15_AcceptancePlan.md step M4.4d. It is deliberately not asserted here.
+        QuestionFactory factory = factories.get(Difficulty.MEDIUM);
+        Question question = factory.ask();
+        QuestionDialog dialog = build(question, new CountingJudge(factory, question), new ArrayList<>());
+        CustomButton button = dialog.noAnswerButton();
+
+        assertSame(button, find(dialog, QuestionDialog.NO_ANSWER_NAME),
+                "the button is in the component tree of the card");
+        assertTrue(button.isFocusable(), "a traversal policy only offers focusable components");
+        assertTrue(button.isEnabled(), "a disabled button is skipped by Tab");
+        assertTrue(button.getFocusTraversalKeysEnabled(),
+                "the button must not swallow Tab, or focus could never leave it");
+
+        // The same conditions must hold for the four answer buttons, so the whole card is navigable.
+        for (int i = 0; i < Question.ANSWER_COUNT; i++) {
+            assertTrue(dialog.answerButton(i).isFocusable(), "answer " + i + " is focusable");
+            assertTrue(dialog.answerButton(i).getFocusTraversalKeysEnabled(), "answer " + i + " passes Tab on");
+        }
+    }
+
+    @Test
+    @DisplayName("D3 keyboard: the No Answer button is focusable and describes itself to a screen reader")
+    void theNoAnswerButtonIsFocusableAndDescribed() throws Exception {
+        QuestionFactory factory = factories.get(Difficulty.MEDIUM);
+        Question question = factory.ask();
+        QuestionDialog dialog = build(question, new CountingJudge(factory, question), new ArrayList<>());
+
+        assertTrue(dialog.noAnswerButton().isFocusable(), "Tab can only reach a focusable component");
+        assertTrue(dialog.noAnswerButton().isEnabled());
+        assertNotNull(dialog.noAnswerButton().getAccessibleContext().getAccessibleDescription(),
+                "a screen reader must be told what it does");
+    }
+
+    @Test
+    @DisplayName("D3: closing the card is not an answer, and there is no timer")
+    void closingTheCardIsNotAnAnswer() throws Exception {
+        // The decision says only the button answers nothing: no timer, and a card that goes away must not be
+        // judged. The card owns no close control and starts no timer, so nothing can answer behind the
+        // player's back.
+        QuestionFactory factory = factories.get(Difficulty.MEDIUM);
+        Question question = factory.ask();
+        List<QuestionResult> continued = new ArrayList<>();
+        CountingJudge judge = new CountingJudge(factory, question);
+        QuestionDialog dialog = build(question, judge, continued);
+
+        assertNull(find(dialog, "question.close"), "the card has no close control of its own");
+
+        onEdt(() -> layOut(dialog));            // re-layout and repaint cannot answer
+        Thread.sleep(150);                      // no timer may answer in the meantime
+        onEdt(() -> { });                       // let anything queued on the EDT run
+
+        assertFalse(dialog.answered(), "nothing was answered without the player pressing a button");
+        assertEquals(0, judge.calls.get(), "the Model was never asked");
+        assertTrue(continued.isEmpty(), "no callback ran");
     }
 
     @Test

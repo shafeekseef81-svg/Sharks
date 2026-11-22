@@ -24,7 +24,7 @@ procedure (`Iteration1/docs/N07_Release.md`):
 4. runs `test.sh` in the staged copy and reads the JUnit summary. It stops if a test failed or aborted, **and if no test
    ran at all** (the JUnit launcher exits 0 when it finds no tests; review of #81). `--no-test` skips this step and is not
    for a release;
-5. writes `iteration2_Sharks.zip` with Python `zipfile` (forward slashes, one top folder) and prints the file count
+5. writes `iteration2_Sharks.zip` with Python `zipfile` (forward slashes, one top folder) and prints the file count, the test count
    and the SHA-256.
 
 ## Checklist (fill in for each release)

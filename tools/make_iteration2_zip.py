@@ -4,16 +4,18 @@ Steps (same procedure as the Iteration 1 release, Iteration1/docs/N07_Release.md
   1. git archive <ref> Iteration2  ->  <out>/stage/iteration2_Sharks   (only versioned files)
   2. build.sh inside that folder (JDK 17+, --release 17), then delete build/
   3. check the JAR: Main-Class Controller.Main, class files of major version 61 (Java 17)
-  4. optionally run test.sh in the staged folder (--test)
-  5. zip with forward slashes (Python zipfile, not Windows Explorer) and print file count and SHA-256
+  4. run test.sh in the staged folder and stop unless the JUnit summary shows tests that ran and none that failed
+     (skipped only with --no-test, which is not for a release)
+  5. zip with forward slashes (Python zipfile, not Windows Explorer) and print file count, test count and SHA-256
 
 Usage (from the repository root, in Git Bash):
-  python tools/make_iteration2_zip.py [--ref origin/iteration-2] [--out <folder>] [--test]
+  python tools/make_iteration2_zip.py [--ref origin/iteration-2] [--out <folder>] [--no-test]
 """
 import argparse
 import hashlib
 import io
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -21,6 +23,30 @@ import tarfile
 import zipfile
 
 NAME = "iteration2_Sharks"
+
+# One line of the JUnit console summary, e.g. "[       664 tests successful      ]".
+SUMMARY_LINE = re.compile(r"^\s*\[\s*(\d+)\s+tests?\s+(\w+)\s*\]\s*$", re.M)
+
+
+def junit_counts(output):
+    """The counts of the JUnit summary block: {'found': n, 'successful': n, 'failed': n, ...}."""
+    return {m.group(2): int(m.group(1)) for m in SUMMARY_LINE.finditer(output)}
+
+
+def check_test_run(output):
+    """Exits unless the JUnit summary shows at least one test that ran and none that failed or aborted.
+
+    The launcher's exit code (check=True in run) already stops the script on a failing test, but it is 0 when no
+    test is found at all, and such a run must not produce a ZIP reported as tested (review of PR #81).
+    """
+    counts = junit_counts(output)
+    if "successful" not in counts or "failed" not in counts:
+        sys.exit("could not read the JUnit summary from test.sh")
+    if counts["failed"] or counts.get("aborted", 0):
+        sys.exit(f"tests failed: {counts['failed']} failed, {counts.get('aborted', 0)} aborted")
+    if counts["successful"] == 0:
+        sys.exit("no tests ran")
+    return counts
 
 
 def run(cmd, cwd=None):
@@ -34,7 +60,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--ref", default="origin/iteration-2")
     ap.add_argument("--out", default=os.path.join("..", "release_iteration2"))
-    ap.add_argument("--test", action="store_true", help="run test.sh in the staged folder")
+    ap.add_argument("--no-test", action="store_true", help="skip test.sh (not for a release)")
+    ap.add_argument("--test", action="store_true", help=argparse.SUPPRESS)  # now the default; old commands still work
     args = ap.parse_args()
 
     out = os.path.abspath(args.out)
@@ -60,11 +87,11 @@ def main():
         if majors != {61}:
             sys.exit(f"class file versions {majors}, expected only 61 (Java 17)")
 
-    if args.test:
-        tail = run(["bash", "./test.sh"], cwd=folder).splitlines()[-12:]
-        print("\n".join(tail))
-        if not any("0 tests failed" in line for line in tail):
-            sys.exit("tests failed")
+    tests = "tests not run (--no-test)"
+    if not args.no_test:
+        counts = check_test_run(run(["bash", "./test.sh"], cwd=folder))
+        tests = f"{counts['successful']}/{counts.get('found', counts['successful'])} tests passed, 0 failed"
+        print(tests)
     shutil.rmtree(os.path.join(folder, "build"), ignore_errors=True)
 
     zip_path = os.path.join(out, NAME + ".zip")
@@ -84,7 +111,7 @@ def main():
         assert NAME + "/EducationalLudo.jar" in names and NAME + "/run.bat" in names
     sha = hashlib.sha256(open(zip_path, "rb").read()).hexdigest()
     print(f"\n{zip_path}\nref {args.ref} ({commit}), {count} files, JAR {os.path.getsize(jar)} bytes,"
-          f" Java 17 class files, Main-Class Controller.Main\nSHA-256 {sha}")
+          f" Java 17 class files, Main-Class Controller.Main\n{tests}\nSHA-256 {sha}")
 
 
 if __name__ == "__main__":

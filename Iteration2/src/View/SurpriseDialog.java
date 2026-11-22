@@ -45,11 +45,13 @@ import View.components.UiKit;
  * the board as it is now and so refuses a piece that a chain captured or moved out of reach in the meantime.
  * Carrying the instruction out is T2-10, and the turn is T2-13.
  *
- * <p><b>The undecided turn outcomes.</b> When an effect chain set this square off with <i>another</i> player's
- * piece (FR-42), the approved requirements do not say who misses the next turn or who gets the extra roll.
- * This card therefore <b>names no player</b> in that case: it shows the neutral sentence of the outcome plus
- * {@link #UNDECIDED_NOTE}, and leaves the answer to the Model, exactly as
- * {@link SurpriseResult#turnTargetUndecided()} reports it. It must stay that way until the team decides.
+ * <p><b>The turn outcomes (Product Owner decision D2, approved 21/11/2026).</b> A {@code SKIP_TURN} or
+ * {@code EXTRA_ROLL} always falls on the <b>active</b> player, even when an effect chain set this square off
+ * with another player's piece (FR-42). The card therefore shows the Model's own wording unchanged - it is
+ * written to the player whose turn it is ("Skip <b>your</b> next turn"), which under D2 is exactly right -
+ * next to the {@code surprise.activePlayer} pill that names that player. When the chain was set off by an
+ * opponent's piece, {@code surprise.chainNote} still says so, so the player can see why the square was
+ * reached; that note is factual and names both players, and it never claims the opponent is the one affected.
  *
  * <p>Built to be shown inside a {@link View.components.ModalOverlay}, like {@link ConfirmDialog}. No window of
  * its own is created, so it can also be laid out in a headless test.
@@ -67,10 +69,6 @@ public class SurpriseDialog extends CustomPanel {
 
     /** Name of the button that confirms the pick, or closes a surprise that needs no pick. */
     public static final String CONFIRM_NAME = "surprise.confirm";
-
-    /** Shown instead of a player's name while the team has not decided who a turn outcome falls on. */
-    public static final String UNDECIDED_NOTE =
-            "Who this falls on in a chain started by another player's piece is still being agreed by the team.";
 
     /**
      * Turns the piece the player picked into an instruction. Implemented in the Model by
@@ -146,7 +144,7 @@ public class SurpriseDialog extends CustomPanel {
         JLabel head = UiKit.label("Surprise square", Theme.font(Font.BOLD, 14f), Theme.SURPRISE);
         texts.add(head);
         texts.add(UiKit.vgap(3));
-        JLabel title = UiKit.wrap(recipientUndecided() ? neutralTitle(outcome) : outcome.title(),
+        JLabel title = UiKit.wrap(outcome.title(),
                 CARD_WIDTH - 130, Theme.font(Font.BOLD, 19f), Theme.TEXT);
         title.setName("surprise.title");
         texts.add(title);
@@ -172,7 +170,7 @@ public class SurpriseDialog extends CustomPanel {
         column.setLayout(new BoxLayout(column, BoxLayout.Y_AXIS));
 
         JLabel description = UiKit.wrap(
-                recipientUndecided() ? neutralDescription(prompt.outcome()) : prompt.outcome().description(),
+                prompt.outcome().description(),
                 CARD_WIDTH - 60, Theme.font(Font.PLAIN, 14.5f), Theme.TEXT_MUTED);
         description.setName("surprise.description");
         column.add(description);
@@ -185,14 +183,6 @@ public class SurpriseDialog extends CustomPanel {
                     CARD_WIDTH - 60, Theme.font(Font.ITALIC, 13.5f), Theme.TEXT_MUTED);
             chain.setName("surprise.chainNote");
             column.add(chain);
-        }
-
-        if (prompt.outcome().affectsTurnOnly() && prompt.opponentTriggered()) {
-            column.add(UiKit.vgap(8));
-            JLabel undecided = UiKit.wrap(UNDECIDED_NOTE, CARD_WIDTH - 60,
-                    Theme.font(Font.ITALIC, 13.5f), Theme.WARNING);
-            undecided.setName("surprise.undecided");
-            column.add(undecided);
         }
 
         if (prompt.outcome().needsOpponentPiece()) {
@@ -322,40 +312,6 @@ public class SurpriseDialog extends CustomPanel {
         error.setVisible(true);
         revalidate();
         repaint();
-    }
-
-    /**
-     * @return true when this card must name no recipient: a turn outcome in a chain that an opponent's piece
-     *         set off, which the approved requirements do not decide (FR-42, open point 1 of PR #90)
-     */
-    private boolean recipientUndecided() {
-        return prompt.outcome().affectsTurnOnly() && prompt.opponentTriggered();
-    }
-
-    /**
-     * Heading used while the recipient is undecided. The Model's own title is written to the player whose
-     * turn it is ("Skip <b>your</b> next turn"), which would assign the outcome to that player; beside the
-     * pill that says whose turn it is, that reads as a decision the team has not taken. This wording states
-     * the same outcome without a recipient. It is presentation, not a rule: nothing here changes what the
-     * Model does.
-     */
-    private static String neutralTitle(SurpriseOutcome outcome) {
-        return switch (outcome) {
-            case SKIP_TURN -> "A turn will be skipped";
-            case EXTRA_ROLL -> "An extra roll is granted";
-            default -> outcome.title();
-        };
-    }
-
-    /** The sentence of {@link #neutralTitle}, also written without a recipient. */
-    private static String neutralDescription(SurpriseOutcome outcome) {
-        return switch (outcome) {
-            case SKIP_TURN -> "One player misses their next turn, and any extra roll from a 6 "
-                    + "is cancelled with it.";
-            case EXTRA_ROLL -> "There is one more roll right away with the Regular + UltraBoost dice. "
-                    + "It does not count for the rule of 6.";
-            default -> outcome.description();
-        };
     }
 
     private static Icons.Type icon(SurpriseOutcome outcome) {

@@ -395,6 +395,7 @@ public final class StandardTurnManager implements TurnManager {
             state = gameOver;
             return message;
         }
+        skipNext.removeIf(ranking::hasFinished); // a player who finished before the skipped turn has none to miss
         for (int step = 1; step <= 2 * players.size(); step++) {
             int next = (currentIndex + step) % players.size();
             Player candidate = players.get(next);

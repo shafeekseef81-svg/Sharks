@@ -329,6 +329,32 @@ class EffectResolutionTest {
     }
 
     @Test
+    @DisplayName("D5, Q56: the extra roll reaches skip-the-next-turn: the pending 6 is cancelled and one turn is missed")
+    void skipTurnAfterTheExtraRollCancelsTheSix() {
+        // A turn outcome moves no piece, so it ends its chain: the two can only meet in one turn, in this order.
+        surpriseAt(10);
+        surpriseAt(14);
+        script.add(roll(6));
+        redMoves(4);
+        model.applySurprise(outcome(SurpriseOutcome.EXTRA_ROLL));
+        assertNull(model.pendingEffect(), "the extra roll ends the chain");
+
+        script.add(new DiceRoll(2, DieType.ULTRA_BOOST, 3, 4, false, false));
+        assertTrue(model.roll().surpriseRoll(), "first the surprise roll");
+        model.move(red().pieces().get(0));
+        assertEquals(14, redProgress(red().pieces().get(0)));
+        model.applySurprise(outcome(SurpriseOutcome.SKIP_TURN));
+
+        assertFalse(model.hasBonusRoll());
+        assertSame(blue(), model.currentPlayer(), "the roll of the 6 is cancelled as well, the turn ends");
+        model.roll(); // Blue has no piece out: no move, the turn passes (FR-23) ...
+        assertTrue(fired(GameEvent.Type.TURN_SKIPPED, red()), "... over Red, who misses this turn");
+        assertSame(blue(), model.currentPlayer());
+        model.roll();
+        assertSame(red(), model.currentPlayer(), "only one turn is missed");
+    }
+
+    @Test
     @DisplayName("Without special squares the turn is unchanged: no RESOLVING, no event, the turn passes")
     void plainSquaresChangeNothing() {
         redMoves(3);

@@ -38,7 +38,14 @@ import View.components.UiKit;
  * {@link QuestionResult} it gets back. Carrying the movement out is the effect queue of T2-10, and the turn is
  * T2-13.
  *
- * <p><b>One answer only.</b> The first click wins. Every answer button is disabled as soon as one is pressed,
+ * <p><b>Answering nothing (Product Owner decision D3, approved 21/11/2026).</b> Beside the four answers the
+ * card shows an explicit <b>No Answer</b> button. It submits {@link QuestionResult#NO_ANSWER} through the
+ * same {@link Judge} as every other answer, so FR-35 - not answering counts as a wrong answer, and the piece
+ * moves backward by the level of the question - is decided by the Model and never by this class. There is
+ * deliberately <b>no timer</b>, and closing the card is not an answer: only pressing this button is.
+ *
+ * <p><b>One answer only.</b> The first click wins. Every answer button and the No Answer button are disabled
+ * as soon as one is pressed,
  * and {@link #submit(int)} refuses a second call, so a double click or a stray key cannot answer twice or
  * judge the same question again (FR-37 counts a question as asked once).
  *
@@ -60,6 +67,13 @@ public class QuestionDialog extends CustomPanel {
     public static final String CONTINUE_NAME = "question.continue";
 
     /**
+     * Name of the button that answers nothing (Product Owner decision D3, approved 21/11/2026). FR-35 counts
+     * not answering as a wrong answer, so this submits {@link QuestionResult#NO_ANSWER} to the Model rule
+     * exactly as an answer button submits its own index.
+     */
+    public static final String NO_ANSWER_NAME = "question.noAnswer";
+
+    /**
      * Turns the player's choice into the result of the question. Implemented in the Model by
      * {@link Model.QuestionFactory#judge(Question, int)}; the caller passes it in so that no rule lives in
      * the view.
@@ -79,6 +93,7 @@ public class QuestionDialog extends CustomPanel {
     private final List<CustomButton> answers = new ArrayList<>();
     private final JPanel feedback = new JPanel();
     private final CustomButton continueButton = new CustomButton("Continue", CustomButton.Variant.PRIMARY);
+    private final CustomButton noAnswerButton = new CustomButton("No Answer", CustomButton.Variant.GHOST);
     private QuestionResult result;
     private boolean continued;
 
@@ -158,6 +173,20 @@ public class QuestionDialog extends CustomPanel {
         }
         column.add(grid);
 
+        // D3: an explicit way to answer nothing. FR-35 counts it as a wrong answer, and the Model decides
+        // that - this button only submits QuestionResult.NO_ANSWER, exactly as an answer button submits its
+        // own index. It is a JButton, so Tab reaches it and Space or Enter presses it.
+        column.add(UiKit.vgap(10));
+        noAnswerButton.setName(NO_ANSWER_NAME);
+        noAnswerButton.setToolTipText("Answer nothing. This counts as a wrong answer (FR-35).");
+        noAnswerButton.getAccessibleContext().setAccessibleDescription(
+                "Answer nothing. This counts as a wrong answer and moves the piece backward.");
+        noAnswerButton.addActionListener(e -> submit(QuestionResult.NO_ANSWER));
+        JPanel noAnswerRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        noAnswerRow.setOpaque(false);
+        noAnswerRow.add(noAnswerButton);
+        column.add(noAnswerRow);
+
         feedback.setOpaque(false);
         feedback.setLayout(new BoxLayout(feedback, BoxLayout.Y_AXIS));
         feedback.setName("question.feedback");
@@ -204,6 +233,7 @@ public class QuestionDialog extends CustomPanel {
         for (CustomButton button : answers) {
             button.setEnabled(false);
         }
+        noAnswerButton.setEnabled(false);          // D3: no second submission, by any route
         showFeedback(chosenIndex, judged);
         continueButton.setVisible(true);
         continueButton.setText(judged.correct() ? "Great, continue" : "Continue");
@@ -273,6 +303,14 @@ public class QuestionDialog extends CustomPanel {
      */
     public CustomButton answerButton(int index) {
         return answers.get(index);
+    }
+
+    /**
+     * @return the button that answers nothing (D3); it submits {@link QuestionResult#NO_ANSWER} and is
+     *         disabled once the question has been answered
+     */
+    public CustomButton noAnswerButton() {
+        return noAnswerButton;
     }
 
     /** @return the button that closes the card; it is hidden until the question has been answered */

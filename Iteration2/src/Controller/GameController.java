@@ -115,16 +115,7 @@ public final class GameController {
         view.setControls(false, true);
         Player roller = model.currentPlayer();
         passMessage = null;
-        DiceRoll roll;
-        try {
-            roll = model.roll();
-        } catch (UnsupportedOperationException e) {
-            // Medium and Hard dice come in Iteration 2; the setup screen should offer Easy only (issue #13).
-            busy = false;
-            view.setStatus("This level is not playable in Iteration 1. Please start an Easy game.",
-                    StatusKind.ERROR);
-            return;
-        }
+        DiceRoll roll = model.roll(); // every level has its dice since T2-04
         int game = generation;
         view.regularDie().roll(roll.regular(), () -> {
             if (game == generation) {

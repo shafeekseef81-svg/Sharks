@@ -3,8 +3,8 @@ package Model;
 import java.util.Map;
 
 /**
- * Computes and applies legal moves (FR-19 partial, FR-20, FR-25 partial).
- * Shared contract, frozen at checkpoint CP1.
+ * Computes and applies legal moves (FR-19, FR-20, FR-25 partial, FR-28..FR-30).
+ * Shared contract, frozen at checkpoint CP1; Iteration 2 (T2-06) filled in {@link #isPassable} without changing it.
  *
  * <p>Owner: Rakan Ziyan (Task 16). It delegates capture and protection to {@link SquareRules} (Shafeek),
  * and the home path and exact finish to {@link HomePathRules} (Shafeek).
@@ -31,8 +31,8 @@ public interface MoveEngine {
 
     /**
      * Whether a piece of the player may land on or pass the cell.
-     * Always {@code true} in Iteration 1. In Iteration 2, an opponent Double Block returns {@code false}
-     * (FR-29, SDP risk R1).
+     * An opponent Double Block (two or more pieces of one opponent colour on the cell) returns {@code false}, for
+     * forward and backward movement alike (FR-28, FR-29, SDP risk R1). Iteration 1 always returned {@code true}.
      *
      * @param cell   the cell to check
      * @param player the moving player

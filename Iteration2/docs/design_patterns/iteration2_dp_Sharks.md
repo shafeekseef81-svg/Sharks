@@ -18,7 +18,7 @@ Order in the document: the order in which a turn uses them (dice → turn phases
 |---|---|---|---|---|---|---|
 | 1 | Strategy (behavioural) | A different die and movement formula per level (FR-16, FR-17) | T2-04 [#55](https://github.com/shafeekseef81-svg/Sharks/issues/55) | Shafeek Saif | `Strategy_Shafeek.md` | merged (#88, 22/11) |
 | 2 | State (behavioural) | What the player may do in each phase of a turn (D3, NFR-09) | T2-13 [#64](https://github.com/shafeekseef81-svg/Sharks/issues/64) | Rakan Ziyan | `State_Rakan.md` | merged with #79 (22/11); the `ResolvingState` update and the trade-offs are in #96, which merges after #92 |
-| 3 | Factory Method (creational) | A question of the square's own level, without a `switch` on the level (FR-34..FR-37) | T2-08 [#59](https://github.com/shafeekseef81-svg/Sharks/issues/59) | Mohamed Zereny | `FactoryMethod_Mohamed.md` (moved here from `Iteration2/docs/T2-08_FactoryMethod.md` in #98) | code merged (#89); the section is in #98, approved, with one fix before merge |
+| 3 | Factory Method (creational) | A question of the square's own level, without a `switch` on the level (FR-34..FR-37) | T2-08 [#59](https://github.com/shafeekseef81-svg/Sharks/issues/59) | Mohamed Zereny | `FactoryMethod_Mohamed.md` (moved here from `Iteration2/docs/T2-08_FactoryMethod.md` in #98) | code merged (#89); the section is in #98, fix done (`e941b6b`) |
 | 4 | Command (behavioural) | Question and surprise effects run in order, with the game rules and a chain guard (FR-41, FR-42) | T2-10 [#61](https://github.com/shafeekseef81-svg/Sharks/issues/61) | Shafeek Saif | `Command_Shafeek.md` | part 1 merged (#87); part 2 in #92 (Deep 2/2); the trade-offs (section 6) are in a PR stacked on #92 |
 
 ## 3. One structure for every section
@@ -36,7 +36,7 @@ Each section uses the same headings, so the document reads as one text:
 |---|---|---|---|---|
 | Strategy | yes | "Trade-offs" | yes | done (#88) |
 | State | yes | "Trade-offs" (in #96) | yes | merge #96 after #92 |
-| Factory Method | yes, with longer heading names (#98) | "Trade-offs and alternatives" | yes (#98) | merge #98; for the document, drop the review history and align the heading names (review of #98) |
+| Factory Method | yes (#98) | "Trade-offs" (#98) | yes (#98) | merge #98. At assembly: keep only the last row of the section 5 measurement table, and shorten the "Open/Closed" paragraph and the "Scope" list in section 6 |
 | Command | yes | "Trade-offs" | yes | merge after #92 |
 
 ## 4. Assembly steps (by 05/12)

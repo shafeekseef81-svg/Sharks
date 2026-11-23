@@ -18,11 +18,23 @@ git worktree add /c/Ludo/Sharks-CP1 origin/iteration-2 --detach
 cd /c/Ludo/Sharks-CP1/Iteration2 && ./build.bat
 ```
 
-**One thing is still missing from that build: #97**, the NFR-04 animation budget. It is approved and mergeable but not merged, and **row 10 is the row it affects.** Either merge #97 first, or add it to your test build:
+**#97 is still missing from that build**, and **row 10 is the row it affects.** It is approved and
+mergeable. Either merge #97 first, or add it to your test build.
+
+To test exactly what I verified (the full CP1 candidate, 700/700), add all of the approved work:
 
 ```bash
-git merge --no-edit origin/feature/mohamed/NFR-04-animation-budget
+git merge --no-edit origin/feature/mohamed/NFR-04-animation-budget       # #97  - needed for row 10
+git merge --no-edit origin/feature/mohamed/T2-08-dp-doc                  # #98  - docs
+git merge --no-edit origin/feature/rakan/T2-12-effect-tests              # #95  - independent tests
+git merge --no-edit origin/feature/rakan/N2-05-state-resolving           # #96  - docs
+git merge --no-edit origin/feature/mohamed/T2-15-acceptance              # #99
+git merge --no-edit origin/feature/mohamed/T2-15-effects-acceptance      # #103
+cd Iteration2 && ./build.bat && ./test.bat
 ```
+
+All six merged with **no conflict** on 23/11 and the suite was **700/700**. (#95 and #96 show as
+"conflicting" on GitHub — that flag is stale from when they were stacked behind #92; they merge cleanly.)
 
 Timing row 10 **without** #97 measures the old 1600 ms budget — the one Rakan measured at 2140 ms under load. If you time it without #97 and it is over 2 seconds, that is expected: it is the reason #97 exists.
 
@@ -30,10 +42,13 @@ Timing row 10 **without** #97 measures the old 1600 ms budget — the one Rakan 
 
 | # | Check | Result | How it was verified |
 |---|---|---|---|
-| 0.1 | The JAR starts and opens a real window | **PASS** | `java -jar EducationalLudo.jar` on build B created a visible top-level window titled **"Educational Ludo - Team Sharks"**, confirmed in `tasklist /V` as *Running* on a real 1920×1200 display |
-| 0.2 | `run.bat` starts the game | **PASS** | `run.bat` on build B started **javaw.exe** with the same window title, *Running*. The script uses `javaw`, so no console window stays behind |
-| 0.3 | The suite passes on the integration candidate | **PASS** | 700 found, 700 successful, 0 failed (Java 17, Temurin 17.0.17) |
-| 0.4 | The release script produces a ZIP from that candidate | **PASS** | 171 files, JAR 263,868 bytes, Java 17 class files, `Main-Class: Controller.Main`, 700/700, SHA-256 `05b3e113…3544b9`, into an isolated folder — the team's official artifact was not touched |
+| 0.1 | The JAR starts and opens a real window | **PASS** | `java -jar EducationalLudo.jar` on the CP1 candidate created a visible top-level window titled **"Educational Ludo - Team Sharks"**, confirmed in `tasklist /V` as *Running* on a real 1920×1200 display, with nothing on stderr |
+| 0.2 | `run.bat` starts the game | **PASS** | `run.bat` started **javaw.exe** with the same window title, *Running*. The script uses `javaw`, so no console window stays behind |
+| 0.3 | The suite passes on the CP1 candidate | **PASS** | **700 found, 700 successful, 0 failed** (Java 17, Temurin 17.0.17) on `iteration-2` `1d47f2d` + #97 + #98 + #95 + #96 + #99 + #103 (`0928117`). All six branches merged with no conflict |
+| 0.4 | The release script produces a ZIP from that candidate | **PASS** | **172 files**, JAR 263,868 bytes, Java 17 class files, `Main-Class: Controller.Main`, 700/700, SHA-256 `4dc64ff8…1deb2a`, into an isolated folder — the team's official artifact was not touched |
+| 0.5 | The ZIP's structure is correct | **PASS** | Opened and checked entry by entry: 172 entries, **all under the single top folder** `iteration2_Sharks/`, **no backslash** in any entry, `EducationalLudo.jar`, `run.bat`, `build.bat`, `test.bat`, `run.sh` and `README.md` all present, `build/` excluded |
+| 0.6 | Animation timing, **off-screen** | **PASS** | `TimingTest` 4/4 on three cold-JVM runs and `MovementAnimationTest` 15/15, **with #97**. This is off-screen and does **not** substitute for row 10 |
+| 0.7 | Every FR has a test (NFR-14) | **PASS** | Independent scan of the candidate's test tree: **every FR from FR-15 to FR-47** is named by at least one `@DisplayName` |
 
 **What 0.1 and 0.2 do *not* prove.** They were started from a command line, not by a **double-click in File Explorer**. That is still row 1 and row 2 below: a double-click also exercises the `.jar` file association and the working directory Explorer hands the process, and only you can do it.
 
@@ -49,11 +64,11 @@ Build under test: ________________  ·  Date: ________  ·  Tester: ________
 | 2 | In File Explorer, **double-click `EducationalLudo.jar`** | The same window opens. If Windows asks which app to use, pick Java — and **note that**, because a grader will hit it too | | |
 | 3 | Start a **Medium** game, 4 players, with names | The setup accepts the names; the Medium board is drawn; play begins | | |
 | 4 | Start a **Hard** game, 4 players | The Hard board is drawn and is clearly larger | | |
-| 5 | play until a piece stops on a **question square** | The question dialog appears. The question's level matches the **square's colour**, not the board's. Four options | | |
-| 6 | in that dialog press **Tab** repeatedly, then **Space** | Tab reaches every button in a sensible order and the focused button is visibly focused. Space activates the focused button | | |
-| 7 | answer one question **right** and one **wrong** | Right: the piece moves **forward** 1/2/3 by the question's level. Wrong: it moves **back** the same number. Both show the correct answer afterwards | | |
-| 8 | press **No Answer**, then **Continue** | No Answer is accepted as an explicit choice and counts as **wrong** (PO decision D3). Continue closes the dialog and the turn goes on | | |
-| 9 | play until a **surprise square** fires, and watch for a **chain** | The surprise dialog names the outcome. For "Push an opponent back" **you** choose which opponent piece — nothing is auto-selected (FR-40). If the effect lands the piece on another special square, a second dialog follows (FR-42) | | |
+| 5 | Play until a piece stops on a **question square** | The question dialog appears. The question's level matches the **square's colour**, not the board's. Four options | | |
+| 6 | In that dialog press **Tab** repeatedly, then **Space** | Tab reaches every button in a sensible order and the focused button is visibly focused. Space activates the focused button | | |
+| 7 | Answer one question **right** and one **wrong** | Right: the piece moves **forward** 1/2/3 by the question's level. Wrong: it moves **back** the same number. Both show the correct answer afterwards | | |
+| 8 | Press **No Answer**, then **Continue** | No Answer is accepted as an explicit choice and counts as **wrong** (PO decision D3). Continue closes the dialog and the turn goes on | | |
+| 9 | Play until a **surprise square** fires, and watch for a **chain** | The surprise dialog names the outcome. For "Push an opponent back" **you** choose which opponent piece — nothing is auto-selected (FR-40). If the effect lands the piece on another special square, a second dialog follows (FR-42) | | |
 | 10 | **Stopwatch the longest movement.** In a **Hard** game, time a Regular 6 with an UltraBoost 6 — a 30-square move — from the moment the piece starts to the moment it stops | **Under 2 seconds** (NFR-04). Record the actual number, not "fine" | | |
 | 11 | Take screenshots: main menu, Medium board, Hard board, question dialog, surprise dialog, results screen | Saved as PNG with the date in the filename | | |
 | 12 | Finish one complete game | The results screen shows the ranking in finishing order and the game clock | | |

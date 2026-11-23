@@ -2,7 +2,7 @@
 
 Assembly file of task **N2-05** ([#71](https://github.com/shafeekseef81-svg/Sharks/issues/71)), assembled by Shafeek Saif from the sections the pattern owners write. The deliverable is the Word or PDF file `iteration2_dp_Sharks` (Assignment 5, deliverable 4), due with the submission on 06/12/2026 23:59 (internal deadline 05/12).
 
-**Status 23/11.** All four sections have headings 1–6. Strategy and State are merged into `iteration-2`, and the rest is in open PRs (see the table in section 2).
+**Status 23/11 (after #92 and #98 merged).** All four sections have headings 1–6. Strategy and Factory Method are merged into `iteration-2`, and so is all the code of the four patterns. Two section updates are still in open PRs: State (#96) and the Command trade-offs (#104). See the table in section 2.
 
 ## 1. What the assignment asks for
 - Each student implements one design pattern. Singleton and MVC do not count. A pattern that was not taught in the course needs the TA's approval several days before the deadline.
@@ -17,9 +17,9 @@ Order in the document: the order in which a turn uses them (dice → turn phases
 | # | Pattern (GoF) | Problem it solves | Task | Owner | Section file | Status 23/11 |
 |---|---|---|---|---|---|---|
 | 1 | Strategy (behavioural) | A different die and movement formula per level (FR-16, FR-17) | T2-04 [#55](https://github.com/shafeekseef81-svg/Sharks/issues/55) | Shafeek Saif | `Strategy_Shafeek.md` | merged (#88, 22/11) |
-| 2 | State (behavioural) | What the player may do in each phase of a turn (D3, NFR-09) | T2-13 [#64](https://github.com/shafeekseef81-svg/Sharks/issues/64) | Rakan Ziyan | `State_Rakan.md` | merged with #79 (22/11); the `ResolvingState` update and the trade-offs are in #96, which merges after #92 |
-| 3 | Factory Method (creational) | A question of the square's own level, without a `switch` on the level (FR-34..FR-37) | T2-08 [#59](https://github.com/shafeekseef81-svg/Sharks/issues/59) | Mohamed Zereny | `FactoryMethod_Mohamed.md` (moved here from `Iteration2/docs/T2-08_FactoryMethod.md` in #98) | code merged (#89); the section is in #98, fix done (`e941b6b`) |
-| 4 | Command (behavioural) | Question and surprise effects run in order, with the game rules and a chain guard (FR-41, FR-42) | T2-10 [#61](https://github.com/shafeekseef81-svg/Sharks/issues/61) | Shafeek Saif | `Command_Shafeek.md` | part 1 merged (#87); part 2 in #92 (Deep 2/2); the trade-offs (section 6) are in a PR stacked on #92 |
+| 2 | State (behavioural) | What the player may do in each phase of a turn (D3, NFR-09) | T2-13 [#64](https://github.com/shafeekseef81-svg/Sharks/issues/64) | Rakan Ziyan | `State_Rakan.md` | merged with #79 (22/11); the `ResolvingState` update and the trade-offs are in #96 (approved, waiting to merge) |
+| 3 | Factory Method (creational) | A question of the square's own level, without a `switch` on the level (FR-34..FR-37) | T2-08 [#59](https://github.com/shafeekseef81-svg/Sharks/issues/59) | Mohamed Zereny | `FactoryMethod_Mohamed.md` (moved here from `Iteration2/docs/T2-08_FactoryMethod.md` in #98) | merged: code #89, section #98 (23/11) |
+| 4 | Command (behavioural) | Question and surprise effects run in order, with the game rules and a chain guard (FR-41, FR-42) | T2-10 [#61](https://github.com/shafeekseef81-svg/Sharks/issues/61) | Shafeek Saif | `Command_Shafeek.md` | code merged: part 1 #87, part 2 #92 (23/11); the trade-offs (section 6) are in #104 |
 
 ## 3. One structure for every section
 
@@ -35,9 +35,9 @@ Each section uses the same headings, so the document reads as one text:
 | Section | 1–5 | 6 | Screenshot list | To do |
 |---|---|---|---|---|
 | Strategy | yes | "Trade-offs" | yes | done (#88) |
-| State | yes | "Trade-offs" (in #96) | yes | merge #96 after #92 |
-| Factory Method | yes (#98) | "Trade-offs" (#98) | yes (#98) | merge #98. At assembly: keep only the last row of the section 5 measurement table, and shorten the "Open/Closed" paragraph and the "Scope" list in section 6 |
-| Command | yes | "Trade-offs" | yes | merge after #92 |
+| State | yes | "Trade-offs" (in #96) | yes | merge #96 |
+| Factory Method | yes | "Trade-offs" | yes | done (#98). At assembly: keep only the last row of the section 5 measurement table, and shorten the "Open/Closed" paragraph and the "Scope" list in section 6 |
+| Command | yes | "Trade-offs" (in #104) | yes | merge #104 |
 
 ## 4. Assembly steps (by 05/12)
 1. Every section is merged into `iteration-2` with its pattern task.

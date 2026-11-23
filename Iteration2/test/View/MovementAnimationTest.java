@@ -70,6 +70,18 @@ class MovementAnimationTest {
         return new GameModel(settings, new Random(2026));
     }
 
+    private static GameModel hardGame() {
+        GameSettings settings = new GameSettings(Difficulty.HARD, List.of(
+                new GameSettings.PlayerSetup("Red", PlayerColor.RED),
+                new GameSettings.PlayerSetup("Green", PlayerColor.GREEN)));
+        return new GameModel(settings, new Random(2026));
+    }
+
+    /** The first {@code count} cells of the red path of a Hard board. */
+    private static List<Cell> hardPath(GameModel game, int count) {
+        return new ArrayList<>(game.board().path(PlayerColor.RED).subList(0, count));
+    }
+
     private static BoardComponent paintedBoard(GameModel game) {
         BoardComponent board = new BoardComponent();
         board.setGame(game);
@@ -104,16 +116,94 @@ class MovementAnimationTest {
     @Test
     @DisplayName("NFR-04: the longest movement of a Regular die is promised well inside two seconds")
     void theLongestMoveStaysInsideTheLimit() {
-        // animateAlong asks Animations for max(260, min(1600, steps * 120)) milliseconds. The Regular die
-        // moves at most 6 squares, so the longest normal movement is 6 * 120 = 720ms, and even the
-        // hard ceiling of the formula, 1600ms, is below the 2 seconds of NFR-04.
+        // The Regular die of Easy moves at most 6 squares, so the longest Easy movement is
+        // 6 * 120 = 720ms, well inside the 2 seconds of NFR-04.
         for (int steps = 1; steps <= 6; steps++) {
-            int promised = Math.max(260, Math.min(1600, steps * 120));
+            int promised = BoardComponent.moveMillis(steps);
             assertTrue(promised < LIMIT_MILLIS,
                     "a move of " + steps + " squares would take " + promised + "ms");
         }
-        assertEquals(720, Math.max(260, Math.min(1600, 6 * 120)), "a full 6 takes 720ms");
-        assertTrue(1600 < LIMIT_MILLIS, "even the longest animation the formula allows fits NFR-04");
+        assertEquals(720, BoardComponent.moveMillis(6), "a full 6 takes 720ms");
+    }
+
+    @Test
+    @DisplayName("NFR-04: the movement budget leaves at least 40% of the two seconds for timer latency")
+    void theMovementBudgetKeepsHeadroomForLatency() {
+        // The time NFR-04 measures is the budget plus the Swing timer's latency and the repaints of the
+        // frame the movement ends on. At the Iteration 1 budget of 1600ms a 30-square Hard move was
+        // measured at 1702ms off-screen and at 2140ms under load (T2-14, PR #93), so the budget alone
+        // must stay clear of 2000ms instead of merely under it.
+        int headroom = LIMIT_MILLIS - BoardComponent.MAX_MOVE_MILLIS;
+        assertTrue(headroom >= 800,
+                "the budget of " + BoardComponent.MAX_MOVE_MILLIS + "ms leaves only " + headroom
+                        + "ms of the " + LIMIT_MILLIS + "ms for timer latency; at least 800ms is needed");
+    }
+
+    @Test
+    @DisplayName("NFR-04: every Iteration 2 movement length, up to the 30-square Hard move, fits the budget")
+    void everyIteration2MoveLengthFitsTheBudget() {
+        // FR-17: Hard moves the Regular die times (UltraBoost - 1), so at most 6 * 5 = 30 squares.
+        for (int steps = 1; steps <= 30; steps++) {
+            int promised = BoardComponent.moveMillis(steps);
+            assertTrue(promised <= BoardComponent.MAX_MOVE_MILLIS,
+                    "a move of " + steps + " squares is promised " + promised + "ms, over the budget");
+            assertTrue(promised >= BoardComponent.MIN_MOVE_MILLIS,
+                    "a move of " + steps + " squares is promised only " + promised + "ms");
+        }
+        assertEquals(BoardComponent.MAX_MOVE_MILLIS, BoardComponent.moveMillis(30),
+                "the 30-square Hard move uses the whole budget");
+    }
+
+    @Test
+    @DisplayName("NFR-04: the budget never shortens a movement that already fits, so short moves look the same")
+    void shorteningTheBudgetDidNotSpeedUpShortMoves() {
+        // Only moves longer than MAX_MOVE_MILLIS / MILLIS_PER_SQUARE squares are capped. Easy and the
+        // shorter Medium and Hard moves must keep the same 120ms per square as in Iteration 1.
+        int firstCapped = BoardComponent.MAX_MOVE_MILLIS / BoardComponent.MILLIS_PER_SQUARE;
+        for (int steps = BoardComponent.MIN_MOVE_MILLIS / BoardComponent.MILLIS_PER_SQUARE + 1;
+                steps <= firstCapped; steps++) {
+            assertEquals(steps * BoardComponent.MILLIS_PER_SQUARE, BoardComponent.moveMillis(steps),
+                    "a move of " + steps + " squares must still take 120ms per square");
+        }
+    }
+
+    @Test
+    @DisplayName("NFR-04: the 30-square Hard movement is still drawn square by square, not as a jump")
+    void theLongestHardMovementIsStillDrawnSquareBySquare() throws Exception {
+        // The budget caps a 30-square move at 40ms per square. It must still pass over every square
+        // instead of sliding straight to the end, which is what NFR-04 means by "square by square".
+        Animations.instant = false;
+        GameModel game = hardGame();
+        Piece piece = game.players().get(0).pieces().get(0);
+        List<Cell> route = hardPath(game, 31);                 // 30 steps
+        assertEquals(31, route.size(), "the route of the longest Hard move");
+
+        List<BufferedImage> frames = new ArrayList<>();
+        AtomicInteger finished = new AtomicInteger();
+        SwingUtilities.invokeAndWait(() -> {
+            BoardComponent board = paintedBoard(game);
+            // Photograph the board over and over while the long movement runs.
+            Timer camera = new Timer(25, e -> frames.add(snapshot(board)));
+            camera.start();
+            board.animateAlong(piece, route, () -> {
+                camera.stop();
+                finished.incrementAndGet();
+            });
+        });
+
+        long deadline = System.currentTimeMillis() + LIMIT_MILLIS + 1000;
+        while (finished.get() == 0 && System.currentTimeMillis() < deadline) {
+            Thread.sleep(10);
+        }
+        assertEquals(1, finished.get(), "the animation must report that it finished");
+
+        // The board was photographed every 25ms over a 1200ms animation, so a square-by-square
+        // movement shows the piece in many different places; a single jump would show one or two.
+        assertTrue(frames.size() >= 10, "the board was photographed while moving: " + frames.size());
+        long different = frames.stream().map(MovementAnimationTest::fingerprint).distinct().count();
+        assertTrue(different >= 10,
+                "the 30-square movement was only drawn in " + different
+                        + " different places, so it is not animated square by square");
     }
 
     @Test

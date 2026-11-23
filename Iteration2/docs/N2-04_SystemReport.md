@@ -27,7 +27,7 @@ question and surprise dialogs (#91, `12a01b6`)** and **T2-10 part 2, the effect 
 | **#81** | N2-06 release tooling (Rakan) | `tools/make_iteration2_zip.py`, the only sanctioned way to build the submission ZIP | `9fea81d` |
 | **#97** | NFR-04 animation budget (mine) | `MAX_MOVE_MILLIS` 1600 ms → **1200 ms**, verified present in `src/View/components/BoardComponent.java:265` | `1f099f2` |
 | **#98** | T2-08 Factory Method doc (mine) | the pattern section under `docs/design_patterns/` | `9c8c83f` |
-| **#102** | N2-04 testing evidence (Rakan) | section 3(e) evidence for Rakan's tasks, and the FR-19 correction used below | `4640416` |
+| **#102** | N2-04 testing evidence (Rakan) | section 3(e) evidence for Rakan's tasks, and the reading of FR-19 used in 3(c) and 3(e) | `4640416` |
 
 **#97 merging removes the CP1 release blocker that this report named earlier.** The baseline now carries the
 1200 ms budget, so the submission ZIP can be built from `iteration-2` on a slower machine without the
@@ -89,10 +89,8 @@ The submitted folder is `iteration2_Sharks`. From inside it:
 - `EducationalLudo.jar` and `build/` are **not** stored in Git; `build.bat` recreates them. Verified
   21/11/2026: the JAR builds from a clean tree, `Main-Class: Controller.Main`, 120 classes.
 
-**TODO (needs N2-06, the release task):** confirm the double-click start of `run.bat` on **both** release
-computers with the final ZIP, and record who did it and when. Iteration 1's equivalent evidence is
-`Iteration1/docs/T28_SecondComputer_Checklist.md`; for Iteration 2 the partial run recorded on branch
-`feature/mohamed/T28-second-computer` is **not** a completed verification and must not be reported as one.
+**TODO:** confirm the double-click start of `run.bat` on **both** release computers with the final ZIP, and
+record who did it and when. The exact procedure is in 3(e), "The CP1 release and manual-test procedure".
 
 ---
 
@@ -162,27 +160,46 @@ Verified board and dice values, read from `Model.LevelConfig` on 21/11/2026:
 Block. An opponent cannot land on it or pass it; if that is a player's only possible move, the piece stops on
 the square before it. The block ends as soon as one of the two pieces moves away (FR-28–FR-30).
 **Known limitation, player-visible:** an opponent Double Block standing on a player's **start square** keeps
-that player's pieces in their castle even on a Regular 6. This is the current reading of FR-29 over FR-19 and
-is decision **D1** in `T2-15_PO_Decisions.md`; it is **not yet accepted by the Product Owner** and must be
-settled before this report is final.
+that player's pieces in their castle even on a Regular 6. **This is what FR-19 specifies**, which states the
+exception itself: a Regular 6 places a piece on its starting square *"unless an opponent Double Block
+occupies that square (R-4, Q40)"*. It is therefore not a case of one requirement overriding another, and the
+implemented behaviour matches the requirement text.
 
-**Scenario 5, questions - TODO.** Expected, per the requirements, once merged: a piece stopping on a question
-square shows all players a question **of that square's level** with four answers; a correct answer moves the
-piece forward 1, 2 or 3 steps by that level and a wrong one moves it back the same number; the dialog then
-says whether it was right and names the correct answer; no question repeats until its level is used up
+It remains decision **D1** in `T2-15_PO_Decisions.md`, and **D1 is still OPEN**, for a different reason: the
+course-staff answers **Q7/Q35** are reported to say that two pieces on a start square do not form a Double
+Block there at all, in which case FR-19's exception could never apply. Those answers are not reproduced
+anywhere in this repository, so the point needs authoritative staff resolution and cannot be settled by the
+Product Owner alone. **The lock-out must still be accepted explicitly by the Product Owner** for Iteration 2
+before this report is final. Full discussion: D1 in the decision register.
+
+**Scenario 5, questions (verified).** A piece stopping on a question square shows all players a question
+**of that square's level** — not the board's — with four answers. A correct answer moves the piece forward
+1, 2 or 3 steps by that level and a wrong one moves it back the same number; the dialog then says whether it
+was right and names the correct answer. No question repeats until its level's deck is used up
 (FR-34–FR-37). A capture on an unprotected question square happens before the question (FR-38).
-Open decision **D3**: whether a player can decline to answer at all.
+**Decision D3 is DECIDED (21/11): the dialog has an explicit "No Answer" button**, and choosing it counts as
+a wrong answer. Evidence: `QuestionDialogTest` (23 tests), `QuestionFactoryTest` (18),
+`EffectResolutionTest` (13), `SquareEffectTest` (21).
 
-**Scenario 6, surprises - TODO.** Expected once merged: landing on a surprise square triggers exactly one
-outcome (FR-39); for "move an opponent" the **active player** chooses which opponent piece moves (FR-40).
-Open decision **D2**: who skips a turn or rolls again when an opponent's piece set the chain off.
+**Scenario 6, surprises (verified).** Landing on a surprise square triggers exactly **one** outcome (FR-39).
+For "move an opponent" the **active player** chooses which opponent piece moves, and nothing is
+auto-selected (FR-40). **Decision D2 is DECIDED (21/11): a SKIP_TURN or EXTRA_ROLL falls on the active
+player**, never on the owner of the piece that landed on the square, even when an effect chain set it off
+with an opponent's piece. Evidence: `SurpriseFactoryTest` (47 tests), `SurpriseDialogTest` (16),
+`SurpriseOutcomeTest` (14).
 
-**Scenario 7, chains - TODO.** Expected once merged: a question or surprise movement activates any special
-square it lands on, obeying the ordinary movement and blocking rules, with a guard against an endless chain
-(FR-41, FR-42); a backward movement stops at the start square (FR-32, decision **D4**).
+**Scenario 7, chains (verified).** A question or surprise movement activates any special square it lands on,
+obeying the ordinary movement and blocking rules, with a guard against an endless chain (FR-41, FR-42). A
+backward movement **stops at** the piece's start square rather than wrapping or being cancelled (FR-32).
+**Decision D4 is OPEN for ratification only** — the behaviour is implemented and matches FR-32; what is
+outstanding is the Product Owner's formal sign-off, which carries a caveat until #95 merges, because without
+it FR-32's only tests are by the author of the code under test. **D5 is likewise OPEN for ratification
+only**: an EXTRA_ROLL and a SKIP_TURN can both arise in one **turn**, but never in one **chain**. Evidence:
+`EffectResolutionTest`, `SquareEffectTest`, and `EffectChainIndependentTest` (25 tests) once #95 merges.
 
-**Scenario 8, turn phases - TODO.** Expected once merged: moving before rolling, or rolling twice without
-moving, is refused (NFR-09).
+**Scenario 8, turn phases (verified).** Moving before rolling, or rolling twice without moving, is refused,
+and a roll is refused while a special square is still waiting to be resolved (phase `RESOLVING`). Evidence:
+`TurnStateTest` (9 tests, NFR-09).
 
 ---
 
@@ -202,8 +219,9 @@ moving, is refused (NFR-09).
 | See the game clock and the elapsed time | **works** (FR-46, FR-47) |
 | Finish a game and see the ranking and duration | **works** (FR-43–FR-45, FR-47) |
 | Leave a game, with a confirmation | **works** |
-| **Answer a question on a question square** | **TODO** - #89, #91, #87/#92 |
-| **Receive a surprise, and choose which opponent piece to move** | **TODO** - #90, #91, #87/#92 |
+| **Answer a question on a question square, or decline with "No Answer"** | **works** (FR-34–FR-38, decision D3) - #89, #91, #87/#92 all merged |
+| **Receive a surprise, and choose which opponent piece to move** | **works** (FR-39–FR-42, decision D2) - #90, #91, #87/#92 all merged |
+| **See one effect set off another, as a chain** | **works** (FR-41, FR-42) |
 | See the history, or manage questions as an administrator | not in Iteration 2 - Iteration 3 (FR-56–FR-64) |
 
 ---
@@ -457,8 +475,7 @@ done by anyone yet.
 ### Requirements traceability, verified independently (NFR-14)
 
 This was run with **the team's own tool**, `Iteration2/tools/rtm_coverage.py` (Shafeek, T2-14), not with a
-re-implementation. The tool needs an SRS text dump; an earlier version of this report recorded that the dump
-could not be produced here. **That limitation is gone.** The dump comes from the SRS already in the
+re-implementation. The tool needs an SRS text dump, which is produced from the SRS already in the
 repository:
 
 ```bash
@@ -558,31 +575,28 @@ Two mutation checks of my own, in the same spirit:
 * **Independent tests:** `DoubleBlockIndependentTest` (Shafeek, T2-07, #85), 19 tests through the facade.
 * **Reviews:** two Deep reviews (Shafeek, Mohamed).
 * **Player-visible open point — decision D1, still OPEN.** An opponent's Double Block standing on a player's
-  **start square** keeps that player's pieces in the castle even on a Regular 6. The behaviour is in the
-  merged code: `StandardMoveEngine.moveFor` requires `isPassable(board.startCell(owner.color()), owner)`
-  before a castle exit. Register: `Iteration2/docs/T2-15_PO_Decisions.md`.
+  **start square** keeps that player's pieces in the castle even on a Regular 6.
 
-  **Correction — FR-19 and FR-29 do not contradict each other.** An earlier version of this report said that
-  "FR-29 wins over FR-19" and that the two requirements "genuinely conflict". **That was wrong.** Rakan gave
-  the correct reading in #102, and on 23/11 I checked it against the requirement text itself, extracted from
-  `Assignment3_Prototype/Sharks_SRS.pdf` with `pdftotext -layout`:
+  **This is what FR-19 specifies.** Quoted from `Assignment3_Prototype/Sharks_SRS.pdf`, extracted with
+  `pdftotext -layout`:
 
   > **FR-19** A Regular 6 shall allow placing a piece on its starting square, ignoring the special die, or
   > moving an active piece, **unless an opponent Double Block occupies that square** (R-4, Q40).
 
-  **FR-19 states the exception itself**, citing Q40. So the implemented behaviour is not one requirement
-  defeating another — **it is what FR-19 literally requires**, and it agrees with FR-29. The earlier error
-  came from quoting FR-19 only as far as "starting square" and dropping the `unless` clause.
+  FR-19 states the exception itself and cites Q40 as its source, so the rule agrees with FR-29 and the code
+  implements the requirement rather than choosing between two requirements. The reading is @ziyanrakan33's,
+  from #102; it is recorded here because it was checked against the requirement text rather than a
+  paraphrase. The behaviour is in the merged code: `StandardMoveEngine.moveFor` requires
+  `isPassable(board.startCell(owner.color()), owner)` before a castle exit.
 
-  **What is actually still open.** Not which requirement wins — that is settled. The narrower question is
-  whether two same-player pieces on a **start** square form a Double Block *at all*. FR-28 defines a block as
-  "two or more same-player pieces on one square" with no exception for start squares, which is why FR-19
-  needs its `unless` clause; but Rakan reports that the staff answers **Q7/Q35** say no block forms there, in
-  which case the `unless` clause could never fire. **Q7/Q35 could not be verified from this repository** — the
-  SRS cites the staff answers by number without reproducing their text, and the Q&A sheet is not in the
-  repository. So D1 is a possible conflict between the **staff answers** and the **requirement text**, not
-  between two requirements, and it is **not closable by the Product Owner alone. D1 remains OPEN** and the
-  game rule is unchanged.
+  **Why D1 is nevertheless still OPEN.** The open question is narrower: whether two same-player pieces on a
+  **start** square form a Double Block *at all*. FR-28 defines a block as "two or more same-player pieces on
+  one square" and makes no exception for start squares, which is why FR-19 needs its `unless` clause — but
+  the course-staff answers **Q7/Q35** are reported to say that no block forms there, in which case the
+  clause could never apply. **Q7/Q35 could not be verified from this repository**: the SRS cites the staff
+  answers by number without reproducing their text, and the Q&A sheet is not in the repository. D1 therefore
+  needs authoritative staff resolution and **is not closable by the Product Owner alone**. The game rule is
+  unchanged meanwhile. Register: `Iteration2/docs/T2-15_PO_Decisions.md`.
 
 ### Release checks (N2-06, NFR-10)
 
@@ -620,14 +634,17 @@ keeps all 17 cases correct. It is raised on #81 as a suggestion, not a blocker.
 | **CP1 candidate rehearsal, 23/11** (second revision), isolated folder | `iteration-2` `1d47f2d` + #97 + #95 + #99 + #103 + #98 (`a312868`) | **700/700** | **172 files, JAR 263,868 bytes**, SHA-256 `462c774a…4ac386` | — |
 | **Complete candidate rehearsal, 23/11** (third revision, adds #96), isolated folder | `0928117` | **700/700** | **172 files, JAR 263,868 bytes**, SHA-256 `4dc64ff8…1deb2a` | — |
 | **Post-merge rehearsal, 23/11** (on the new baseline, after #81, #97, #98, #102), isolated folder | `4640416` + #95 + #96 + #99 + #103 (`1228597`) | **700/700** | **174 files**, JAR 263,868 bytes, SHA-256 `cf7c57ac…0506b0` | — |
+| **The release procedure run on plain `iteration-2`, 23/11** — i.e. exactly what CP1 would ship today, with nothing merged by hand | **`4640416`** | **660/660** | **168 files**, JAR 263,868 bytes, SHA-256 `a5d4bb3c…442d21` | — |
 
-The file count rose from 172 to **174** because #81 and #102 added versioned files to `Iteration2`; the JAR
-is byte-for-byte the same size, as expected, since none of the four merges changed compiled code except
-#97's single constant.
+**The last row is the one that matters for CP1.** The release procedure works today on `iteration-2` with
+nothing merged by hand: **660/660 and a complete 168-file ZIP**. The candidate row above it (174 files) is
+what the ZIP becomes once #95, #96, #99 and #103 land; the JAR is byte-for-byte the same size in both,
+because none of the open PRs changes compiled code.
 
-The ZIP of the last rehearsal was opened and checked entry by entry: **172 entries, all under the single top
-folder `iteration2_Sharks/`, no backslash in any entry**, and `EducationalLudo.jar`, `run.bat`, `build.bat`,
-`test.bat`, `run.sh` and `README.md` all present, with the `build/` directory correctly excluded.
+Both ZIPs were opened and checked entry by entry: **all entries under the single top folder
+`iteration2_Sharks/`, no backslash in any entry**, and `EducationalLudo.jar`, `run.bat`, `build.bat`,
+`test.bat`, `run.sh`, `build.sh`, `test.sh` and `README.md` all present, with the `build/` directory
+correctly excluded.
 
 The candidate's JAR was also started once to confirm it runs: it opened a real top-level window titled
 **"Educational Ludo - Team Sharks"** on a 1920×1200 display and printed nothing to stderr. That is a
@@ -638,6 +655,68 @@ The CP1 rehearsal also showed that every open PR merges without a conflict in th
 
 **Not automated:** the double-click on `run.bat` and on the JAR, and a full game played by a person. Those are
 rows 5–9 of the checklist in `Iteration2/docs/N2-06_Release.md` and are filled in by hand on both computers.
+
+### The CP1 release and manual-test procedure, exactly as it is to be run
+
+**Verified on 23/11:** steps 1–3 below were run on this computer and produced a complete ZIP from plain
+`iteration-2`. Steps 4 onwards are the part **no one has done**, and they need a person at a real screen on
+**both** release computers.
+
+**Step 1 — get a clean copy of the merged branch.** In Git Bash:
+
+```bash
+cd /c/Ludo/Sharks
+git fetch origin
+git worktree add /c/Ludo/Sharks-CP1 origin/iteration-2 --detach
+```
+
+**Step 2 — build and test.** In File Explorer open `C:\Ludo\Sharks-CP1\Iteration2`, then run `build.bat`
+and `test.bat`. Expect **660 found, 660 successful, 0 failed**. If `test.bat` reports any failure, stop: the
+release script will refuse to build a ZIP anyway.
+
+**Step 3 — build the submission ZIP.** From `C:\Ludo\Sharks-CP1` in Git Bash:
+
+```bash
+python tools/make_iteration2_zip.py --ref origin/iteration-2 --out /c/Ludo/CP1-out
+```
+
+It prints the file count, the test count and the SHA-256. On 23/11 that was **168 files, 660/660, SHA-256
+`a5d4bb3c…442d21`**. **Do not build the ZIP any other way** — not with Windows Explorer's "Send to
+compressed folder", which writes backslash separators.
+
+**Step 4 — the double-click test, which is the one that can disqualify the assignment.** Unzip the ZIP to a
+fresh folder and, **in File Explorer rather than a terminal**, **double-click `run.bat`**. The game window
+must open and no console window may stay behind. Do this on **both** computers.
+
+> Double-click **`run.bat`**, not `EducationalLudo.jar`. On Windows a path containing Hebrew letters makes
+> `java -jar` fail with *Unable to access jarfile*; the scripts change into their own folder and use a
+> relative path, which is why the run file is the supported way in. Testing the JAR by double-click as well
+> is useful, but a failure there is not a defect — a failure on `run.bat` is.
+
+**Step 5 — play the game, and record what you see.** The full row-by-row script is
+`Iteration2/docs/T2-15_ManualChecklist_CP1.md` (12 rows). The checks that no automated test can replace:
+
+| | What to do | Why only a person can do it |
+|---|---|---|
+| 1 | Start a **Medium** game with 4 named players, then a **Hard** game; confirm the Hard board is visibly larger | layout on a real display |
+| 2 | Land on a **question square** and confirm the question's level matches **the square's colour**, not the board's | FR-34; the level mapping is only visible on screen |
+| 3 | In the question dialog, press **Tab** repeatedly then **Space** | keyboard traversal and focus visibility (NFR-13) |
+| 4 | Answer one question **right** and one **wrong**; then use **No Answer** followed by **Continue** | FR-35–FR-37 and decision D3 as the player meets them |
+| 5 | Trigger a **surprise**; for "push an opponent back" confirm **you** choose the piece and nothing is auto-selected; watch for a **second** dialog if it lands on another special square | FR-40, FR-42 |
+| 6 | **Stopwatch the longest Hard move** (Regular 6 with UltraBoost 6 = 30 squares) and **write down the milliseconds** | **the only check that closes NFR-04.** Every automated figure in this report is off-screen |
+| 7 | Finish a complete game and confirm the ranking is in finishing order with the game clock | FR-43–FR-47 |
+| 8 | Take screenshots: main menu, Medium board, Hard board, question dialog, surprise dialog, results screen | the report has none |
+
+Time the long **Medium** move as well if an "Extra roll!" appears: `EXTRA_ROLL` uses the UltraBoost die on
+every level (Table 2, Q27), so a Medium move can exceed 12 squares.
+
+**If an opponent's Double Block on your start square stops a Regular 6, that is decision D1 — a known open
+point, not a bug.** Note it and carry on.
+
+**Step 6 — the second computer.** Repeat steps 1–5 on the other release computer from **the same ZIP**, not
+from a fresh clone, and record **who ran it and when**. Iteration 1's equivalent evidence is
+`Iteration1/docs/T28_SecondComputer_Checklist.md`. The partial run on branch
+`feature/mohamed/T28-second-computer` is **not** a completed verification and must not be reported as one.
 
 ### What has not been verified yet
 
@@ -676,8 +755,8 @@ rows 5–9 of the checklist in `Iteration2/docs/N2-06_Release.md` and are filled
 | 1b | ~~**Merge #97 before building the CP1 artifact**~~ **done 23/11** — merged as `1f099f2`; the budget is 1200 ms in the baseline and the timing test passes 4/4 cold on the candidate | — |
 | 2 | Run the manual script M1-M7 and paste the filled-in tables in as the 3(e) evidence | T2-15, N2-06 |
 | 3 | Re-run the whole suite on the final `iteration-2` and replace every test count | after the last merge — done once for `4640416` (660/660) and for the candidate (700/700); must be repeated after #95, #96, #99 and #103 land |
-| 4 | Take the screenshots from the final build | after the last merge |
-| 5 | Settle **D1** so 3(c) states a rule and not an open question, and ratify **D4** and **D5** (both implemented and tested; see the register) | staff clarification on Q7/Q35, then the Product Owner |
+| 4 | Take the screenshots from the final build | a human; step 5 of the procedure in 3(e) |
+| 5 | Accept the **D1** lock-out explicitly for Iteration 2, and ratify **D4** and **D5** (both implemented and tested; see the register). 3(c) already states the rule FR-19 specifies; what is outstanding is whether a Double Block forms on a start square at all | staff clarification on Q7/Q35, then the Product Owner |
 | 5b | Add the US-2.3 end-to-end acceptance evidence of **#103** to 3(e) once it merges, and the independent-test evidence of #95 | both re-tested against the new baseline `4640416` and ready; #99 → 667/667, #103 → 668/668, together 675/675 |
 | 5c | ~~Move the fix on **#105** into #99~~ **done 23/11** (`df396b6`). #105 is now redundant and is to be **closed without merging** | — |
 | 5d | Fill in `T2-15_ManualChecklist_CP1.md` on both computers, including the stopwatch row, and paste the filled tables into 3(e) | a human, before CP1 |

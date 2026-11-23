@@ -4,7 +4,9 @@ Owner: **Mohamed Zereny** (Product Owner). Opened 21/11/2026. Related: issue
 [#75](https://github.com/shafeekseef81-svg/Sharks/issues/75), PRs #87, #89, #90, #91, #92, and the acceptance
 plan `Iteration2/docs/T2-15_AcceptancePlan.md`.
 
-**Status 21/11/2026: D2 and D3 are DECIDED and implemented. D1, D4 and D5 are still OPEN.**
+**Status 23/11/2026: D2 and D3 are DECIDED and implemented. D1 is still OPEN and waiting on course staff.
+D4 and D5 are OPEN only as ratifications: the behaviour each one proposed is now merged on `iteration-2`
+and tested, so what is left is the Product Owner recording it, not investigating it.**
 
 An entry marked OPEN ends in a **proposal**, which is not a decision: it becomes one only when the Product
 Owner records it as decided, with a date, and the team is told. Until then the code keeps behaving as it does
@@ -274,8 +276,12 @@ piece go back into its castle?
   leaves the stopping to the effect queue.
 - `StandardMoveEngine.isPassable` is already direction-independent and documents that "backward moves
   (questions, surprises) can use it as well", so the blocking half is ready.
-- **The stopping itself is not implemented anywhere on `iteration-2` yet**, and the RTM snapshot
-  (`T2-14_RTM_Coverage.md`) lists FR-32 as having only 2 tests, both by the authors.
+- **Corrected 23/11/2026: the stopping is now implemented on `iteration-2`.** This bullet previously read
+  "the stopping itself is not implemented anywhere on `iteration-2` yet", which was true when the entry was
+  opened on 21/11 but stopped being true when **#87 merged as `e2bbdaa`**. `Model/EffectMover` and its FR-32
+  stop are on the baseline today; only the wiring of the effects into the turn (#92) is still unmerged. The
+  RTM snapshot (`T2-14_RTM_Coverage.md`) was taken before that merge and still lists FR-32 as having 2 tests,
+  both by the authors; Rakan's independent test named below is not in that count.
 
 **Alternatives.**
 
@@ -285,9 +291,10 @@ piece go back into its castle?
 | B | The push is cancelled if it cannot be made in full | Treats the push like an exact-finish move (FR-31). But FR-32 already says movement *stops*, which is the opposite of cancelling, so this contradicts a confirmed requirement. |
 | C | The piece goes back into its castle | Much harsher than any requirement suggests, and FR-26 reserves the castle for captures. |
 
-**Impact.** This is in Shafeek's T2-10 (#87, #92), unmerged. It is a requirement that is already confirmed, so
-this is less a decision than a **check that T2-10 implements A** - but it is player-visible and currently
-untested, so it belongs in this register until somebody has run it.
+**Impact.** This is in Shafeek's T2-10. Of that task, **part 1 (#87) is merged (`e2bbdaa`)** and carries the
+FR-32 stop; part 2 (#92), which wires the effects into the turn, is approved but not merged. It is a
+requirement that is already confirmed, so this is less a decision than a **check that T2-10 implements A** -
+and that check has now been made, below.
 
 **Verified on 21/11/2026 in the integration build — Option A is already implemented and independently
 tested.** Checked in a worktree holding `iteration-2` plus #79, #91, #92, #95 and #97:
@@ -318,8 +325,10 @@ one win, or do both apply (roll again now, and miss the next turn)?
   to touch several squares, so several outcomes in one chain are possible.
 - Nothing in the confirmed requirements says how two turn-level outcomes combine.
 - `Player.skipNextTurn()` exists on `iteration-2`, and the T2-09 notes show the intended wiring
-  (`turn.skipNextTurn(result.affected())` and `turn.grantSurpriseRoll()`), but the queue that would run both is
-  in T2-10/T2-13 and is not merged.
+  (`turn.skipNextTurn(result.affected())` and `turn.grantSurpriseRoll()`). **Corrected 23/11/2026:** this
+  bullet used to end "but the queue that would run both is in T2-10/T2-13 and is not merged". Since then
+  **T2-13 merged as `c689a85` (#79)** and **T2-10 part 1 merged as `e2bbdaa` (#87)**, so the effect queue and
+  the turn states are both on the baseline; the one piece still unmerged is the wiring in #92.
 - The chain guard mentioned in the plan limits chain length, so this is rare, not impossible.
 
 **Alternatives.**
@@ -373,10 +382,19 @@ six-vs-surprise half of the question is already settled against SRS Table 2.** I
 So the class already answers more than D5 asked: the ordering against the rule of 6 is decided and carries
 Table 2 references (Q56, Q27), citing "SRS section 2, open rule question 4".
 
-**Proposal (not decided).** Ratify **A** (both apply), and record the two refinements above as part of the
-rule, because they are player-visible and currently live only in javadoc:
-1. a skip cancels a pending roll from a **6**, but not a surprise extra roll;
-2. a surprise extra roll is taken **before** a pending roll from a 6.
+**~~Proposal (not decided). Ratify A (both apply)~~ — SUPERSEDED 22/11/2026 by the correction at the top of
+this entry.** It is struck through rather than deleted because it is what was on the table before Shafeek
+showed that a chain can never hold both outcomes. Two things in it were wrong or misleading:
+
+- "**both apply**" answered the A/B/C question, and that question cannot arise: a turn outcome moves no
+  piece, so the chain ends as soon as one is drawn.
+- the refinement "a skip cancels a pending roll from a 6, **but not a surprise extra roll**" described a
+  situation that cannot occur either — a surprise extra roll is never still pending at the moment a skip is
+  applied, because it is taken first (Q27).
+
+**The single live proposal for D5 is the one in the correction block above**: ratify (1) that a surprise extra
+roll is taken before a pending roll from a 6 (Q27), and (2) that a later `SKIP_TURN` cancels that pending 6 as
+well and exactly one turn is missed (Q56). Nothing else in this entry is being proposed.
 
 **~~Still missing~~ — CLOSED 22/11/2026.** This said no test covered a chain producing both a skip and an
 extra roll. Shafeek has since shown that such a chain **cannot exist** (see the correction at the top of this

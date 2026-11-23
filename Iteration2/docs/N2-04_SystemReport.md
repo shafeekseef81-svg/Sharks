@@ -221,15 +221,20 @@ otherwise.
 | with the T2-15 acceptance tests (#99, `df396b6`) | 663 | **663 passed, 0 failed** |
 | with the US-2.3 end-to-end acceptance (#103, `ee465e4`) | 664 | **664 passed, 0 failed** |
 | **#99 and #103 together** | 671 | **671 passed, 0 failed** |
-| **the CP1 candidate: `iteration-2` + #97 + #95 + #99 + #103 + #98** | **700** | **700 passed, 0 failed** |
+| **the CP1 candidate: `iteration-2` + #97 + #98 + #95 + #96 + #99 + #103** | **700** | **700 passed, 0 failed** |
 
 The last row is the number that matters for CP1. **All five branches merged with no conflict**, and the
 figure is independently corroborated: Shafeek measured the same **700/700** on his own locally-merged
 candidate (#106, T2-14 snapshot of 23/11), built from a different starting commit and a slightly different
 set of PRs.
 
-**#95 is not really conflicting.** GitHub shows it that way because it is compared against plain
-`iteration-2`; merged in its intended order it is clean.
+**#95 and #96 are not really conflicting — GitHub's flag is stale.** Both are shown as `CONFLICTING`
+against `iteration-2`, and both in fact **merge cleanly**, verified on 23/11 by merging each onto
+`iteration-2` `1d47f2d` in an isolated worktree. The flag was computed while they were still stacked behind
+#92; now that #92 is merged their real net content is small — #95 adds
+`test/Model/EffectChainIndependentTest.java` and #96 changes
+`docs/design_patterns/State_Rakan.md`. GitHub normally recomputes this by itself; merging `iteration-2` into
+each branch would refresh it immediately. **Neither branch was modified**, since both are Rakan's.
 
 The unmerged rows are integration checks done in throwaway worktrees; **nothing was pushed to anyone else's
 branch.** Earlier figures, kept so the growth stays traceable: the baseline was 540 on `e9f6b2e` (earlier on
@@ -415,6 +420,27 @@ suite and **stops on any failed test**. So on a machine like Shafeek's, building
 tests. With it in the CP1 candidate, `TimingTest` passed 4/4 on three cold runs and
 `MovementAnimationTest` 15/15 here.
 
+### Requirements traceability, verified independently (NFR-14)
+
+`Iteration2/tools/rtm_coverage.py` needs an SRS text dump from `pdftotext -layout`, which is not available
+in my environment, so the coverage half of it was re-implemented as a standalone scan and run against the
+CP1 candidate's whole test tree. It mirrors the tool's range handling (`FR-28..FR-30`, `FR-28-FR-30`,
+`FR-28–FR-30`) and answers one question: which FRs are named by a `@DisplayName`.
+
+**Result: every FR from FR-15 to FR-47 is named by at least one test.** That corroborates the T2-14 snapshot
+(#106) from a second direction.
+
+The thinnest rows, measured on the candidate: FR-30 (2 tests), FR-32 (3), FR-36 (3), FR-38 (3), FR-41 (3),
+FR-47 (2). Every other FR in the range has four or more.
+
+**What #95 actually contributes, measured.** Without #95 no FR drops to zero — but **FR-32, FR-36, FR-37,
+FR-38 and FR-41 each fall to two tests, and in every one of those cases both remaining tests were written by
+the author of the code under test** (`SquareEffectTest` and `EffectResolutionTest` are Shafeek's;
+`QuestionFactoryTest` is mine). So #95 is not filling a coverage hole; it is supplying the **independent**
+coverage that SDP 5.3.4 requires, for precisely the requirements that are thinnest without it. That is the
+argument for merging it before CP1, and it is also why the D4 ratification in the decision register carries
+an explicit caveat until it lands.
+
 ### Independent rule tests (SDP 5.3.4)
 
 Every rule is tested by a member who did not implement it. Expected values are written out by hand from the
@@ -527,6 +553,15 @@ keeps all 17 cases correct. It is raised on #81 as a suggestion, not a blocker.
 | Script check after the review fix, 22/11 | `iteration-2` `d445a38` | 531/531 | 142 files, JAR 222,254 bytes | — |
 | **Full rehearsal, 23/11**, into an isolated folder | integration candidate (`13bc5b3`) | **700/700** | **171 files, JAR 263,868 bytes**, SHA-256 `05b3e113…3544b9` | — |
 | **CP1 candidate rehearsal, 23/11** (second revision), isolated folder | `iteration-2` `1d47f2d` + #97 + #95 + #99 + #103 + #98 (`a312868`) | **700/700** | **172 files, JAR 263,868 bytes**, SHA-256 `462c774a…4ac386` | — |
+| **Complete candidate rehearsal, 23/11** (third revision, adds #96), isolated folder | `0928117` | **700/700** | **172 files, JAR 263,868 bytes**, SHA-256 `4dc64ff8…1deb2a` | — |
+
+The ZIP of the last rehearsal was opened and checked entry by entry: **172 entries, all under the single top
+folder `iteration2_Sharks/`, no backslash in any entry**, and `EducationalLudo.jar`, `run.bat`, `build.bat`,
+`test.bat`, `run.sh` and `README.md` all present, with the `build/` directory correctly excluded.
+
+The candidate's JAR was also started once to confirm it runs: it opened a real top-level window titled
+**"Educational Ludo - Team Sharks"** on a 1920×1200 display and printed nothing to stderr. That is a
+**launch** check and nothing more — it is not a playthrough, and no screenshot was taken.
 | CP1, 25/11 | merged `iteration-2` | **TODO** | **TODO** | **TODO**, both computers |
 
 The CP1 rehearsal also showed that every open PR merges without a conflict in the planned order.

@@ -31,7 +31,8 @@ import java.util.Set;
  *   <li>Squares are resolved one at a time, first reached, first resolved.</li>
  *   <li>Only a real movement activates a square. A command that moves zero steps leaves the piece where it was
  *       and does not activate that square again (FR-42, staff answer Q81). Jumps to the castle or the finish
- *       never reach a special square.</li>
+ *       never reach a special square, and neither does a piece leaving its castle ({@code EXIT_CASTLE}): only a
+ *       {@code STEPS} move activates a square.</li>
  *   <li>Each special square is activated at most once in a chain, whichever piece reaches it. A chain therefore
  *       has at most as many effects as the board has special squares (8 on Medium, 12 on Hard), so it always
  *       ends. The next dice move starts a new chain.</li>

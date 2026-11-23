@@ -38,7 +38,7 @@ justifications written here are the developer's own and can be corrected without
 
 | # | Rule | Status | Visible to a player? | Decided by | Blocks |
 |---|---|---|---|---|---|
-| D1 | A Double Block on a start square | **OPEN** | **Yes** | `StandardMoveEngine.moveFor` (merged, Rakan) | M3 in the acceptance script |
+| D1 | A Double Block on a start square — **not** an FR-19/FR-29 conflict (corrected 23/11); the open question is whether a block forms there at all (Q7/Q35) | **OPEN** | **Yes** | `StandardMoveEngine.moveFor` (merged, Rakan) | M3 in the acceptance script |
 | D2 | Who gets SKIP_TURN / EXTRA_ROLL after an opponent's piece set off the chain | **DECIDED 21/11/2026 - Option A, the active player** | **Yes** | Product Owner; implemented in T2-09 and T2-11 | nothing - M5.4 can now be judged |
 | D3 | What "did not answer" means, and whether it can happen at all | **DECIDED 21/11/2026 - an explicit No Answer button** | **Yes** | Product Owner; implemented in T2-11 | nothing - M4.4 can now be judged |
 | D4 | A push-back that would go past the pushed piece's start square | **OPEN — ratification only** | **Yes** | already implemented in `EffectMover`, independently tested in #95 | M6.2, P10 |
@@ -52,14 +52,43 @@ justifications written here are the developer's own and can be corrected without
 square (FR-19). An opponent's Double Block prevents landing on, or passing, the square it stands on (FR-29).
 What happens when an opponent's Double Block is standing **on your start square** and you roll a Regular 6?
 
-**Conflicting evidence.**
-- FR-19: "A Regular 6 shall allow placing a piece on its starting square." Read alone, the piece comes out.
-- FR-29: "An opponent's Double Block shall prevent landing" on that square. Read alone, the piece stays in.
-- Neither requirement names the other, so the texts genuinely conflict in this one case.
-- A start square **is** a protected square (`SquareType.isProtected()` returns true for `START`), so no
-  capture can happen there in either reading. The conflict is only about whether the piece may come out.
+**Correction, 23/11/2026 — FR-19 and FR-29 do not contradict each other.** An earlier version of this
+register claimed that the two requirements "genuinely conflict" because "neither names the other." **That was
+wrong, and the error was mine.** Rakan pointed out the right reading in #102, and I have now checked it
+against the requirement text itself rather than against a paraphrase. Quoted in full from
+`Assignment3_Prototype/Sharks_SRS.pdf` (extracted with `pdftotext -layout`):
 
-**What the code does today.** FR-29 wins. `Iteration2/src/Model/StandardMoveEngine.java`, in `moveFor`:
+> **FR-19** A Regular 6 shall allow placing a piece on its starting square, ignoring the special die, or
+> moving an active piece, **unless an opponent Double Block occupies that square** (R-4, Q40).
+
+> **FR-29** An opponent's Double Block shall prevent landing or passing in either direction; if no other
+> piece can move fully, movement stops before it (R-4, Q87).
+
+**FR-19 names the exception itself**, and cites Q40 as its source. So the castle-exit rule and the blocking
+rule agree, and the behaviour in the code is not FR-29 defeating FR-19 — **it is what FR-19 literally
+requires.** My earlier quotation of FR-19 stopped at "starting square" and dropped the `unless` clause, which
+is what produced the phantom conflict. Any statement elsewhere that these two requirements contradict each
+other should be read as superseded by this paragraph.
+
+**Why D1 is still OPEN even so.** The open question is **not** which requirement wins — that is settled. It is
+narrower, and it sits one level further back:
+
+> Do two same-player pieces standing on a **start** square form a Double Block at all?
+
+FR-28 says a Double Block is formed by "two or more same-player pieces on one square" and makes no exception
+for start squares, which is why Q40 and FR-19 then have to provide for the case. But Rakan reports in #102
+that the course-staff answers **Q7/Q35** say two pieces on a start square do **not** form a Double Block
+there. If that is right, the `unless` clause in FR-19 can never fire, and the castle exit would never be
+blocked. **I could not verify Q7/Q35 from anything in this repository** — the SRS cites the staff answers by
+number but does not reproduce their text, and the Q&A sheet itself is not in the repository. So this is a
+possible conflict between the **staff answers** and the **requirement text**, not between two requirements,
+and it is not something the Product Owner can settle alone. **D1 therefore stays OPEN pending official staff
+clarification**, and the game rule is left exactly as it is in the meantime.
+
+**A start square is protected.** `SquareType.isProtected()` returns true for `START`, so no capture can
+happen there under any of the readings below. The question is only whether the piece may leave the castle.
+
+**What the code does today.** It implements FR-19 including its `unless` clause. `Iteration2/src/Model/StandardMoveEngine.java`, in `moveFor`:
 
 ```java
 if (piece.inCastle()) {
@@ -73,22 +102,27 @@ if (piece.inCastle()) {
 So a piece can be kept in its castle by two opponent pieces parked on its start square. This is merged into
 `iteration-2` (T2-06, #77, Rakan).
 
-**Alternatives.**
+**Alternatives.** Now that FR-19's `unless` clause is on the table, these are no longer three readings of a
+contradiction. **A is the requirement text; B contradicts it; C is what the staff answers would require.**
 
-| | Rule | Consequence |
-|---|---|---|
-| A (today) | The block wins; the piece stays in its castle | Simple and consistent with FR-29 everywhere. But two opponents can park on a start square and shut a player out of the game for as long as they like. With four players that is a real griefing move, and a player who rolls three 6s and still cannot move will think the game is broken. |
-| B | FR-19 wins; the piece comes out onto its start square anyway | The player is never locked out. Needs a rule for what happens to the two pieces already there - they are on a protected square, so they cannot be captured; the square would then hold three pieces of two colours, which no other rule allows. |
-| C | A Double Block cannot form on a start square at all | Removes the conflict at its source and keeps both FR-19 and FR-29 intact everywhere else. Costs a new rule that is in neither requirement, and a change in code owned by Rakan. |
+| | Rule | Standing against the requirements | Consequence |
+|---|---|---|---|
+| A (today) | The block holds; the piece stays in its castle | **What FR-19 says**, and consistent with FR-29 | No requirement has to bend. But two opponents can park on a start square and shut a player out for as long as they like. With four players that is a real griefing move, and a player who rolls three 6s and still cannot move will think the game is broken. |
+| B | The piece comes out onto its start square anyway, ignoring the block | **Violates FR-19** — it is exactly the case the `unless` clause excludes — and violates FR-29 | The player is never locked out. But it also needs a brand-new rule for the two pieces already there: they are on a protected square, so they cannot be captured, and the square would then hold three pieces of two colours, which no other rule allows. |
+| C | A Double Block cannot form on a start square at all | Consistent with **Q7/Q35** as Rakan reports them; makes FR-19's `unless` clause unreachable and narrows FR-28 | Removes the lock-out at its source without ever contradicting the blocking rule, because there is simply no block to apply. Costs a narrowing of FR-28 that is not written in FR-28, and a change in code owned by Rakan. |
 
-**Impact.** A is merged and tested; B and C are changes to another developer's merged code four days before
-CP2. B also needs a brand-new rule about three pieces on one square, so it is the most expensive. C is the
-cleanest rule but the biggest change in scope.
+**Impact.** A is merged, tested and is what the requirement says, so it needs no work. B is both the most
+expensive and the only option that breaks a requirement, so it should not be chosen on griefing grounds
+alone. C is the option the staff answers point to, and it is a change to another developer's merged code
+four days before CP2.
 
-**Proposal (not decided).** Keep **A** for Iteration 2, because it is merged, tested and consistent, and
-record the lock-out as a known limitation in the system report and the retrospective. Revisit C in
-Iteration 3 if play-testing shows the lock-out actually happens. **This needs the Product Owner to accept the
-lock-out explicitly**, because it is player-visible and it is the kind of thing a grader will try.
+**Proposal (not decided).** Keep **A** for Iteration 2. The reason is now stronger than "it is merged and
+tested": **A is what FR-19 literally requires**, and changing it without the staff answer in hand would mean
+shipping code that contradicts the requirement text we are being graded against. Record the lock-out as a
+known limitation in the system report and the retrospective. **If the staff confirm Q7/Q35, C becomes the
+correct option** and should be done in Iteration 3 — or earlier if the answer arrives before CP2 and Rakan
+has time. **This still needs the Product Owner to accept the lock-out explicitly** for Iteration 2, because
+it is player-visible and it is the kind of thing a grader will try.
 
 ---
 

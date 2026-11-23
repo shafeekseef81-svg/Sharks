@@ -11,22 +11,27 @@ and marked as such, or marked **TODO** with what is still needed. Nothing is ass
 measurement or playthrough is recorded that was not actually taken. The report cannot be finished before the
 Iteration 2 code is merged (see section 6).
 
-Baseline for everything measured here: `iteration-2` at **`e9f6b2e`** (23/11/2026; it was `d445a38` on
-22/11 and `6e13bcf` on 21/11). Merged into it: T2-01 to T2-07, N2-03 (#86, #101), **T2-10 part 1 (#87,
-`e2bbdaa`)**, **T2-08 (#89, `5540f53`)**, **T2-13, the turn State pattern (#79, `c689a85`)**, T2-14 (#93)
-and N2-05 (#88, #94). Baseline suite: **540 tests, all passing**.
+Baseline for everything measured here: `iteration-2` at **`1d47f2d`** (23/11/2026, second revision; it was
+`e9f6b2e` earlier the same day, `d445a38` on 22/11 and `6e13bcf` on 21/11). Baseline suite: **656 tests, all
+passing**.
 
-**Still not merged:** the surprise outcomes (#90), the dialogs (#91), **T2-10 part 2 (#92)**, the
-independent effect tests (#95) and the NFR-04 animation budget (#97) — all approved. So sections 3(b)–3(d)
-still describe questions, surprises and chains as **TODO for the player-visible behaviour**, even though
-their code exists and is tested on branches. Section 3(e) carries that branch evidence, clearly marked as
-not-yet-merged.
+**The whole feature scope of Iteration 2 is now merged.** T2-01 to T2-07, N2-03 (#86, #101), T2-10 part 1
+(#87, `e2bbdaa`), T2-08 (#89, `5540f53`), T2-13 the turn State pattern (#79, `c689a85`), T2-14 (#93),
+N2-05 (#88, #94), and — **new on 23/11** — **T2-09 surprise outcomes (#90, `36661fc`)**, **T2-11 the
+question and surprise dialogs (#91, `12a01b6`)** and **T2-10 part 2, the effect wiring (#92, `1d47f2d`)**.
 
-**The one dependency that gates everything player-visible is #92.** Until it merges, a question or surprise
-square is an ordinary square in any build made from `iteration-2`: nothing opens a dialog, so no amount of
-manual testing can accept US-2.3 from the release branch. #79 has merged since the last draft, so the turn
-States themselves are on the baseline; what is missing is the wiring that ever puts a turn into
-`RESOLVING`.
+**Still not merged:** the NFR-04 animation budget (**#97**, approved) and the independent effect tests
+(**#95**, approved).
+
+**What that changes for this report.** Until #92 merged, a question or surprise square was an ordinary
+square in any build made from `iteration-2` — nothing opened a dialog, so no amount of manual testing could
+accept US-2.3 from the release branch. That is no longer true: **a player can now reach every Iteration 2
+rule in a build made from `iteration-2`.** Sections 3(b)–3(d) are therefore no longer TODO for the
+player-visible behaviour; what remains genuinely unverified is that **nobody has sat down and played it**
+(see "What has not been verified yet").
+
+**#97 is a release blocker for CP1**, and that is the one open item with a deadline. See the NFR-04
+subsection of 3(e).
 
 ---
 
@@ -104,10 +109,10 @@ input.
 | 2 | A complete **Medium** game: 17x17 board, 1 outer ring, 116 track squares, Boost die | **verified automatically** - section 3(e) |
 | 3 | A complete **Hard** game: 19x19 board, 2 outer rings, 188 track squares, UltraBoost die | **verified automatically** - section 3(e) |
 | 4 | **Double Blocks**: forming one, being stopped by an opponent's, breaking it | **verified automatically** - section 3(e) |
-| 5 | **Questions**: a question of the square's level, a right and a wrong answer | **TODO on `iteration-2`** - T2-08 (#89) and T2-10 part 1 (#87) are merged, but nothing asks a question until the wiring in **#92** merges. Verified automatically on the integration candidate - section 3(e) |
-| 6 | **Surprises**: each of the six outcomes, and moving an opponent's piece | **TODO on `iteration-2`** - needs T2-09 (#90) and **#92**. Verified automatically on the integration candidate, where all six outcomes are drawn - section 3(e) |
-| 7 | **Chained effects**: an effect landing on another special square | **TODO on `iteration-2`** - needs **#92**. Verified automatically on the integration candidate, though chains are rare in natural play - section 3(e) |
-| 8 | **Turn phases** refusing an illegal action | **verified automatically** - T2-13 (#79) merged as `c689a85`, and `TurnStateTest` is on the baseline. The `RESOLVING` phase itself is only ever entered once **#92** merges |
+| 5 | **Questions**: a question of the square's level, a right and a wrong answer | **verified automatically** on `iteration-2` since #92 merged - section 3(e) |
+| 6 | **Surprises**: each of the six outcomes, and moving an opponent's piece | **verified automatically** since #90 and #92 merged; all six outcomes are drawn in the full-game runs - section 3(e) |
+| 7 | **Chained effects**: an effect landing on another special square | **verified automatically** since #92 merged, but **rare in natural play** - the systematic coverage is the scripted tests of T2-12 (#95), section 3(e) |
+| 8 | **Turn phases** refusing an illegal action | **verified automatically** - T2-13 (#79, `c689a85`) gave the states; #92 is what ever enters `RESOLVING`, and it is merged |
 
 ---
 
@@ -212,21 +217,24 @@ otherwise.
 
 | What | Tests | Result |
 |---|---|---|
-| `iteration-2` baseline `e9f6b2e` | 540 | **540 passed, 0 failed** |
-| with the T2-15 acceptance tests (#99, `027c3ef`) | 547 | **547 passed, 0 failed** |
-| T2-10 part 2 (#92, `9a22814`) merged with the baseline | 656 | **656 passed, 0 failed** |
-| T2-15 end-to-end acceptance of US-2.3 (#103, `50420fd`) on #92 | 664 | **664 passed, 0 failed** |
-| **the full integration candidate: `iteration-2` + #92 + #95 + #97 + #99 + #103** | **700** | **700 passed, 0 failed** |
+| `iteration-2` baseline `1d47f2d` | 656 | **656 passed, 0 failed** |
+| with the T2-15 acceptance tests (#99, `df396b6`) | 663 | **663 passed, 0 failed** |
+| with the US-2.3 end-to-end acceptance (#103, `ee465e4`) | 664 | **664 passed, 0 failed** |
+| **#99 and #103 together** | 671 | **671 passed, 0 failed** |
+| **the CP1 candidate: `iteration-2` + #97 + #95 + #99 + #103 + #98** | **700** | **700 passed, 0 failed** |
 
-The last row is the number that matters for CP1, and it is the first time the whole of Iteration 2 has been
-measured together. The branches were merged in dependency order — #92 first (it carries #79, #90 and #91),
-then #95, #97, the T2-15 acceptance work and #103 — and **all five merged with no conflict**. #95 shows as
-*conflicting* on GitHub only because it is measured against plain `iteration-2`; on top of #92, which it
-depends on, it merges cleanly.
+The last row is the number that matters for CP1. **All five branches merged with no conflict**, and the
+figure is independently corroborated: Shafeek measured the same **700/700** on his own locally-merged
+candidate (#106, T2-14 snapshot of 23/11), built from a different starting commit and a slightly different
+set of PRs.
 
-The not-yet-merged rows are integration checks done in throwaway worktrees; **nothing was pushed to anyone
-else's branch.** Earlier figures, kept so the growth stays traceable: the baseline was 531 on `d445a38`
-(22/11) and 433 on `6e13bcf` (21/11); the suite grew because tasks merged, not because tests changed.
+**#95 is not really conflicting.** GitHub shows it that way because it is compared against plain
+`iteration-2`; merged in its intended order it is clean.
+
+The unmerged rows are integration checks done in throwaway worktrees; **nothing was pushed to anyone else's
+branch.** Earlier figures, kept so the growth stays traceable: the baseline was 540 on `e9f6b2e` (earlier on
+23/11), 531 on `d445a38` (22/11) and 433 on `6e13bcf` (21/11). The suite grew because tasks merged, not
+because tests changed.
 
 ### An integration failure the reviews caught, and how it was fixed
 
@@ -251,13 +259,22 @@ Every test that plays a complete game failed.
 merged second would have broken the branch, days before CP1, and nobody would have seen it until someone
 happened to run the suite.
 
-**How it was fixed.** I reproduced it exactly in an isolated worktree, then fixed it — but **not on #99**.
-The fix needs `pendingEffect()`, `judgeAnswer()` and `resolveSurprise()`, and none of those exist on
-`iteration-2`, which is #99's own target; putting the fix there would have stopped #99 compiling against the
-branch it merges into. So #99 stays buildable on its target at 547/547, and the fix lives on a Draft
-follow-up, **#105**, built on `iteration-2` + #92 + #99, where the suite is **663/663**. When #92 merges,
-the one method moves into #99 and #105 is closed. The play loop now resolves every waiting square, and any
-chain it sets off, before taking the next turn.
+**How it was fixed, in two stages.** It was reproduced exactly in an isolated worktree, and fixed — but at
+first **not on #99**. The fix needs `pendingEffect()`, `judgeAnswer()` and `resolveSurprise()`, and none of
+those existed on `iteration-2`, which was #99's own target; putting the fix there would have stopped #99
+compiling against the branch it merges into. So the fix was proved green on a Draft follow-up, **#105**,
+built on `iteration-2` + #92 + #99, at 663/663, while #99 itself stayed buildable on its target at 547/547.
+
+**Once #92 merged later the same day, the fix moved into #99 itself** (`df396b6`), which is where it
+belongs, and **#105 became redundant — it is to be closed without merging, not merged**, because its diff
+also contains all of #92 and #99. `playToEnd` now resolves every waiting square, and any chain it sets off,
+before taking the next turn.
+
+**Why the two-stage route was the right one, and not over-caution.** Had the loop gone straight onto #99, the
+PR would have stopped compiling against its own target branch — the exact failure mode the review was
+warning about, only pointed the other way. Keeping the two apart meant that at every moment one branch was
+green against `iteration-2` and the other was green against the integrated tree, and neither claim depended
+on a merge that had not happened.
 
 **A second finding came out of that fix, and it is a rule rather than a bug.** The first run of the fixed
 loop failed with `MEDIUM: the special die of the level is rolled ==> expected: <BOOST> but was:
@@ -354,7 +371,49 @@ until somebody has run it.
   on both release computers (script M2.4).
 
   The 30-square movement is **not** a corner case: it is the longest movement in every Hard game the
-  acceptance tests play.
+  acceptance tests play. And since #92 merged it is **not Hard-only** either — the `EXTRA_ROLL` surprise
+  rolls the Regular and UltraBoost dice on every level (SRS Table 2, Q27), so a **Medium** game can reach the
+  same bound. Measured over nine Medium games the longest surprise-roll movement was 24, against the 12 of
+  Medium's own dice. The budget caps by distance and not by level, so it still covers this.
+
+#### #97 is a release blocker for CP1, and this is the evidence
+
+This is the one open item with a deadline, so it is stated precisely rather than as a recommendation.
+
+**What the budget actually is.** For a 30-square movement the animation budget is `max(260, min(BUDGET,
+steps * 120))`, which saturates at the cap:
+
+| Build | Cap | Budget for 30 squares | Headroom under NFR-04's 2000 ms |
+|---|---|---|---|
+| `iteration-2` **without** #97 | 1600 ms | **1600 ms** | 400 ms |
+| `iteration-2` **with** #97 | 1200 ms | **1200 ms** | **800 ms** |
+
+The measured time is the budget *plus* the Swing timer's latency and the repaints of the final frame, so
+that headroom is what absorbs a busy or slower machine. **#97 doubles it.**
+
+**Shafeek measured the failure on his machine** (#106, T2-14 snapshot of 23/11), `TimingTest` on its own with
+a cold JVM, three runs each:
+
+| Build | 30-square move | Verdict |
+|---|---|---|
+| `iteration-2` without #97 | 1992, 2008, 2043 ms | **2 of 3 fail** |
+| `iteration-2` with #97 | 1612, 1659, 1668 ms | pass |
+
+**I could not reproduce the failure on my machine, and that is worth saying plainly rather than omitting.**
+On the same plain `iteration-2` `1d47f2d`, without #97, `TimingTest` passed **4/4 on three cold runs** here.
+That does not contradict Shafeek — it is the whole point of NFR-04. The limit is wall-clock time on a real
+machine, so a faster or less loaded machine has margin that a slower one does not. **Two of our three
+computers would ship a build that fails its own timing test**, and which computer runs the submission is not
+something we control.
+
+**Why the release script makes this blocking rather than cosmetic.** The ZIP script (#81) runs the whole
+suite and **stops on any failed test**. So on a machine like Shafeek's, building the submission ZIP from an
+`iteration-2` without #97 does not produce a ZIP with a warning — **it produces no ZIP at all.**
+
+**Recommendation: merge #97 before building the CP1 artifact.** It is approved by both reviewers
+(@ziyanrakan33 22/11, @shafeekseef81-svg 23/11), mergeable, and touches only `BoardComponent` and its own
+tests. With it in the CP1 candidate, `TimingTest` passed 4/4 on three cold runs and
+`MovementAnimationTest` 15/15 here.
 
 ### Independent rule tests (SDP 5.3.4)
 
@@ -466,7 +525,8 @@ keeps all 17 cases correct. It is raised on #81 as a suggestion, not a blocker.
 | Dry run, 16/11 | `iteration-2` `38e2e1d` (Iteration 1 code) | 380/380 | 106 files | yes |
 | CP1 rehearsal, 21/11, all 16 open PRs merged locally | local merge `3b4039e` | 664/664 | 168 files, JAR 261,390 bytes | yes, no error output |
 | Script check after the review fix, 22/11 | `iteration-2` `d445a38` | 531/531 | 142 files, JAR 222,254 bytes | — |
-| **Full rehearsal, 23/11**, into an isolated folder | the whole integration candidate (`13bc5b3`) | **700/700** | **171 files, JAR 263,868 bytes**, SHA-256 `05b3e113…3544b9` | — |
+| **Full rehearsal, 23/11**, into an isolated folder | integration candidate (`13bc5b3`) | **700/700** | **171 files, JAR 263,868 bytes**, SHA-256 `05b3e113…3544b9` | — |
+| **CP1 candidate rehearsal, 23/11** (second revision), isolated folder | `iteration-2` `1d47f2d` + #97 + #95 + #99 + #103 + #98 (`a312868`) | **700/700** | **172 files, JAR 263,868 bytes**, SHA-256 `462c774a…4ac386` | — |
 | CP1, 25/11 | merged `iteration-2` | **TODO** | **TODO** | **TODO**, both computers |
 
 The CP1 rehearsal also showed that every open PR merges without a conflict in the planned order.
@@ -478,11 +538,12 @@ rows 5–9 of the checklist in `Iteration2/docs/N2-06_Release.md` and are filled
 
 1. **A human playthrough** of a complete Medium and Hard game (scripts M1, M2). The short, run-it-now
    version is `Iteration2/docs/T2-15_ManualChecklist_CP1.md`.
-2. **Questions, surprises and chains as player-visible behaviour** - the code exists, is tested and is
-   approved, but #90, #91, #92 and #95 are **not merged yet**, so a player cannot reach any of it in a build
-   made from `iteration-2`. (#79, the turn States, *has* merged; what is missing is the wiring in #92 that
-   ever puts a turn into `RESOLVING`.) Section 3(e) carries the branch evidence; sections 3(b)-3(d) keep
-   these as TODO until the merges land.
+2. ~~**Questions, surprises and chains as player-visible behaviour**~~ - **no longer outstanding.** #90, #91
+   and #92 merged on 23/11, so a player can now reach every Iteration 2 rule in a build made from
+   `iteration-2`, and sections 3(b)-3(d) are written as fact rather than as TODO. What is left of this item
+   is item 1: **the code is all there, and nobody has played it.** The independent effect tests (#95) are
+   still unmerged, which is a coverage gap rather than a functionality gap - see the D4 caveat in the
+   decision register.
 3. **The double-click start on both computers** with the final ZIP (N2-06). **Partly done, and the limit is
    stated:** on 23/11 I verified on a real Windows display that `EducationalLudo.jar` started by
    `java -jar`, and that `run.bat` started the game through `javaw`, each opening a visible top-level window
@@ -506,13 +567,14 @@ rows 5–9 of the checklist in `Iteration2/docs/N2-06_Release.md` and are filled
 
 | # | Needed | Depends on |
 |---|---|---|
-| 1 | Merge the remaining Iteration 2 feature PRs, then rewrite 3(b)-3(d) with questions, surprises and chains as **works** rather than TODO | #90, #91, #92, #95 (#79, #87 and #89 are merged) |
+| 1 | ~~Merge the remaining Iteration 2 feature PRs, then rewrite 3(b)-3(d)~~ **done 23/11** - #90, #91 and #92 merged; 3(b)-3(d) now state the behaviour as fact | — |
+| 1b | **Merge #97 before building the CP1 artifact.** It is a release blocker, not a nicety: without it the 30-square timing test fails on at least one of our machines, and the ZIP script stops on a failed test | the Product Owner's merge |
 | 2 | Run the manual script M1-M7 and paste the filled-in tables in as the 3(e) evidence | T2-15, N2-06 |
 | 3 | Re-run the whole suite on the final `iteration-2` and replace every test count | after the last merge |
 | 4 | Take the screenshots from the final build | after the last merge |
 | 5 | Settle **D1** so 3(c) states a rule and not an open question, and ratify **D4** and **D5** (both implemented and tested; see the register) | staff clarification on Q7/Q35, then the Product Owner |
-| 5b | Add the US-2.3 end-to-end acceptance evidence of **#103** to 3(e) once it merges, and the independent-test evidence of #95 | after #92 |
-| 5c | Move the fix on **#105** into #99 and close #105, so the acceptance tests pass on the integrated game from one branch | after #92 |
+| 5b | Add the US-2.3 end-to-end acceptance evidence of **#103** to 3(e) once it merges, and the independent-test evidence of #95 | #103 is now retargeted at `iteration-2` and ready for review; #95 still unmerged |
+| 5c | ~~Move the fix on **#105** into #99~~ **done 23/11** (`df396b6`). #105 is now redundant and is to be **closed without merging** | — |
 | 5d | Fill in `T2-15_ManualChecklist_CP1.md` on both computers, including the stopwatch row, and paste the filled tables into 3(e) | a human, before CP1 |
 | 6 | Continue the Iteration 1 report: keep its structure and numbering, add Iteration 2 as the new iteration rather than replacing it, and export to Word or PDF as `iteration2_report_Sharks` | all of the above |
 

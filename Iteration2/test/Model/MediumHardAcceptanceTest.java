@@ -3,6 +3,8 @@ package Model;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
@@ -23,39 +25,42 @@ import org.junit.jupiter.api.Test;
  * {@link GameModel} facade with the real dice, the real board and all the real rule classes - no stubs - so a
  * passing test here means a player really can play that game.
  *
- * <p><b>Scope of this class: only what is merged into {@code iteration-2}.</b> That is
- * <b>US-2.1 #48</b> (Medium and Hard boards, Boost and UltraBoost dice: FR-05, FR-10..FR-12, FR-16, FR-17,
- * FR-25), <b>US-2.2 #49</b> (Double Blocks: FR-28..FR-30) and the end of a game from <b>US-2.4 #51</b>
- * (FR-43..FR-45).
+ * <p><b>Scope of this class.</b> <b>US-2.1 #48</b> (Medium and Hard boards, Boost and UltraBoost dice:
+ * FR-05, FR-10..FR-12, FR-16, FR-17, FR-25), <b>US-2.2 #49</b> (Double Blocks: FR-28..FR-30) and the end of
+ * a game from <b>US-2.4 #51</b> (FR-43..FR-45).
  *
- * <p><b>Deliberately NOT accepted here</b>, because the code that resolves a special square is not merged into
- * {@code iteration-2} yet:
- * <ul>
- *   <li>questions and their answers (FR-34..FR-38) - T2-08: the factory itself is merged (#89), but nothing
- *       yet asks a question when a piece stops on a question square;</li>
- *   <li>surprise outcomes (FR-39, FR-40) - T2-09, PR #90;</li>
- *   <li>chained effects (FR-26, FR-27, FR-32, FR-41, FR-42) - T2-10: the effect commands and their FR-32 stop
- *       are merged (#87, e2bbdaa), the wiring of them into the turn is PR #92;</li>
- *   <li>the question and surprise dialogs (NFR-05) - T2-11, PR #91.</li>
- * </ul>
- * On this baseline a question or surprise square is still an ordinary square that does nothing when a piece
- * stops on it, so the complete games below do not exercise those rules at all.
+ * <p><b>This is the integrated version of the class.</b> On plain {@code iteration-2} a question or surprise
+ * square is an ordinary square and nothing happens when a piece stops on it, so the games below never met one.
+ * Since <b>T2-10 part 2 (#92)</b> wires the effects into the turn, such a move leaves the turn in
+ * {@link TurnPhase#RESOLVING} and the next {@code roll()} is refused until the square has been resolved.
+ * {@code playToEnd} therefore resolves every waiting square, and the chain it may set off, before taking the
+ * next turn - so these games are now played on the <b>real</b> integrated game rather than on a baseline in
+ * which a third of the board does nothing.
  *
- * <p><b>Why this class stays on the plain baseline.</b> Once PR #92 wires the effects into the turn, a move
- * onto a question or surprise square leaves the turn in {@link TurnPhase#RESOLVING}, and a play loop must
- * resolve it before it may roll again. That loop needs the {@code pendingEffect()}, {@code judgeAnswer()} and
- * {@code resolveSurprise()} API, which plain {@code iteration-2} does not have, so writing it here would stop
- * this branch from compiling against its own target. The end-to-end acceptance of resolved squares is
- * therefore {@code EffectsAcceptanceTest} on PR #103, which is stacked on #92. When #92 reaches
- * {@code iteration-2}, {@code playToEnd} below gains that same resolution loop and the list above shrinks.
+ * <p><b>What this class does and does not assert about the effects.</b> It resolves them <i>neutrally</i>: it
+ * answers questions and carries out surprises the way a player would, and checks only that the turn leaves
+ * {@code RESOLVING} and that the chain guard holds (FR-42). It deliberately makes no assertion about what a
+ * question or a surprise <i>does</i>. That belongs to {@code EffectsAcceptanceTest} (the planned test
+ * <b>P12</b>, PR #103) for the end-to-end view and to Rakan's {@code EffectChainIndependentTest} (T2-12,
+ * #95) for the individual rules. Duplicating their assertions here would add no coverage and two more places
+ * to maintain. What this class keeps is its own subject: the dice, the boards, the Double Blocks, the
+ * captures and the rankings - now checked while the special squares really fire.
  *
- * <p>The acceptance of those parts, and the manual Medium and Hard playthroughs, are in
- * {@code Iteration2/docs/T2-15_AcceptancePlan.md}; they are <b>not</b> claimed as passed by this file.
+ * <p><b>Still not covered by anything automated:</b> a game played by a person on the real window, and
+ * NFR-05. Those are the manual scripts M1-M7 of {@code Iteration2/docs/T2-15_AcceptancePlan.md} and are
+ * <b>not</b> claimed as passed by this file.
  */
 class MediumHardAcceptanceTest {
 
     /** A complete game must end well inside this many rolls, or the test fails instead of hanging. */
     private static final int ROLL_LIMIT = 500_000;
+
+    /**
+     * The level whose dice the surprise extra roll uses, whatever level is being played: the Regular and
+     * UltraBoost dice (SRS Table 2 Q27). Read straight from {@link StandardTurnManager#SURPRISE_ROLL_DICE}
+     * rather than copied, so the test cannot drift from the rule it is checking.
+     */
+    private static final Difficulty SURPRISE_ROLL_LEVEL = StandardTurnManager.SURPRISE_ROLL_DICE;
 
     private static GameSettings settings(Difficulty level, int count) {
         PlayerColor[] colors = PlayerColor.values();
@@ -76,12 +81,26 @@ class MediumHardAcceptanceTest {
         int captures;
         int zeroMovementRolls;
         int longestMovement;
+        /** Surprise extra rolls taken (FR-39 EXTRA_ROLL): these use the Regular + UltraBoost dice (Q27). */
+        int surpriseRolls;
+        /** The longest movement of an ordinary roll of the level's own dice. */
+        int longestLevelMovement;
+        /** The longest movement of a surprise extra roll, whatever the level. */
+        int longestSurpriseMovement;
         /** Rolls at which at least one Double Block of any colour stood on the shared track (FR-28). */
         int rollsWithABlockStanding;
         /** Moves made while a Double Block of a colour other than the mover's stood on the shared track. */
         int movesWithOpponentBlockStanding;
         /** Squares a move actually entered and that were checked against the standing blocks (FR-29). */
         int squaresCheckedForBlocks;
+        /** Question squares resolved while these games were played (FR-34..FR-37). */
+        int questionsResolved;
+        /** Surprise squares resolved while these games were played (FR-39, FR-40). */
+        int surprisesResolved;
+        /** Effects that ran while another effect of the same move was already resolving (FR-41, FR-42). */
+        int chainSteps;
+        /** The longest chain of effects one move set off. */
+        int longestChain;
         final Set<Integer> specialValues = new HashSet<>();
     }
 
@@ -90,6 +109,9 @@ class MediumHardAcceptanceTest {
      * hold: the movement formula of the level (FR-17), that no piece leaves the board, that only opponents are
      * captured and never on a protected square (FR-26, FR-27), and that no move lands on <i>or passes through</i>
      * an opponent's Double Block (FR-29).
+     *
+     * <p>Every special square the move sets off is resolved before the next turn is taken, because since #92
+     * the turn stays in {@link TurnPhase#RESOLVING} until it is and {@code roll()} is refused.
      */
     private static Played playToEnd(Difficulty level, int count, long seed) {
         Played p = new Played();
@@ -114,16 +136,29 @@ class MediumHardAcceptanceTest {
             DiceRoll roll = model.roll();
             assertNotNull(roll, "a roll is always reported");
 
-            // FR-16, FR-17: the dice and the movement formula of this level.
-            assertEquals(config.specialDie(), roll.specialType(),
-                    level + ": the special die of the level is rolled");
-            assertTrue(roll.special() >= 1 && roll.special() <= config.specialDie().faces(),
-                    level + ": the special die shows 1.." + config.specialDie().faces()
-                            + ", not " + roll.special());
+            // FR-16, FR-17: the dice and the movement formula. An ordinary roll uses the dice of the level,
+            // but the extra roll granted by the EXTRA_ROLL surprise uses the Regular and UltraBoost dice
+            // whatever the level does (SRS Table 2 Q27, and the text of the outcome itself: "Roll again right
+            // away with the Regular + UltraBoost dice"). So on Medium an ordinary roll is a Boost roll while a
+            // surprise roll is an UltraBoost one, and the two are checked separately rather than together.
+            DieType expectedDie = roll.surpriseRoll()
+                    ? LevelConfig.of(SURPRISE_ROLL_LEVEL).specialDie()
+                    : config.specialDie();
+            assertEquals(expectedDie, roll.specialType(),
+                    level + (roll.surpriseRoll() ? ": a surprise extra roll uses the UltraBoost die"
+                            : ": the special die of the level is rolled"));
+            assertTrue(roll.special() >= 1 && roll.special() <= expectedDie.faces(),
+                    level + ": " + expectedDie + " shows 1.." + expectedDie.faces() + ", not " + roll.special());
             assertEquals(roll.regular() * (roll.special() - 1), roll.movement(),
                     level + ": FR-17 movement = Regular x (special - 1)");
-            p.specialValues.add(roll.special());
             p.longestMovement = Math.max(p.longestMovement, roll.movement());
+            if (roll.surpriseRoll()) {
+                p.surpriseRolls++;
+                p.longestSurpriseMovement = Math.max(p.longestSurpriseMovement, roll.movement());
+            } else {
+                p.specialValues.add(roll.special());
+                p.longestLevelMovement = Math.max(p.longestLevelMovement, roll.movement());
+            }
             if (roll.movement() == 0) {
                 p.zeroMovementRolls++;
             }
@@ -185,8 +220,73 @@ class MediumHardAcceptanceTest {
                 assertFalse(model.board().squareAt(c.from()).isProtected(),
                         "FR-27: never captured on a protected square");
             }
+
+            // Since #92 a move onto a question or surprise square leaves the turn in RESOLVING and the next
+            // roll is refused, so the square - and any chain it sets off - is resolved before the next turn.
+            resolvePendingEffects(model, p, choice);
+
+            // The effects move pieces too, so the board invariant is checked again once the chain is done.
+            for (Player player : model.players()) {
+                for (Piece piece : player.pieces()) {
+                    assertTrue(piece.progress() >= Piece.IN_CASTLE && piece.progress() <= finish,
+                            level + ": a piece left the board at " + piece.progress() + " after an effect");
+                }
+            }
         }
         return p;
+    }
+
+    /**
+     * Resolves every special square the last move set off, and any chain it leads to (FR-41, FR-42), so the
+     * game can go on to the next roll.
+     *
+     * <p>This is deliberately <b>neutral</b>: it decides what a player would decide - the answer to give and
+     * the opponent to push - and then checks only that the turn really was in {@code RESOLVING} while a
+     * square waited, that the chain guard holds, and that {@code RESOLVING} is left once the queue is empty.
+     * What a question or a surprise actually does to the board is asserted by {@code EffectsAcceptanceTest}
+     * (#103) and by Rakan's {@code EffectChainIndependentTest} (#95), and is not re-asserted here.
+     *
+     * <p>Answers alternate between right and wrong so that both directions of FR-35 occur in these games
+     * instead of only one.
+     */
+    private static void resolvePendingEffects(GameModel model, Played p, Random choice) {
+        int chain = 0;
+        while (model.pendingEffect() != null) {
+            EffectQueue.Activation waiting = model.pendingEffect();
+            assertSame(TurnPhase.RESOLVING, model.phase(),
+                    "while a special square waits, the turn is RESOLVING");
+            assertTrue(waiting.type() == SquareType.QUESTION || waiting.type() == SquareType.SURPRISE,
+                    "only question and surprise squares wait, not " + waiting.type());
+            if (chain > 0) {
+                p.chainSteps++;
+            }
+            assertTrue(++chain < 50, "FR-42: the chain guard must stop an endless chain");
+
+            if (waiting.type() == SquareType.QUESTION) {
+                Question asked = model.pendingQuestion();
+                assertNotNull(asked, "FR-34: a question square draws a question");
+                p.questionsResolved++;
+                int answer = p.questionsResolved % 2 == 0
+                        ? asked.correctIndex()
+                        : (asked.correctIndex() + 1) % Question.ANSWER_COUNT;
+                model.applyAnswer(model.judgeAnswer(answer));
+            } else {
+                SurprisePrompt prompt = model.pendingSurprise();
+                assertNotNull(prompt, "FR-39: a surprise square draws an outcome");
+                p.surprisesResolved++;
+                SurpriseResult result;
+                if (prompt.needsChoice()) {
+                    List<Piece> targets = prompt.targets();
+                    assertFalse(targets.isEmpty(), "needsChoice implies at least one target");
+                    result = model.resolveSurprise(prompt, targets.get(choice.nextInt(targets.size())));
+                } else {
+                    result = prompt.resolve();
+                }
+                model.applySurprise(result);
+            }
+        }
+        p.longestChain = Math.max(p.longestChain, chain);
+        assertNotSame(TurnPhase.RESOLVING, model.phase(), "RESOLVING is left once the queue is empty");
     }
 
     /**
@@ -276,8 +376,18 @@ class MediumHardAcceptanceTest {
         assertEquals(Set.of(1, 2, 3), p.specialValues,
                 "every Boost value 1-3 came up in " + p.rolls + " rolls, but saw " + p.specialValues);
         assertTrue(p.zeroMovementRolls > 0, "FR-17: a Boost 1 gives a movement of 0 and moves nothing");
-        assertTrue(p.longestMovement <= 12,
-                "the longest Medium movement is Regular 6 x (Boost 3 - 1) = 12, saw " + p.longestMovement);
+        assertTrue(p.longestLevelMovement <= 12,
+                "the longest Medium movement from the level's own dice is Regular 6 x (Boost 3 - 1) = 12, saw "
+                        + p.longestLevelMovement);
+
+        // The EXTRA_ROLL surprise rolls the UltraBoost die even on Medium (Q27), so a Medium game really can
+        // produce a movement of more than 12. That is the specified behaviour, not a defect, and it is
+        // recorded here rather than asserted away: the bound that holds is the UltraBoost one.
+        assertTrue(p.surpriseRolls > 0,
+                "the EXTRA_ROLL surprise was drawn in this Medium game, so surprise rolls were taken");
+        assertTrue(p.longestSurpriseMovement <= 30,
+                "a Medium surprise roll is bounded by Regular 6 x (UltraBoost 6 - 1) = 30, saw "
+                        + p.longestSurpriseMovement);
     }
 
     @Test
@@ -291,7 +401,8 @@ class MediumHardAcceptanceTest {
                 "every UltraBoost value 1-6 came up in " + p.rolls + " rolls, but saw " + p.specialValues);
         assertTrue(p.zeroMovementRolls > 0, "FR-17: an UltraBoost 1 gives a movement of 0 and moves nothing");
         assertTrue(p.longestMovement <= 30,
-                "the longest Hard movement is Regular 6 x (UltraBoost 6 - 1) = 30, saw " + p.longestMovement);
+                "the longest Hard movement is Regular 6 x (UltraBoost 6 - 1) = 30, saw " + p.longestMovement
+                        + ", including " + p.surpriseRolls + " surprise rolls, which use the same dice here");
     }
 
     // ------------------------------------------------------------------ US-2.2 #49: Double Blocks

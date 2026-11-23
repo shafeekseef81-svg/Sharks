@@ -24,9 +24,23 @@ import org.junit.jupiter.api.Test;
  * turn-phase half of <b>US-2.4</b>. Written by the Product Owner (Mohamed Zereny).
  *
  * <p>This is the class {@code Iteration2/docs/T2-15_AcceptancePlan.md} lists as the planned test <b>P12</b> —
- * "the real acceptance of US-2.3" — which could not be written while T2-10 was unmerged. It is therefore on a
- * branch stacked on <b>T2-10 part 2 (#92)</b>, not on {@code iteration-2}, and must merge after it.
- * {@code MediumHardAcceptanceTest} on #99 stays as it is: it covers what plain {@code iteration-2} allows.
+ * "the real acceptance of US-2.3" — which could not be written while T2-10 was unmerged. <b>T2-10 part 2
+ * (#92) merged on 23/11/2026</b> (`iteration-2` 1d47f2d), together with T2-09 (#90) and T2-11 (#91), so this
+ * class now sits directly on {@code iteration-2} and no longer needs a stacked branch.
+ *
+ * <p><b>How it divides the work with {@code MediumHardAcceptanceTest} (#99).</b> Both play complete games
+ * through the same facade, and they are not duplicates:
+ * <ul>
+ *   <li><b>#99</b> owns the <i>board</i> subject — the dice and the FR-17 formula, the Table 1 board counts,
+ *       Double Blocks over whole routes (FR-29), captures and the rankings. Since #92 it must resolve the
+ *       special squares to keep playing, so it does, <i>neutrally</i>, and asserts nothing about them.</li>
+ *   <li><b>this class</b> owns the <i>effect</i> subject — that a question is of the square's level and is
+ *       asked once (FR-34), that the signed steps follow the level (FR-35), that the correct answer is always
+ *       reported (FR-36), that an outcome is drawn once and only an opponent of the active player may be
+ *       pushed (FR-39, FR-40), that a chain terminates (FR-42), and the two Product Owner decisions D2 and
+ *       D3 as they appear in real play.</li>
+ * </ul>
+ * Run together on {@code iteration-2} the two add 15 tests and the suite is 671/671, with no interference.
  *
  * <p><b>What makes these acceptance tests rather than rule tests.</b> Complete games are played through the
  * {@link GameModel} facade with the <b>real</b> dice, the real random boards, the real question and surprise

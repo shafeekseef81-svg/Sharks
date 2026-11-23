@@ -82,15 +82,21 @@ The submitted folder is `iteration2_Sharks`. From inside it:
 
 - **Start the game with `run.bat`, by double-clicking it.** The assignment requires a run file that works on
   a double-click; a run file that does not start that way disqualifies the assignment.
-- **Why not double-click the JAR itself:** on Windows, a path containing Hebrew letters makes
+- **Why `run.bat` is the documented way in, even though the JAR is also checked:** on Windows a path containing Hebrew letters made
   `java -jar "C:\...\עבודה 4\...\EducationalLudo.jar"` fail with *Unable to access jarfile*. The scripts
   change into their own folder and use a relative path, so they work regardless of the folder name. This was
-  found in Iteration 1 and is the reason the run file, not the JAR, is the supported way in.
+  found in Iteration 1 and is the reason the run file is what the README tells a user to start.
+- **A double-click on `EducationalLudo.jar` is nevertheless a required release check in its own
+  right** — row 6 of the official N2-06 checklist (`Iteration2/docs/N2-06_Release.md`), separate from
+  row 5 for `run.bat`. A failure there is a finding to be recorded with its exact message and path,
+  not something to be explained away by the Hebrew-path note above: N2-06 row 4 (`java -jar` from a
+  Hebrew path) **passed** on computer 1 in the 16/11 dry run.
 - `EducationalLudo.jar` and `build/` are **not** stored in Git; `build.bat` recreates them. Verified
   21/11/2026: the JAR builds from a clean tree, `Main-Class: Controller.Main`, 120 classes.
 
-**TODO:** confirm the double-click start of `run.bat` on **both** release computers with the final ZIP, and
-record who did it and when. The exact procedure is in 3(e), "The CP1 release and manual-test procedure".
+**TODO:** confirm the double-click start of **both** `run.bat` (N2-06 row 5) **and** `EducationalLudo.jar`
+(N2-06 row 6) on **both** release computers with the final ZIP, and record who did it and when. The exact
+procedure is in 3(e), "The CP1 release and manual-test procedure".
 
 ---
 
@@ -684,14 +690,29 @@ It prints the file count, the test count and the SHA-256. On 23/11 that was **16
 `a5d4bb3c…442d21`**. **Do not build the ZIP any other way** — not with Windows Explorer's "Send to
 compressed folder", which writes backslash separators.
 
-**Step 4 — the double-click test, which is the one that can disqualify the assignment.** Unzip the ZIP to a
-fresh folder and, **in File Explorer rather than a terminal**, **double-click `run.bat`**. The game window
-must open and no console window may stay behind. Do this on **both** computers.
+**Step 4 — the double-click tests, which are the ones that can disqualify the assignment.** Unzip the ZIP to
+a fresh folder and run these **in File Explorer, not from a terminal**. The official N2-06 checklist
+(`Iteration2/docs/N2-06_Release.md`) lists them as **two separate required rows**, and both must be recorded:
 
-> Double-click **`run.bat`**, not `EducationalLudo.jar`. On Windows a path containing Hebrew letters makes
-> `java -jar` fail with *Unable to access jarfile*; the scripts change into their own folder and use a
-> relative path, which is why the run file is the supported way in. Testing the JAR by double-click as well
-> is useful, but a failure there is not a defect — a failure on `run.bat` is.
+| N2-06 row | Check | Required |
+|---|---|---|
+| 4 | Unzip into a path **containing Hebrew letters**, then `java -jar EducationalLudo.jar` starts without errors | yes (passed on computer 1 in the 16/11 dry run) |
+| **5** | **Double-click `run.bat`** opens the game window | **yes** |
+| **6** | **Double-click `EducationalLudo.jar`** opens the game window | **yes** |
+| 9 | Rows 1–8 repeated on a **second computer** | **yes** |
+
+Assignment 5 §1 is the reason row 5 is decisive: *"a run file that does not start with a double-click
+disqualifies the whole assignment."* No console window may stay behind afterwards.
+
+> **Row 6 is a required check in its own right — do not wave a JAR double-click failure away.** If it fails,
+> record it as a finding with the exact error text and the folder path. There is a known Iteration 1 cause to
+> look at first: on Windows a path containing Hebrew letters made
+> `java -jar "C:\...\עבודה 4\...\EducationalLudo.jar"` fail with *Unable to access jarfile*, which is why
+> the scripts change into their own folder and use a relative path. **But N2-06 row 4 passed on computer 1 in
+> the dry run**, so a Hebrew path is not by itself an accepted excuse: if row 6 fails, say on which computer,
+> in which path, and with what message, and let the Product Owner decide. Note also that a double-click on a
+> `.jar` depends on the Windows file association for `.jar`; if Windows asks which program to use, that is
+> itself worth recording, because a grader will meet the same prompt.
 
 **Step 5 — play the game, and record what you see.** The full row-by-row script is
 `Iteration2/docs/T2-15_ManualChecklist_CP1.md` (12 rows). The checks that no automated test can replace:

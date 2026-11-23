@@ -29,13 +29,20 @@ import org.junit.jupiter.api.Test;
  * FR-05, FR-10..FR-12, FR-16, FR-17, FR-25), <b>US-2.2 #49</b> (Double Blocks: FR-28..FR-30) and the end of
  * a game from <b>US-2.4 #51</b> (FR-43..FR-45).
  *
- * <p><b>This is the integrated version of the class.</b> On plain {@code iteration-2} a question or surprise
- * square is an ordinary square and nothing happens when a piece stops on it, so the games below never met one.
- * Since <b>T2-10 part 2 (#92)</b> wires the effects into the turn, such a move leaves the turn in
- * {@link TurnPhase#RESOLVING} and the next {@code roll()} is refused until the square has been resolved.
- * {@code playToEnd} therefore resolves every waiting square, and the chain it may set off, before taking the
- * next turn - so these games are now played on the <b>real</b> integrated game rather than on a baseline in
- * which a third of the board does nothing.
+ * <p><b>These games run on the fully integrated game.</b> <b>T2-10 part 2 (#92) is merged</b>
+ * (`iteration-2` 1d47f2d, 23/11/2026), together with T2-09 (#90) and T2-11 (#91), so a move onto a question
+ * or surprise square now leaves the turn in {@link TurnPhase#RESOLVING} and the next {@code roll()} is
+ * refused until that square has been resolved. {@code playToEnd} therefore resolves every waiting square,
+ * and any chain it sets off, before taking the next turn. Until #92 merged, this class ran on a baseline in
+ * which a question or surprise square did nothing at all; the five tests that play a complete game failed
+ * the moment it did, and resolving the queue is what fixes them.
+ *
+ * <p><b>A rule that only shows up here.</b> The {@code EXTRA_ROLL} surprise rolls the <b>Regular and
+ * UltraBoost</b> dice whatever level is being played (SRS Table 2, Q27), so on Medium an ordinary roll is a
+ * Boost roll while a surprise extra roll is an UltraBoost one. The assertion that a level only ever rolls
+ * its own dice is therefore false on the integrated game, and the two kinds of roll are checked and bounded
+ * separately below. A consequence worth knowing: <b>a Medium game can move more than 12 squares</b> - the
+ * measured longest surprise-roll movement on Medium is 24, against the 12 of its own dice.
  *
  * <p><b>What this class does and does not assert about the effects.</b> It resolves them <i>neutrally</i>: it
  * answers questions and carries out surprises the way a player would, and checks only that the turn leaves

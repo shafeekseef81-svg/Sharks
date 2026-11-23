@@ -4,24 +4,25 @@ Task **T2-15** · Issue [#66](https://github.com/shafeekseef81-svg/Sharks/issues
 
 Stories: [US-2.1 #48](https://github.com/shafeekseef81-svg/Sharks/issues/48), [US-2.2 #49](https://github.com/shafeekseef81-svg/Sharks/issues/49), [US-2.3 #50](https://github.com/shafeekseef81-svg/Sharks/issues/50), [US-2.4 #51](https://github.com/shafeekseef81-svg/Sharks/issues/51).
 
-**Status 23/11/2026.** Part automated and passing, part manual by design. The dependency that blocked the US-2.3 acceptance has been written against: see P12 below.
+**Status 23/11/2026, second revision — the dependency is gone.** T2-09 (#90), T2-11 (#91) and T2-10 part 2 (#92) are **merged**, so questions, surprises and chained effects now run in a build made from `iteration-2`. The automated acceptance below is therefore of the **real** game, not of a baseline in which a third of the board did nothing. What stays manual stays manual by design.
 Nothing in this file is recorded as passed unless it was actually run and its numbers are given.
 
 ## 1. What this task has to accept, and what the baseline allows today
 
-The baseline for acceptance is `iteration-2`, today at **`e9f6b2e`** (`d445a38` on 22/11, `6e13bcf` on 21/11).
+The baseline for acceptance is `iteration-2`, today at **`1d47f2d`** (`e9f6b2e` earlier on 23/11,
+`d445a38` on 22/11, `6e13bcf` on 21/11).
 
 **Merged into it:** T2-01 (#84), T2-02 (#82), T2-03 (#83), T2-04 (#76, #80), T2-05 (#78), T2-06 (#77),
-T2-07 (#85), **T2-08 (#89, `5540f53`)**, **T2-10 part 1 (#87, `e2bbdaa`)**, **T2-13 (#79, `c689a85`)**,
-**T2-14 (#93)**.
+T2-07 (#85), T2-08 (#89, `5540f53`), T2-10 part 1 (#87, `e2bbdaa`), T2-13 (#79, `c689a85`), T2-14 (#93),
+and — **new on 23/11** — **T2-09 (#90, `36661fc`)**, **T2-11 (#91, `12a01b6`)** and **T2-10 part 2
+(#92, `1d47f2d`)**.
 
-**Not merged:** T2-09 (#90), **T2-10 part 2 (#92, approved and mergeable)**, T2-11 (#91), NFR-04 (#97,
-approved).
+**Not merged:** NFR-04 (#97, approved), T2-12 (#95, approved).
 
-> **Corrected 23/11/2026.** This paragraph previously listed T2-08 (#89), T2-10 (#87), T2-13 (#79) and
-> T2-14 (#93) as *not* merged. All four have merged since, and the rows A5, A7 and A8 below were corrected
-> with it. The one dependency that still gates the US-2.3 acceptance is **#92**, which wires the effects into
-> the turn.
+> **History of this paragraph, kept so the corrections are traceable.** On 21/11 it listed T2-08, T2-10,
+> T2-13 and T2-14 as not merged; all four merged on 22/11. It then said the one remaining dependency for the
+> US-2.3 acceptance was **#92** — and that was right, until #92 merged later on 23/11. **There is now no
+> unmerged dependency for the automated acceptance of US-2.3.**
 
 That split decides what can honestly be accepted now:
 
@@ -31,25 +32,30 @@ That split decides what can honestly be accepted now:
 | A2 | Medium and Hard gameplay to the end | US-2.1, US-2.4 | **Yes** | automated, section 2 |
 | A3 | Boost and UltraBoost dice | US-2.1 | **Yes** | automated, section 2 |
 | A4 | Double Blocks | US-2.2 | **Yes** - landing **and passing** (FR-29 in full, since 23/11) | automated, section 2 |
-| A5 | Questions, correct and incorrect answers | US-2.3 | **No** - T2-08 (#89) *is* merged, so the factory and the decks exist, but nothing asks a question until #92 wires it in | automated on #103 (P12), manual script M4, section 4 |
-| A6 | Surprise outcomes | US-2.3 | **No** - T2-09 (#90) not merged | automated on #103 (P12), manual script M5, section 4 |
-| A7 | Chained effects | US-2.3 | **No** - T2-10 part 1 (#87) *is* merged, so `EffectQueue` and the FR-32 stop exist; part 2 (#92) is what runs them in a turn | automated on #103 (P12), manual script M6, section 4 |
-| A8 | Turn State transitions | US-2.4 | **Partly** - T2-13 (#79) *is* merged, so the states and their refusals exist and are tested; the `RESOLVING` phase is only ever entered once #92 wires the effects in | automated on #103 (P12), manual script M7, section 4 |
-| A9 | A full Medium and Hard game played by a person | all | partly - the rules run, the dialogs do not exist yet | manual script M1-M3, section 4 |
+| A5 | Questions, correct and incorrect answers | US-2.3 | **Yes**, since #92 merged | automated here and in P12 (#103), manual script M4, section 4 |
+| A6 | Surprise outcomes | US-2.3 | **Yes**, since #90 and #92 merged | automated here and in P12 (#103), manual script M5, section 4 |
+| A7 | Chained effects | US-2.3 | **Yes**, since #92 merged - but **rare in natural play**, see section 2 | automated in P12 (#103); the scripted coverage is T2-12 (#95), manual script M6 |
+| A8 | Turn State transitions | US-2.4 | **Yes** - #79 gave the states, #92 is what ever enters `RESOLVING` | automated here and in P12 (#103), manual script M7, section 4 |
+| A9 | A full Medium and Hard game played by a person | all | **the code is all there now**; nobody has played it | manual script M1-M3, section 4 — **still the real gap** |
 
-**On this baseline a question or surprise square is an ordinary square**: nothing happens when a piece
-stops on it, because the code that notices it is T2-10 part 2 (#92). So the automated complete games of
-section 2 exercise the boards, the dice, the blocks, the captures and the end of the game, and they exercise
-the question and surprise rules **not at all**. That limit is stated inside the test class as well, so
-nobody reads it as more than it is.
+**What changed on 23/11, and what it means for this file.** Until #92 merged, a question or surprise square
+was an ordinary square: nothing happened when a piece stopped on it, and the complete games of section 2
+exercised the question and surprise rules *not at all*. That is no longer true. `playToEnd` now resolves
+every waiting square, and any chain it sets off, before the next roll — so the games below are played on the
+whole board.
 
-**Why this file's automated part does not simply cover US-2.3 too.** Once #92 is in, a move onto a question
-or surprise square leaves the turn in `RESOLVING`, and any play loop must resolve the effect before it may
-roll again. That needs the `pendingEffect()` / `judgeAnswer()` / `resolveSurprise()` API, which plain
-`iteration-2` does not have, so `MediumHardAcceptanceTest` cannot contain such a loop without breaking the
-build of its own target branch. The loop therefore lives in `EffectsAcceptanceTest` on **#103**, which is
-stacked on #92. This is the planned test **P12**. When #92 reaches `iteration-2`, the loop moves into
-`MediumHardAcceptanceTest.playToEnd` and rows A5-A8 above become **Yes**.
+**This is also why five of these seven tests failed when #92 first met this branch.** `playToEnd` called
+`model.roll()` while the turn was still in `RESOLVING`, and the turn refused it:
+`IllegalStateException: Resolve the special square first (phase RESOLVING)`. Shafeek found this by running
+the branch against `iteration-2` + #92 rather than against its own baseline, which is the only reason it was
+caught before a merge. The resolution loop is the fix.
+
+**What this file still does not assert about the effects.** It resolves them *neutrally* — it answers
+questions and carries out surprises the way a player would, and checks only that the turn leaves
+`RESOLVING` and that the chain guard holds (FR-42). It makes no assertion about what a question or a
+surprise *does*. That is **P12** (`EffectsAcceptanceTest`, #103) end to end, and Rakan's
+`EffectChainIndependentTest` (T2-12, #95) per rule. Duplicating their assertions here would add no coverage
+and two more places to maintain.
 
 ## 2. What is automated and passing today
 
@@ -59,15 +65,16 @@ all the real rule classes; there are no stubs and no fixed dice, so a pass means
 that game. Deterministic seeds are used so a failure can be reproduced exactly.
 
 Measured on **23/11/2026**, branch `feature/mohamed/T2-15-acceptance` merged with `iteration-2`
-(**`e9f6b2e`**), Java 17 (Temurin 17.0.17), `Iteration2/test.sh`:
+(**`1d47f2d`**, i.e. with #90, #91 and #92 in), Java 17 (Temurin 17.0.17), `Iteration2/test.sh`:
 
 * `Model.MediumHardAcceptanceTest` alone: **7 found, 7 successful, 0 failed**
-* the whole suite with it: **547 found, 547 successful, 0 failed** (50 containers)
-* the suite without it, i.e. the `iteration-2` baseline: **540** tests
+* the whole suite with it: **663 found, 663 successful, 0 failed**
+* the suite without it, i.e. the `iteration-2` baseline: **656** tests
+* `EducationalLudo.jar` builds
 
-Earlier figures for the same seven tests, kept so the growth is traceable: 7/7 with **538/538** on
-`d445a38` (22/11), and 7/7 with **440/440** on `6e13bcf` (21/11). The suite grew because other tasks merged,
-not because this task changed.
+Earlier figures for the same seven tests, kept so the growth is traceable: 7/7 with **547/547** on
+`e9f6b2e` (earlier on 23/11, before #92), 7/7 with **538/538** on `d445a38` (22/11), and 7/7 with
+**440/440** on `6e13bcf` (21/11). The suite grew because other tasks merged, not because this task changed.
 
 | Test | Accepts | Requirements |
 |---|---|---|
@@ -75,7 +82,7 @@ not because this task changed.
 | the Medium and Hard board a player gets matches Table 1, over 20 games | grid size, track squares, protection / question / surprise / starting / arrow counts, and the questions per level, on 20 random boards per level | FR-10, FR-11, FR-12 |
 | a complete Medium game rolls Boost 1-3 and moves Regular x (Boost - 1) | the Boost die is the Medium die, every value 1-3 really came up, a Boost 1 moves nothing, the longest movement is 12 | FR-16, FR-17 |
 | a complete Hard game rolls UltraBoost 1-6 and never moves over 30 | the UltraBoost die is the Hard die, every value 1-6 really came up, an UltraBoost 1 moves nothing, the longest movement is 30 | FR-16, FR-17 |
-| over complete Medium and Hard games no route lands on or passes an opponent's Double Block | every square entered by every move of 6 complete games (3 seeds x 2 levels) is checked against the blocks standing before that move - 19,702 squares in all - and the test also proves the check was not empty (see below) | FR-28, FR-29 |
+| over complete Medium and Hard games no route lands on or passes an opponent's Double Block | every square entered by every move of 6 complete games (3 seeds x 2 levels) is checked against the blocks standing before that move - 19,698 squares in all - and the test also proves the check was not empty (see below) | FR-28, FR-29 |
 | complete Medium games end with a winner and a full ranking, over 5 seeds | the game ends once, all but one player finished, a finished player has all four pieces home, the ranking follows the finishing order, exactly one rank 1 | FR-43, FR-44, FR-45 |
 | complete Hard games end with a winner and a full ranking, over 5 seeds | the same for Hard | FR-43, FR-44, FR-45 |
 
@@ -108,19 +115,30 @@ than landing. The engine was restored immediately afterwards and the suite re-ru
 all. It never showed that an opponent's block had ever stood. The test now measures the real condition and
 prints it per game:
 
-| Level | Seed | Moves | Squares entered and checked | Rolls with a block standing | Moves under an opponent's block |
-|---|---|---|---|---|---|
-| Medium | 11 | 694 | 3,188 | 112 | 58 |
-| Hard | 11 | 438 | 3,830 | 52 | 24 |
-| Medium | 12 | 573 | 2,740 | 121 | 70 |
-| Hard | 12 | 409 | 3,676 | **0** | **0** |
-| Medium | 13 | 505 | 2,405 | 161 | 76 |
-| Hard | 13 | 415 | 3,863 | 27 | 7 |
+Measured on `1d47f2d`, i.e. with the effects live:
 
-**Hard seed 12 produces no opponent Double Block at all.** That is why the assertion is made over the three
-seeds of a level together and not per game: per game it would be a false claim about that seed. Reporting it
-rather than hiding it is the point - the figures are printed in the failure message, so a reader does not
-have to take the coverage on trust.
+| Level | Seed | Moves | Squares entered and checked | Rolls with a block standing | Moves under an opponent's block | Questions | Surprises |
+|---|---|---|---|---|---|---|---|
+| Medium | 11 | 543 | 2,583 | 138 | 67 | 22 | 7 |
+| Hard | 11 | 461 | 3,876 | 34 | 14 | 12 | 9 |
+| Medium | 12 | 578 | 2,737 | 62 | 30 | 22 | 4 |
+| Hard | 12 | 486 | 4,392 | 24 | 10 | 24 | 5 |
+| Medium | 13 | 569 | 2,730 | 232 | 110 | 27 | 10 |
+| Hard | 13 | 381 | 3,380 | 36 | 14 | 22 | 7 |
+
+19,698 squares checked, and 129 questions and 42 surprises resolved along the way.
+
+**The figures moved when #92 merged, and that is worth understanding rather than glossing over.** Resolving
+the effects changes where the pieces go, so these are different games from the ones measured before #92 —
+same seeds, different trajectories. One consequence is a happy one: **Hard seed 12 used to produce no
+opponent Double Block at all** (0 rolls with a block standing), which was the clearest evidence that the old
+"count the moves" assertion was empty. With the effects live it produces 24, so all six games now exercise
+the check.
+
+The assertion is still made over the three seeds of a level **together** rather than per game. That is
+deliberate and stays: the per-game figure depends on the trajectory, and a trajectory can change again — as
+it just did — leaving a per-game assertion to fail for a reason that is not a defect. The per-game numbers
+are printed in the failure message, so a reader does not have to take the coverage on trust.
 
 That an opponent's block cannot be landed on or passed **when one does stand in the way** is pinned down by
 the scripted scenarios of T2-06/T2-07 (`DoubleBlockEngineTest`, `DoubleBlockIndependentTest`, both merged).

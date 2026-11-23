@@ -6,28 +6,25 @@ This is the short, run-it-now version of the scripts M1–M7 in `T2-15_Acceptanc
 
 ## 0. Which build to test, and why it matters
 
+**Updated 23/11/2026 (second revision): #90, #91 and #92 have merged.** The earlier version of this file split the work across two builds, because questions and surprises could not be reached at all from `iteration-2`. **That split is gone — one build now covers every row.**
+
 | Build | Contains | Use it for |
 |---|---|---|
-| **A — `iteration-2` release build** | boards, dice, Double Blocks, rankings. **No question or surprise dialogs**: a special square does nothing. | rows 1–4, 10 |
-| **B — integration candidate** (`iteration-2` + #92 + #95 + #97 + #99 + #103) | everything above **plus** questions, surprises, chained effects and the turn phases | rows 5–9 |
-
-**Rows 5 to 9 cannot pass on build A.** The dialogs are only reachable once **#92** merges. If #92 has merged by the time you run this, build A *is* build B and one build covers everything.
-
-Build B, exactly as I built it today:
+| **`iteration-2` `1d47f2d`** | everything: boards, dice, Double Blocks, rankings, **and** the question and surprise dialogs, chained effects and the turn phases | **all rows** |
 
 ```bash
 cd /c/Ludo/Sharks
 git worktree add /c/Ludo/Sharks-CP1 origin/iteration-2 --detach
-cd /c/Ludo/Sharks-CP1
-git merge --no-edit origin/feature/shafeek/T2-10-part2-resolving
-git merge --no-edit origin/feature/rakan/T2-12-effect-tests
-git merge --no-edit origin/feature/mohamed/NFR-04-animation-budget
-git merge --no-edit origin/feature/mohamed/T2-15-acceptance-integration
-git merge --no-edit origin/feature/mohamed/T2-15-effects-acceptance
-cd Iteration2 && ./build.sh
+cd /c/Ludo/Sharks-CP1/Iteration2 && ./build.bat
 ```
 
-All five merged with no conflict today, and the suite was **700/700**.
+**One thing is still missing from that build: #97**, the NFR-04 animation budget. It is approved and mergeable but not merged, and **row 10 is the row it affects.** Either merge #97 first, or add it to your test build:
+
+```bash
+git merge --no-edit origin/feature/mohamed/NFR-04-animation-budget
+```
+
+Timing row 10 **without** #97 measures the old 1600 ms budget — the one Rakan measured at 2140 ms under load. If you time it without #97 and it is over 2 seconds, that is expected: it is the reason #97 exists.
 
 ## 1. What I already verified on this PC (23/11/2026) — do not re-run unless you want to
 
@@ -52,11 +49,11 @@ Build under test: ________________  ·  Date: ________  ·  Tester: ________
 | 2 | In File Explorer, **double-click `EducationalLudo.jar`** | The same window opens. If Windows asks which app to use, pick Java — and **note that**, because a grader will hit it too | | |
 | 3 | Start a **Medium** game, 4 players, with names | The setup accepts the names; the Medium board is drawn; play begins | | |
 | 4 | Start a **Hard** game, 4 players | The Hard board is drawn and is clearly larger | | |
-| 5 | **B only** — play until a piece stops on a **question square** | The question dialog appears. The question's level matches the **square's colour**, not the board's. Four options | | |
-| 6 | **B only** — in that dialog press **Tab** repeatedly, then **Space** | Tab reaches every button in a sensible order and the focused button is visibly focused. Space activates the focused button | | |
-| 7 | **B only** — answer one question **right** and one **wrong** | Right: the piece moves **forward** 1/2/3 by the question's level. Wrong: it moves **back** the same number. Both show the correct answer afterwards | | |
-| 8 | **B only** — press **No Answer**, then **Continue** | No Answer is accepted as an explicit choice and counts as **wrong** (PO decision D3). Continue closes the dialog and the turn goes on | | |
-| 9 | **B only** — play until a **surprise square** fires, and watch for a **chain** | The surprise dialog names the outcome. For "Push an opponent back" **you** choose which opponent piece — nothing is auto-selected (FR-40). If the effect lands the piece on another special square, a second dialog follows (FR-42) | | |
+| 5 | play until a piece stops on a **question square** | The question dialog appears. The question's level matches the **square's colour**, not the board's. Four options | | |
+| 6 | in that dialog press **Tab** repeatedly, then **Space** | Tab reaches every button in a sensible order and the focused button is visibly focused. Space activates the focused button | | |
+| 7 | answer one question **right** and one **wrong** | Right: the piece moves **forward** 1/2/3 by the question's level. Wrong: it moves **back** the same number. Both show the correct answer afterwards | | |
+| 8 | press **No Answer**, then **Continue** | No Answer is accepted as an explicit choice and counts as **wrong** (PO decision D3). Continue closes the dialog and the turn goes on | | |
+| 9 | play until a **surprise square** fires, and watch for a **chain** | The surprise dialog names the outcome. For "Push an opponent back" **you** choose which opponent piece — nothing is auto-selected (FR-40). If the effect lands the piece on another special square, a second dialog follows (FR-42) | | |
 | 10 | **Stopwatch the longest movement.** In a **Hard** game, time a Regular 6 with an UltraBoost 6 — a 30-square move — from the moment the piece starts to the moment it stops | **Under 2 seconds** (NFR-04). Record the actual number, not "fine" | | |
 | 11 | Take screenshots: main menu, Medium board, Hard board, question dialog, surprise dialog, results screen | Saved as PNG with the date in the filename | | |
 | 12 | Finish one complete game | The results screen shows the ranking in finishing order and the game clock | | |
@@ -69,8 +66,8 @@ NFR-04 gives every movement 2 seconds. The automated timing tests are **off-scre
 
 ## 3. What must be true before this is signed off
 
-* Rows 1–4, 10, 11, 12 on **both release computers** (N2-06 asks for two).
-* Rows 5–9 need **#92 merged**, or build B.
+* **All rows** on **both release computers** (N2-06 asks for two).
+* Row 10 needs **#97** in the build, or it measures the old budget.
 * **D1 stays OPEN.** If an opponent's Double Block sits on your start square and a Regular 6 will not let you out of the castle, that is the known open decision, **not a bug**. Note it and move on.
 
 ## 4. Sign-off

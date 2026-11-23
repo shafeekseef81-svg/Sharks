@@ -4,9 +4,18 @@ Owner: **Mohamed Zereny** (Product Owner). Opened 21/11/2026. Related: issue
 [#75](https://github.com/shafeekseef81-svg/Sharks/issues/75), PRs #87, #89, #90, #91, #92, and the acceptance
 plan `Iteration2/docs/T2-15_AcceptancePlan.md`.
 
-**Status 23/11/2026: D2 and D3 are DECIDED and implemented. D1 is still OPEN and waiting on course staff.
-D4 and D5 are OPEN only as ratifications: the behaviour each one proposed is now merged on `iteration-2`
-and tested, so what is left is the Product Owner recording it, not investigating it.**
+**Status 23/11/2026 (second revision, after #90, #91 and #92 merged — `iteration-2` `1d47f2d`):**
+
+| # | State | What is left |
+|---|---|---|
+| **D1** | **OPEN** | waiting on course-staff clarification of Q7/Q35. **Not** to be closed by the Product Owner alone. |
+| **D2** | DECIDED 21/11, implemented, merged | nothing |
+| **D3** | DECIDED 21/11, implemented, merged | nothing |
+| **D4** | **OPEN — ratification only** | the behaviour is merged and matches FR-32; the Product Owner has only to record it |
+| **D5** | **OPEN — ratification only** | same; and the question itself was re-framed on 22/11 |
+
+D4 and D5 are no longer investigations. Everything they proposed is now merged on `iteration-2` and tested,
+so what remains is the Product Owner saying so. **D1 is a genuine open question** and stays open.
 
 An entry marked OPEN ends in a **proposal**, which is not a decision: it becomes one only when the Product
 Owner records it as decided, with a date, and the team is told. Until then the code keeps behaving as it does
@@ -291,10 +300,22 @@ piece go back into its castle?
 | B | The push is cancelled if it cannot be made in full | Treats the push like an exact-finish move (FR-31). But FR-32 already says movement *stops*, which is the opposite of cancelling, so this contradicts a confirmed requirement. |
 | C | The piece goes back into its castle | Much harsher than any requirement suggests, and FR-26 reserves the castle for captures. |
 
-**Impact.** This is in Shafeek's T2-10. Of that task, **part 1 (#87) is merged (`e2bbdaa`)** and carries the
-FR-32 stop; part 2 (#92), which wires the effects into the turn, is approved but not merged. It is a
-requirement that is already confirmed, so this is less a decision than a **check that T2-10 implements A** -
-and that check has now been made, below.
+**Impact.** This is in Shafeek's T2-10, and **both parts are now merged** — part 1 as `e2bbdaa` (#87) and
+part 2 as `1d47f2d` (#92). It is a requirement that is already confirmed, so this is less a decision than a
+**check that T2-10 implements A** — and that check has now been made, below.
+
+**The code matches FR-32 exactly, re-verified on `1d47f2d` (23/11/2026).** `EffectMover.backwardTarget`
+computes the progress a backward effect reaches as
+
+```java
+int target = Math.max(0, from - steps);   // never behind the starting square (FR-32)
+```
+
+Progress 0 **is** the piece's own starting square, so a push that would go further stops there and the piece
+stays on the board. That is **Option A**, word for word what FR-32 says ("movement stops at the start
+square"), and it is neither Option B (cancel the push) nor Option C (back to the castle). The same method
+then walks the route backwards and stops before an opponent's Double Block, which is FR-29 applied in the
+other direction — the two rules compose rather than conflict.
 
 **Verified on 21/11/2026 in the integration build — Option A is already implemented and independently
 tested.** Checked in a worktree holding `iteration-2` plus #79, #91, #92, #95 and #97:
@@ -307,14 +328,34 @@ tested.** Checked in a worktree holding `iteration-2` plus #79, #91, #92, #95 an
   `Iteration2/test/Model/EffectChainIndependentTest.java` — **Rakan's independent T2-12 tests (#95)**, so it
   also satisfies SDP 5.3.4: it was written by someone who did not write the effect mover.
 
-**Proposal (not decided).** Ratify **A**. There is nothing left to build or test — this is now a formality
-that brings the register in line with code that already behaves this way and is independently covered. The
-earlier action item ("ask Shafeek to confirm") is **done**; what remains is the Product Owner saying so, after
-which M6.2 and the planned test P10 can be judged.
+**Proposal (not decided).** Ratify **A**. There is nothing left to build, and nothing left to decide — this
+is a formality that brings the register in line with code that already behaves this way. The earlier action
+item ("ask Shafeek to confirm") is **done**; what remains is the Product Owner saying so, after which M6.2
+and the planned test P10 can be judged.
+
+**One honest caveat about the evidence.** On `iteration-2` today, FR-32 is named by tests in
+`SquareEffectTest` and `EffectResolutionTest` — **both written by the author of the code**. The independent
+test that covers exactly the D4 case, *"FR-32: a pushed opponent stops on its own start square and does not
+cross it"*, is in Rakan's `EffectChainIndependentTest`, which is on **#95 and not merged yet**. So the
+ratification rests on verified-but-not-independent coverage until #95 lands. That is a reason to merge #95,
+not a reason to delay the ratification.
 
 ---
 
-## D5 — EXTRA_ROLL and SKIP_TURN in the same effect chain
+## D5 — EXTRA_ROLL and SKIP_TURN in the same **turn** (they can never share one **chain**)
+
+> **The title of this entry was wrong until 22/11/2026, and the wrong title *was* the problem.** It read
+> "in the same effect chain". The two words matter and are not interchangeable:
+>
+> | Term | What it means here | Can both outcomes occur in it? |
+> |---|---|---|
+> | **one chain** | the effects set off by a **single move**, each square activating the next (FR-42) | **No.** A turn outcome moves no piece, so `EffectQueue.skip` ends the chain as soon as one is drawn. |
+> | **one turn** | everything from the player's first roll to the end of their turn, which may contain **several** rolls and so several chains | **Yes**, but in exactly one order (see the correction below). |
+>
+> The original question — "if one chain draws EXTRA_ROLL and another draws SKIP_TURN, do they cancel?" —
+> described something that **cannot happen**, because it assumed both could sit in one chain. The real case
+> is a sequence of two chains inside one turn. Everything below is kept, with the alternatives marked as
+> answering the impossible version of the question.
 
 **The exact rule in question.** A chain (FR-42) can set off more than one surprise. If one draws EXTRA_ROLL
 and another draws SKIP_TURN, and both fall on the same player, what happens? Do they cancel out, does the last
@@ -322,7 +363,9 @@ one win, or do both apply (roll again now, and miss the next turn)?
 
 **Evidence.**
 - FR-39 says a surprise square triggers exactly one outcome - per square, not per chain. FR-42 allows a chain
-  to touch several squares, so several outcomes in one chain are possible.
+  to touch several squares, so several outcomes in one chain are possible **in general** - but not two
+  *turn* outcomes, because the first of those ends the chain. This is the distinction the entry's old title
+  got wrong.
 - Nothing in the confirmed requirements says how two turn-level outcomes combine.
 - `Player.skipNextTurn()` exists on `iteration-2`, and the T2-09 notes show the intended wiring
   (`turn.skipNextTurn(result.affected())` and `turn.grantSurpriseRoll()`). **Corrected 23/11/2026:** this

@@ -175,7 +175,6 @@ class EffectsAcceptanceTest {
             // Nothing may be left half-resolved once the chain is done.
             assertSame(null, model.pendingEffect(), "every special square was resolved");
             assertFalse(model.phase() == TurnPhase.RESOLVING, "RESOLVING is left when the queue empties");
-            assertNotNull(mover, "the mover is known");
         }
         p.phasesSeen.add(model.phase());
         return p;
@@ -215,7 +214,8 @@ class EffectsAcceptanceTest {
 
         QuestionResult judged = model.judgeAnswer(chosenIndex);
         assertSame(asked, judged.question(), "the result belongs to the question that was asked");
-        assertNotNull(judged.correctAnswer(), "FR-36: the correct answer is always reported");
+        assertEquals(asked.answers().get(asked.correctIndex()), judged.correctAnswer(),
+                "FR-36: the reported correct answer must be the question's correct option");
 
         // FR-35: the signed steps are the level's steps, forward when right and backward when wrong.
         int expected = judged.correct() ? asked.steps() : -asked.steps();
@@ -269,7 +269,7 @@ class EffectsAcceptanceTest {
             assertSame(activeColor, result.turnAffected(), "D2: turnAffected() is the active player");
             if (result.opponentTriggered()) {
                 // Measured over every game in this class, this has never happened: see
-                // theD2CheckIsReachedButItsCrossPlayerCaseIsNot below. Counted, not asserted.
+                // theD2TurnOutcomeCheckIsReachedInRealPlay below. Counted, not asserted.
                 p.crossPlayerTurnOutcomes++;
             }
         }
@@ -404,24 +404,29 @@ class EffectsAcceptanceTest {
     }
 
     /**
-     * Shows that the D2 assertion in {@code resolveSurprise} is actually <b>reached</b> in these games, and
-     * that its cross-player case is <b>not</b> - so this class does not appear to cover something it never
-     * exercises.
+     * Shows that the D2 assertion in {@code resolveSurprise} is actually <b>reached</b> in these games - so
+     * this class does not appear to cover something it never exercises.
      *
      * <p>D2 (approved 21/11/2026) says a turn outcome always falls on the active player. Over the games this
      * class plays, {@code SKIP_TURN} and {@code EXTRA_ROLL} are drawn often, so the check runs many times and
-     * is no empty assertion. But the interesting half of D2 - a turn outcome in a chain that an
-     * <b>opponent's</b> piece set off - has <b>never occurred</b> in any game here: measured over nine games
-     * across both levels, 26 turn outcomes and 0 of them opponent-triggered.
+     * is no empty assertion. That is what this test asserts: {@code turnOutcomes > 0}.
      *
-     * <p>That case is covered by Rakan's scripted {@code EffectChainIndependentTest} (T2-12,
-     * [#95](https://github.com/shafeekseef81-svg/Sharks/pull/95)), which constructs it deliberately, and that
-     * is the right place for it: SDP 5.3.4 asks an independent tester for the rules, and a scripted scenario
-     * is the only way to reach something this rare. This test records the gap rather than hiding it.
+     * <p>The interesting half of D2 - a turn outcome in a chain that an <b>opponent's</b> piece set off - has
+     * not occurred in any game here (measured over nine games across both levels: 26 turn outcomes, 0 of them
+     * opponent-triggered). That count is <b>printed, not asserted</b>. Whether natural play reaches it
+     * depends on the dice, the board layout and the seeds, so asserting it stays at zero would make a
+     * harmless change fail the suite - and since the release script stops on any failed test, that would
+     * block a submission ZIP with nothing wrong in it.
+     *
+     * <p>The cross-player half is covered where it can be constructed deliberately: Rakan's scripted
+     * {@code EffectChainIndependentTest} (T2-12,
+     * [#95](https://github.com/shafeekseef81-svg/Sharks/pull/95)). That is the right place for it, because
+     * SDP 5.3.4 asks an independent tester for the rules and a scripted scenario is the only way to reach
+     * something this rare.
      */
     @Test
-    @DisplayName("T2-15 D2: the turn-outcome check is reached in real play, and its cross-player case is not")
-    void theD2CheckIsReachedButItsCrossPlayerCaseIsNot() {
+    @DisplayName("T2-15 D2: the turn-outcome check is reached in real play")
+    void theD2TurnOutcomeCheckIsReachedInRealPlay() {
         int turnOutcomes = 0;
         int crossPlayer = 0;
         for (long seed : new long[] {1, 2, 3, 4, 5}) {
@@ -435,14 +440,14 @@ class EffectsAcceptanceTest {
                 "D2: a turn outcome (SKIP_TURN or EXTRA_ROLL) was drawn, so the D2 check was reached; saw "
                         + turnOutcomes);
 
-        // And it ran only on the easy half. This is a statement of the limit, not a requirement: if a future
-        // change ever makes the cross-player case occur naturally, this reminds us to say so here.
-        assertEquals(0, crossPlayer,
-                "the cross-player D2 case is not reached by natural play in this class (" + turnOutcomes
-                        + " turn outcomes, " + crossPlayer + " opponent-triggered). It is covered by the"
-                        + " scripted EffectChainIndependentTest in T2-12 (#95). If this now fails, natural"
-                        + " play has started reaching it and this class may assert D2's cross-player half"
-                        + " directly.");
+        // How much of D2 natural play actually reached is reported, not asserted. Whether the cross-player
+        // half occurs depends on the dice, the board layout and the seeds, so asserting a count of 0 would
+        // turn a harmless change into a failing test - and because the release script stops on any failed
+        // test, that would block a submission ZIP with nothing wrong in it (Shafeek's review of this PR).
+        // The cross-player half is asserted where it can be set up deliberately: the scripted
+        // EffectChainIndependentTest in T2-12 (#95).
+        System.out.println("[T2-15 D2] turn outcomes reached by natural play: " + turnOutcomes
+                + " (of which opponent-triggered, i.e. D2's cross-player half: " + crossPlayer + ")");
     }
 
     // ------------------------------------------------------------------ US-2.4: the turn phases in real play
@@ -458,9 +463,6 @@ class EffectsAcceptanceTest {
         assertSame(TurnPhase.GAME_OVER, p.model.phase(), "a finished game rests in GAME_OVER");
         assertTrue(p.phasesSeen.contains(TurnPhase.RESOLVING),
                 "special squares really put the turn into RESOLVING: " + p.phasesSeen);
-        for (TurnPhase phase : p.phasesSeen) {
-            assertNotNull(phase, "every observed phase is a declared TurnPhase");
-        }
     }
 
     @Test

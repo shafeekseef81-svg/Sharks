@@ -169,8 +169,8 @@ it is player-visible and it is the kind of thing a grader will try.
 > 474/474) and 512/512 on the T2-11 branch. `SurpriseFactoryTest` 47/47, `SurpriseDialogTest` 16/16,
 > `MvcDependencyTest` 4/4.
 >
-> **Not verified:** no manual gameplay was performed. A surprise is still not triggered in a running game,
-> because T2-10 (#92) is not merged, so M5.4 has an approved rule to judge against but has **not** been run.
+> **Not verified:** no manual gameplay was performed. Since **#92 merged (`1d47f2d`)** a surprise *is*
+> triggered in a running game, so the only thing M5.4 now waits on is a person playing it on a real screen.
 
 **The exact rule in question.** Red is taking the turn. A surprise moves **Green's** piece (FR-40), and
 Green's piece lands on a surprise square, which draws "skip the next turn" or "roll again" (FR-39, FR-42).
@@ -198,10 +198,10 @@ one test. Neither PR is merged (#90, #91).
 | B | The **owner of the piece that landed** skips or rolls again | Reads naturally: the square acts on whoever stepped on it. Makes the push a weapon, which fits "move an opponent back". Risk: Red could hand *itself* an extra roll by pushing a piece onto an EXTRA_ROLL square - the benefit would go to Green, so actually it cannot be abused that way. |
 | C | The outcome is skipped entirely in a cross-player chain | Safest, never surprising, but silently drops an outcome the player can see being drawn, which looks like a bug. |
 
-**Impact.** The code already separates `active()` from `triggerOwner()`, so **all three are a small change**
-in unmerged code owned by me. This is the cheapest of the five to change and the one with the clearest
-gameplay consequence. It must be decided before #90 and #91 merge, otherwise the `UNDECIDED_NOTE` ships to a
-player.
+**Impact (as assessed when the decision was open, 21/11).** The code already separates `active()` from
+`triggerOwner()`, so all three were a small change in code owned by me, and the decision had to be taken
+before #90 and #91 merged so that the `UNDECIDED_NOTE` would not ship to a player. **That was met:** Option A
+was decided on 21/11 and is implemented in T2-09 and T2-11, both merged (`36661fc`, `12a01b6`).
 
 **~~Proposal~~ — SUPERSEDED by the decision above.** This register proposed **B**, the owner of the piece that
 landed, arguing that it reads the way a board game reads and makes FR-40's push meaningful. **The Product Owner
@@ -268,9 +268,9 @@ considered.
 > **Checked by mutation:** removing the single line that disables the button on submission makes exactly 2 of
 > these tests fail, so they are not vacuous.
 >
-> **Not verified:** no manual gameplay was performed. The question card is still not opened by a running game,
-> because T2-10 (#92) is not merged, so M4.4 has an approved rule to judge against but has **not** been run.
-> The Tab-order part of the keyboard requirement (M4.4d) also needs a real window and has **not** been run.
+> **Not verified:** no manual gameplay was performed. Since **#92 merged (`1d47f2d`)** the question card *is*
+> opened by a running game, so the only thing M4.4 now waits on is a person playing it on a real screen. The
+> Tab-order part of the keyboard requirement (M4.4d) needs a real window too and has **not** been run.
 
 **The exact rule in question.** FR-35 is confirmed: not answering counts as a wrong answer, so the piece moves
 back 1, 2 or 3 steps. But *how* does a player not answer? There is no time limit anywhere in the SRS, and
@@ -293,8 +293,9 @@ T2-11 deliberately implements no timer.
 | B | The dialog can be closed, and closing it is a wrong answer | Implements FR-35 fully. Risk: a player closes the dialog by accident and is punished, with no warning and no undo. Needs a confirmation prompt to be fair. |
 | C | Add a time limit, and running out of time is a wrong answer | The most faithful reading of "did not answer", and it makes the educational game tenser. But **no requirement gives a duration**, so the number would be invented, and NFR-05 says nothing about it. Out of scope for Iteration 2. |
 
-**Impact.** A and B are both small changes in my own unmerged T2-11 code. C is new scope and a number nobody
-has specified - it should not be done in Iteration 2.
+**Impact (as assessed when the decision was open, 21/11).** A and B were both small changes in my own T2-11
+code, which has since merged (`12a01b6`) with Option A in it. C is new scope and a number nobody has
+specified - it should not be done in Iteration 2.
 
 **~~Proposal~~ — SUPERSEDED by the decision above.** This register proposed **A**: make the card non-closable,
 keep `NO_ANSWER` in the model as tested-but-unreachable code, and say so plainly in the system report. **The
@@ -319,12 +320,11 @@ piece go back into its castle?
   leaves the stopping to the effect queue.
 - `StandardMoveEngine.isPassable` is already direction-independent and documents that "backward moves
   (questions, surprises) can use it as well", so the blocking half is ready.
-- **Corrected 23/11/2026: the stopping is now implemented on `iteration-2`.** This bullet previously read
-  "the stopping itself is not implemented anywhere on `iteration-2` yet", which was true when the entry was
-  opened on 21/11 but stopped being true when **#87 merged as `e2bbdaa`**. `Model/EffectMover` and its FR-32
-  stop are on the baseline today; only the wiring of the effects into the turn (#92) is still unmerged. The
-  RTM snapshot (`T2-14_RTM_Coverage.md`) was taken before that merge and still lists FR-32 as having 2 tests,
-  both by the authors; Rakan's independent test named below is not in that count.
+- **The stopping is implemented on `iteration-2`.** `Model/EffectMover` and its FR-32 stop arrived with
+  **#87 (`e2bbdaa`)**, and the wiring of the effects into the turn arrived with **#92 (`1d47f2d`)**, so the
+  whole path is on the baseline and reachable in play. The RTM snapshot
+  (`T2-14_RTM_Coverage.md`) was taken before those merges and still lists FR-32 as having 2 tests, both by
+  the authors; Rakan's independent test named below is not in that count.
 
 **Alternatives.**
 
@@ -401,11 +401,10 @@ one win, or do both apply (roll again now, and miss the next turn)?
   *turn* outcomes, because the first of those ends the chain. This is the distinction the entry's old title
   got wrong.
 - Nothing in the confirmed requirements says how two turn-level outcomes combine.
-- `Player.skipNextTurn()` exists on `iteration-2`, and the T2-09 notes show the intended wiring
-  (`turn.skipNextTurn(result.affected())` and `turn.grantSurpriseRoll()`). **Corrected 23/11/2026:** this
-  bullet used to end "but the queue that would run both is in T2-10/T2-13 and is not merged". Since then
-  **T2-13 merged as `c689a85` (#79)** and **T2-10 part 1 merged as `e2bbdaa` (#87)**, so the effect queue and
-  the turn states are both on the baseline; the one piece still unmerged is the wiring in #92.
+- `Player.skipNextTurn()` exists on `iteration-2`, and the wiring the T2-09 notes describe
+  (`turn.skipNextTurn(result.affected())` and `turn.grantSurpriseRoll()`) is now in place. The effect queue
+  and the turn states arrived with **T2-13 (`c689a85`, #79)** and **T2-10 part 1 (`e2bbdaa`, #87)**, and the
+  wiring itself with **#92 (`1d47f2d`)**, so every piece this decision depends on is on the baseline.
 - The chain guard mentioned in the plan limits chain length, so this is rare, not impossible.
 
 **Alternatives.**

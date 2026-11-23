@@ -11,17 +11,30 @@ and marked as such, or marked **TODO** with what is still needed. Nothing is ass
 measurement or playthrough is recorded that was not actually taken. The report cannot be finished before the
 Iteration 2 code is merged (see section 6).
 
-Baseline for everything measured here: `iteration-2` at **`1d47f2d`** (23/11/2026, second revision; it was
-`e9f6b2e` earlier the same day, `d445a38` on 22/11 and `6e13bcf` on 21/11). Baseline suite: **656 tests, all
-passing**.
+Baseline for everything measured here: `iteration-2` at **`4640416`** (23/11/2026, third revision; it was
+`1d47f2d` and `e9f6b2e` earlier the same day, `d445a38` on 22/11 and `6e13bcf` on 21/11). Baseline suite:
+**660 tests, all passing**.
 
 **The whole feature scope of Iteration 2 is now merged.** T2-01 to T2-07, N2-03 (#86, #101), T2-10 part 1
 (#87, `e2bbdaa`), T2-08 (#89, `5540f53`), T2-13 the turn State pattern (#79, `c689a85`), T2-14 (#93),
 N2-05 (#88, #94), and — **new on 23/11** — **T2-09 surprise outcomes (#90, `36661fc`)**, **T2-11 the
 question and surprise dialogs (#91, `12a01b6`)** and **T2-10 part 2, the effect wiring (#92, `1d47f2d`)**.
 
-**Still not merged:** the NFR-04 animation budget (**#97**, approved) and the independent effect tests
-(**#95**, approved).
+**Four more pull requests merged later on 23/11**, after the figures above were first written:
+
+| PR | Task | What it adds | Merge commit |
+|---|---|---|---|
+| **#81** | N2-06 release tooling (Rakan) | `tools/make_iteration2_zip.py`, the only sanctioned way to build the submission ZIP | `9fea81d` |
+| **#97** | NFR-04 animation budget (mine) | `MAX_MOVE_MILLIS` 1600 ms → **1200 ms**, verified present in `src/View/components/BoardComponent.java:265` | `1f099f2` |
+| **#98** | T2-08 Factory Method doc (mine) | the pattern section under `docs/design_patterns/` | `9c8c83f` |
+| **#102** | N2-04 testing evidence (Rakan) | section 3(e) evidence for Rakan's tasks, and the FR-19 correction used below | `4640416` |
+
+**#97 merging removes the CP1 release blocker that this report named earlier.** The baseline now carries the
+1200 ms budget, so the submission ZIP can be built from `iteration-2` on a slower machine without the
+30-square timing test failing.
+
+**Still not merged:** the independent effect tests (**#95**, approved), the State section (**#96**, approved)
+and my two acceptance PRs (**#99**, **#103**).
 
 **What that changes for this report.** Until #92 merged, a question or surprise square was an ordinary
 square in any build made from `iteration-2` — nothing opened a dialog, so no amount of manual testing could
@@ -30,8 +43,9 @@ rule in a build made from `iteration-2`.** Sections 3(b)–3(d) are therefore no
 player-visible behaviour; what remains genuinely unverified is that **nobody has sat down and played it**
 (see "What has not been verified yet").
 
-**#97 is a release blocker for CP1**, and that is the one open item with a deadline. See the NFR-04
-subsection of 3(e).
+**#97 was a release blocker for CP1 and is now merged** (`1f099f2`), so that deadline item is closed. The
+evidence is kept in the NFR-04 subsection of 3(e), because the measurement is the reason the budget is
+1200 ms and a grader will ask.
 
 ---
 
@@ -98,8 +112,8 @@ input.
 | Game board | **roll** | a click on the dice | yes - `GameControllerTest` |
 | Game board | **choose a piece** | a click on one of the highlighted pieces | yes - `LegalMoveHighlightTest`, `GameControllerTest` |
 | Game board | leave the game | a click, then a confirmation | yes - `ScreenNavigationTest` |
-| Question dialog | **one of four answers** | 0-3, or no answer | **TODO** - T2-11 (#91) not merged |
-| Surprise dialog | **which opponent piece to move** | one of the offered pieces (FR-40) | **TODO** - T2-11 (#91) not merged |
+| Question dialog | **one of four answers**, or the **No Answer** button (decision D3) | 0-3, or an explicit no-answer which counts as wrong | yes - `QuestionDialogTest` (23 tests), T2-11 (#91) merged as `12a01b6` |
+| Surprise dialog | **which opponent piece to move** | one of the offered pieces, chosen by the active player and never auto-selected (FR-40) | yes - `SurpriseDialogTest` (16 tests), T2-11 (#91) merged as `12a01b6` |
 
 ### Game scenarios
 
@@ -218,19 +232,31 @@ otherwise.
 | What | Tests | Result |
 |---|---|---|
 | `iteration-2` baseline `1d47f2d` | 656 | **656 passed, 0 failed** |
+| **`iteration-2` baseline `4640416`** (after #81, #97, #98, #102) | **660** | **660 passed, 0 failed** |
+| `4640416` + **#99** (`3b31345`) | **667** | **667 passed, 0 failed** |
+| `4640416` + **#103** (`3f07547`) | **668** | **668 passed, 0 failed** |
+| `4640416` + **#99 + #103** (`b97dc0c`) | **675** | **675 passed, 0 failed** |
+| `4640416` + **#103 + #99**, merged in the opposite order (`e0051c7`) | **675** | **675 passed, 0 failed** |
 | with the T2-15 acceptance tests (#99, `df396b6`) | 663 | **663 passed, 0 failed** |
 | with the US-2.3 end-to-end acceptance (#103, `ee465e4`) | 664 | **664 passed, 0 failed** |
 | **#99 and #103 together** | 671 | **671 passed, 0 failed** |
 | **the CP1 candidate: `iteration-2` + #97 + #98 + #95 + #96 + #99 + #103** | **700** | **700 passed, 0 failed** |
 
-The last row is the number that matters for CP1. **All five branches merged with no conflict**, and the
-figure is independently corroborated: Shafeek measured the same **700/700** on his own locally-merged
-candidate (#106, T2-14 snapshot of 23/11), built from a different starting commit and a slightly different
-set of PRs.
+The last row is the number that matters for CP1: **700/700** on `1228597`, the new baseline `4640416` plus
+the four PRs still open (#95, #96, #99, #103), **all merged with no conflict**. The figure is independently
+corroborated: Shafeek measured the same **700/700** on his own locally-merged candidate (#106, T2-14
+snapshot of 23/11), built from a different starting commit and a slightly different set of PRs. It has now
+also held across three different baselines (`e9f6b2e`, `1d47f2d`, `4640416`) as the merges arrived.
+
+**#99 and #103 are independent of each other**, which matters for the merge order: each merges cleanly onto
+`4640416` on its own (667/667 and 668/668), and merging them **in either order** gives the same 675/675. So
+neither has to wait for the other, and whichever Shafeek reviews first can go in first.
 
 **#95 and #96 are not really conflicting — GitHub's flag is stale.** Both are shown as `CONFLICTING`
-against `iteration-2`, and both in fact **merge cleanly**, verified on 23/11 by merging each onto
-`iteration-2` `1d47f2d` in an isolated worktree. The flag was computed while they were still stacked behind
+against `iteration-2`, and both in fact **merge cleanly**. Verified twice: onto `1d47f2d`, and again onto
+the new baseline **`4640416`** after the four merges of 23/11, each in an isolated worktree. **The flag did
+not clear itself when the baseline moved**, so it will probably still be showing at merge time — it is not
+evidence of a real problem. The flag was computed while they were still stacked behind
 #92; now that #92 is merged their real net content is small — #95 adds
 `test/Model/EffectChainIndependentTest.java` and #96 changes
 `docs/design_patterns/State_Rakan.md`. GitHub normally recomputes this by itself; merging `iteration-2` into
@@ -381,9 +407,13 @@ until somebody has run it.
   same bound. Measured over nine Medium games the longest surprise-roll movement was 24, against the 12 of
   Medium's own dice. The budget caps by distance and not by level, so it still covers this.
 
-#### #97 is a release blocker for CP1, and this is the evidence
+#### #97 was a release blocker for CP1 — the evidence, and how it was closed
 
-This is the one open item with a deadline, so it is stated precisely rather than as a recommendation.
+> **Resolved on 23/11/2026.** #97 is **merged** into `iteration-2` as `1f099f2`. `MAX_MOVE_MILLIS` is 1200 ms
+> in the baseline, confirmed at `src/View/components/BoardComponent.java:265`. On the CP1 candidate built
+> from the new baseline, `View.TimingTest` passed **4/4 on three cold JVM runs** and
+> `View.MovementAnimationTest` **15/15**. The evidence below is kept because it is why the budget is
+> 1200 ms rather than 1600 ms, and because it is the clearest NFR-04 measurement we have.
 
 **What the budget actually is.** For a 30-square movement the animation budget is `max(260, min(BUDGET,
 steps * 120))`, which saturates at the cap:
@@ -415,31 +445,56 @@ something we control.
 suite and **stops on any failed test**. So on a machine like Shafeek's, building the submission ZIP from an
 `iteration-2` without #97 does not produce a ZIP with a warning — **it produces no ZIP at all.**
 
-**Recommendation: merge #97 before building the CP1 artifact.** It is approved by both reviewers
-(@ziyanrakan33 22/11, @shafeekseef81-svg 23/11), mergeable, and touches only `BoardComponent` and its own
-tests. With it in the CP1 candidate, `TimingTest` passed 4/4 on three cold runs and
-`MovementAnimationTest` 15/15 here.
+**This recommendation was carried out.** #97 was approved by both reviewers (@ziyanrakan33 22/11,
+@shafeekseef81-svg 23/11) and merged on 23/11 as `1f099f2`. On the CP1 candidate built from the new
+baseline, `View.TimingTest` passed **4/4 on three cold runs** and `View.MovementAnimationTest` **15/15**.
+
+**This remains an off-screen measurement.** `TimingTest` measures the model and the animation budget, not a
+real window being repainted on a real display. **NFR-04 is not closed until the 30-square Hard move is
+timed with a stopwatch on screen**, which is row 10 of `docs/T2-15_ManualChecklist_CP1.md` and has not been
+done by anyone yet.
 
 ### Requirements traceability, verified independently (NFR-14)
 
-`Iteration2/tools/rtm_coverage.py` needs an SRS text dump from `pdftotext -layout`, which is not available
-in my environment, so the coverage half of it was re-implemented as a standalone scan and run against the
-CP1 candidate's whole test tree. It mirrors the tool's range handling (`FR-28..FR-30`, `FR-28-FR-30`,
-`FR-28–FR-30`) and answers one question: which FRs are named by a `@DisplayName`.
+This was run with **the team's own tool**, `Iteration2/tools/rtm_coverage.py` (Shafeek, T2-14), not with a
+re-implementation. The tool needs an SRS text dump; an earlier version of this report recorded that the dump
+could not be produced here. **That limitation is gone.** The dump comes from the SRS already in the
+repository:
 
-**Result: every FR from FR-15 to FR-47 is named by at least one test.** That corroborates the T2-14 snapshot
-(#106) from a second direction.
+```bash
+pdftotext -layout Assignment3_Prototype/Sharks_SRS.pdf srs.txt
+cd Iteration2 && python tools/rtm_coverage.py ../srs.txt test 15 47
+```
 
-The thinnest rows, measured on the candidate: FR-30 (2 tests), FR-32 (3), FR-36 (3), FR-38 (3), FR-41 (3),
-FR-47 (2). Every other FR in the range has four or more.
+`Assignment3_Prototype/Sharks_SRS.pdf` is the version that carries the numbered requirements FR-01…FR-65.
+(`SRS_Sharks.docx` and `SRS_Sharks.pdf` at the repository root are the Assignment 2 version 1.0 and contain
+**no FR identifiers at all**, which is worth knowing before anyone else goes looking for the requirement
+text.)
 
-**What #95 actually contributes, measured.** Without #95 no FR drops to zero — but **FR-32, FR-36, FR-37,
-FR-38 and FR-41 each fall to two tests, and in every one of those cases both remaining tests were written by
-the author of the code under test** (`SquareEffectTest` and `EffectResolutionTest` are Shafeek's;
-`QuestionFactoryTest` is mine). So #95 is not filling a coverage hole; it is supplying the **independent**
-coverage that SDP 5.3.4 requires, for precisely the requirements that are thinnest without it. That is the
-argument for merging it before CP1, and it is also why the D4 ratification in the decision register carries
-an explicit caveat until it lands.
+**Result on the CP1 candidate: `GAPS: none` for FR-15…FR-47** — every requirement in the Iteration 2 range
+is named by at least one test. This is the official tool's own verdict, so it corroborates the T2-14
+snapshot (#106) directly rather than by a second method.
+
+The thinnest rows on the candidate, by number of tests: **FR-47 (2)**, FR-38 (3), FR-32 (4), FR-36 (5),
+FR-30 (6), FR-37 (6). Every other FR in the range has seven or more. FR-47 — the end-of-game summary screen
+— is the thinnest in the whole range and is covered only by `GameControllerTest` and
+`NavigationControllerTest`; it is also one of the things the manual checklist looks at (row 12).
+
+**What #95 actually contributes, measured with the same tool.** Running it on the candidate *without* #95
+gives `GAPS: none` as well, so **#95 fills no coverage hole.** What it changes is independence:
+
+| FR | Tests without #95 | Whose tests those are | With #95 |
+|---|---|---|---|
+| **FR-32** backward movement | **2** — `EffectResolutionTest`, `SquareEffectTest` | **both Shafeek's**, who wrote the effect code under test → **no independent test at all** | 4 |
+| FR-38 capture on a question square | 2 — `SpecialDiceGameTest`, `SquareEffectTest` | mostly Shafeek's | 3 |
+| FR-41 effect movement obeys the rules | 4 — `SpecialDiceGameTest`, `SquareEffectTest` | mostly Shafeek's | 8 |
+| FR-36 answer feedback | 4 — `QuestionDialogTest`, `SpecialDiceGameTest` | `QuestionDialogTest` is mine (T2-11) | 5 |
+
+Authorship was taken from `git log --follow` on each file, not assumed. **FR-32 is the clear case: without
+#95 it has no test written by anyone other than the author of the code it checks**, which is exactly what
+SDP 5.3.4 asks for. That is the argument for merging #95 before CP1, and it is also why the **D4**
+ratification in the decision register carries an explicit caveat until #95 lands — D4 is a statement about
+FR-32 behaviour.
 
 ### Independent rule tests (SDP 5.3.4)
 
@@ -503,21 +558,31 @@ Two mutation checks of my own, in the same spirit:
 * **Independent tests:** `DoubleBlockIndependentTest` (Shafeek, T2-07, #85), 19 tests through the facade.
 * **Reviews:** two Deep reviews (Shafeek, Mohamed).
 * **Player-visible open point — decision D1, still OPEN.** An opponent's Double Block standing on a player's
-  **start square** keeps that player's pieces in the castle even on a Regular 6. I verified the behaviour in
-  the merged code on `iteration-2` `d445a38`: `StandardMoveEngine.moveFor` requires
-  `isPassable(board.startCell(owner.color()), owner)` before a castle exit, so **FR-29 wins over FR-19**.
-  FR-19 and FR-29 genuinely conflict in this one case, and course-staff answers Q7/Q35 are cited in the
-  discussion. **This is not decided**: it waits on staff clarification and then a Product Owner ruling, and
-  the game rule is unchanged in the meantime. Register: `Iteration2/docs/T2-15_PO_Decisions.md`.
+  **start square** keeps that player's pieces in the castle even on a Regular 6. The behaviour is in the
+  merged code: `StandardMoveEngine.moveFor` requires `isPassable(board.startCell(owner.color()), owner)`
+  before a castle exit. Register: `Iteration2/docs/T2-15_PO_Decisions.md`.
 
-  **Rakan sharpened this in #102 on 22/11, and I checked his correction against the code (23/11).** He now
-  states the implemented behaviour as FR-19's *own* exception rather than as FR-29 simply overriding FR-19:
-  FR-19 reads "a Regular 6 shall allow placing a piece on its starting square … **unless an opponent Double
-  Block occupies that square** (Q40)". That is a better reading than mine, because it means the code follows
-  FR-19 rather than contradicting it, and it leaves D1 as a genuine open question about whether two pieces
-  on a *start* square form a Double Block at all (staff answers Q7/Q35) — not about which requirement wins.
-  I verified the behaviour he describes is what `StandardMoveEngine` does: `moveFor` checks `isPassable` on
-  the start cell before a castle exit. **D1 remains OPEN.**
+  **Correction — FR-19 and FR-29 do not contradict each other.** An earlier version of this report said that
+  "FR-29 wins over FR-19" and that the two requirements "genuinely conflict". **That was wrong.** Rakan gave
+  the correct reading in #102, and on 23/11 I checked it against the requirement text itself, extracted from
+  `Assignment3_Prototype/Sharks_SRS.pdf` with `pdftotext -layout`:
+
+  > **FR-19** A Regular 6 shall allow placing a piece on its starting square, ignoring the special die, or
+  > moving an active piece, **unless an opponent Double Block occupies that square** (R-4, Q40).
+
+  **FR-19 states the exception itself**, citing Q40. So the implemented behaviour is not one requirement
+  defeating another — **it is what FR-19 literally requires**, and it agrees with FR-29. The earlier error
+  came from quoting FR-19 only as far as "starting square" and dropping the `unless` clause.
+
+  **What is actually still open.** Not which requirement wins — that is settled. The narrower question is
+  whether two same-player pieces on a **start** square form a Double Block *at all*. FR-28 defines a block as
+  "two or more same-player pieces on one square" with no exception for start squares, which is why FR-19
+  needs its `unless` clause; but Rakan reports that the staff answers **Q7/Q35** say no block forms there, in
+  which case the `unless` clause could never fire. **Q7/Q35 could not be verified from this repository** — the
+  SRS cites the staff answers by number without reproducing their text, and the Q&A sheet is not in the
+  repository. So D1 is a possible conflict between the **staff answers** and the **requirement text**, not
+  between two requirements, and it is **not closable by the Product Owner alone. D1 remains OPEN** and the
+  game rule is unchanged.
 
 ### Release checks (N2-06, NFR-10)
 
@@ -554,6 +619,11 @@ keeps all 17 cases correct. It is raised on #81 as a suggestion, not a blocker.
 | **Full rehearsal, 23/11**, into an isolated folder | integration candidate (`13bc5b3`) | **700/700** | **171 files, JAR 263,868 bytes**, SHA-256 `05b3e113…3544b9` | — |
 | **CP1 candidate rehearsal, 23/11** (second revision), isolated folder | `iteration-2` `1d47f2d` + #97 + #95 + #99 + #103 + #98 (`a312868`) | **700/700** | **172 files, JAR 263,868 bytes**, SHA-256 `462c774a…4ac386` | — |
 | **Complete candidate rehearsal, 23/11** (third revision, adds #96), isolated folder | `0928117` | **700/700** | **172 files, JAR 263,868 bytes**, SHA-256 `4dc64ff8…1deb2a` | — |
+| **Post-merge rehearsal, 23/11** (on the new baseline, after #81, #97, #98, #102), isolated folder | `4640416` + #95 + #96 + #99 + #103 (`1228597`) | **700/700** | **174 files**, JAR 263,868 bytes, SHA-256 `cf7c57ac…0506b0` | — |
+
+The file count rose from 172 to **174** because #81 and #102 added versioned files to `Iteration2`; the JAR
+is byte-for-byte the same size, as expected, since none of the four merges changed compiled code except
+#97's single constant.
 
 The ZIP of the last rehearsal was opened and checked entry by entry: **172 entries, all under the single top
 folder `iteration2_Sharks/`, no backslash in any entry**, and `EducationalLudo.jar`, `run.bat`, `build.bat`,
@@ -603,12 +673,12 @@ rows 5–9 of the checklist in `Iteration2/docs/N2-06_Release.md` and are filled
 | # | Needed | Depends on |
 |---|---|---|
 | 1 | ~~Merge the remaining Iteration 2 feature PRs, then rewrite 3(b)-3(d)~~ **done 23/11** - #90, #91 and #92 merged; 3(b)-3(d) now state the behaviour as fact | — |
-| 1b | **Merge #97 before building the CP1 artifact.** It is a release blocker, not a nicety: without it the 30-square timing test fails on at least one of our machines, and the ZIP script stops on a failed test | the Product Owner's merge |
+| 1b | ~~**Merge #97 before building the CP1 artifact**~~ **done 23/11** — merged as `1f099f2`; the budget is 1200 ms in the baseline and the timing test passes 4/4 cold on the candidate | — |
 | 2 | Run the manual script M1-M7 and paste the filled-in tables in as the 3(e) evidence | T2-15, N2-06 |
-| 3 | Re-run the whole suite on the final `iteration-2` and replace every test count | after the last merge |
+| 3 | Re-run the whole suite on the final `iteration-2` and replace every test count | after the last merge — done once for `4640416` (660/660) and for the candidate (700/700); must be repeated after #95, #96, #99 and #103 land |
 | 4 | Take the screenshots from the final build | after the last merge |
 | 5 | Settle **D1** so 3(c) states a rule and not an open question, and ratify **D4** and **D5** (both implemented and tested; see the register) | staff clarification on Q7/Q35, then the Product Owner |
-| 5b | Add the US-2.3 end-to-end acceptance evidence of **#103** to 3(e) once it merges, and the independent-test evidence of #95 | #103 is now retargeted at `iteration-2` and ready for review; #95 still unmerged |
+| 5b | Add the US-2.3 end-to-end acceptance evidence of **#103** to 3(e) once it merges, and the independent-test evidence of #95 | both re-tested against the new baseline `4640416` and ready; #99 → 667/667, #103 → 668/668, together 675/675 |
 | 5c | ~~Move the fix on **#105** into #99~~ **done 23/11** (`df396b6`). #105 is now redundant and is to be **closed without merging** | — |
 | 5d | Fill in `T2-15_ManualChecklist_CP1.md` on both computers, including the stopwatch row, and paste the filled tables into 3(e) | a human, before CP1 |
 | 6 | Continue the Iteration 1 report: keep its structure and numbering, add Iteration 2 as the new iteration rather than replacing it, and export to Word or PDF as `iteration2_report_Sharks` | all of the above |

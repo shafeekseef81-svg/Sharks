@@ -7,8 +7,8 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Iteration 1 turn management (FR-15, FR-16 partial, FR-17 partial, FR-20, FR-21, FR-22, FR-23, FR-43, FR-44).
- * Owner: Rakan Ziyan (Tasks 11 and 12).
+ * Turn management (FR-15, FR-16, FR-17, FR-20, FR-21, FR-22, FR-23, FR-43, FR-44) and the <i>context</i> of the
+ * {@link TurnState} pattern. Owner: Rakan Ziyan (Tasks 11 and 12; State pattern T2-13).
  *
  * <p><b>Turn order (Task 11):</b> players take turns in setup order; only the active player rolls (FR-15).
  * {@link #endTurn()} passes the turn to the next player who has not finished (FR-43).
@@ -25,9 +25,12 @@ import java.util.Objects;
  *   <li>A player who has finished all pieces takes no more turns and loses a pending extra roll (FR-43).</li>
  * </ul>
  *
- * <p>Phases: {@code AWAITING_ROLL} → roll → {@code AWAITING_MOVE} → move → {@code AWAITING_ROLL} (extra roll)
- * or {@code MOVING} (waiting for {@link #endTurn()}). {@code GAME_OVER} when the ranking reports the end
- * (FR-44). Legal moves and moving come from the {@link MoveEngine} (Task 16).
+ * <p><b>State pattern (T2-13):</b> every public operation is delegated to the current {@link TurnState}, which
+ * allows only what its phase allows. States: {@link AwaitingRollState} → roll → {@link AwaitingMoveState} → move →
+ * {@link AwaitingRollState} (extra roll) or {@link MovedState} (waiting for {@link #endTurn()});
+ * {@link GameOverState} when the ranking reports the end (FR-44). This class keeps the data of the turn and the
+ * steps the states share. The behaviour is the same as the Iteration 1 version, which switched on a phase value.
+ * Legal moves and moving come from the {@link MoveEngine} (Task 16).
  */
 public final class StandardTurnManager implements TurnManager {
 
@@ -40,8 +43,14 @@ public final class StandardTurnManager implements TurnManager {
     private final RankingTracker ranking;
     private final Difficulty level;
 
+    /** The concrete states; they hold no data, so one instance of each is enough. */
+    private final TurnState awaitingRoll = new AwaitingRollState();
+    private final TurnState awaitingMove = new AwaitingMoveState();
+    private final TurnState moved = new MovedState();
+    private final TurnState gameOver = new GameOverState();
+
+    private TurnState state = awaitingRoll;
     private int currentIndex;
-    private TurnPhase phase = TurnPhase.AWAITING_ROLL;
     private DiceRoll lastRoll;
     private int sixesInRow;
     private boolean bonusRoll;
@@ -68,6 +77,8 @@ public final class StandardTurnManager implements TurnManager {
         this.ranking = Objects.requireNonNull(ranking, "ranking");
     }
 
+    // ------------------------------------------------------------------ TurnManager, delegated to the state
+
     @Override
     public Player current() {
         return players.get(currentIndex);
@@ -75,7 +86,7 @@ public final class StandardTurnManager implements TurnManager {
 
     @Override
     public TurnPhase phase() {
-        return phase;
+        return state.phase();
     }
 
     @Override
@@ -92,30 +103,12 @@ public final class StandardTurnManager implements TurnManager {
      */
     @Override
     public DiceRoll roll() {
-        if (!canRoll()) {
-            throw new IllegalStateException("Rolling is not allowed now (phase " + phase + ")");
-        }
-        DiceRoll roll = Objects.requireNonNull(dice.roll(level), "the dice returned no roll");
-        sixesInRow = roll.regular() == 6 ? sixesInRow + 1 : 0;
-        if (sixesInRow == SIXES_LIMIT) {
-            roll = new DiceRoll(roll.regular(), roll.specialType(), roll.special(), roll.movement(),
-                    roll.surpriseRoll(), true);
-            bonusRoll = false;
-        } else {
-            bonusRoll = roll.regular() == 6;
-        }
-        lastRoll = roll;
-        cachedMoves = null;
-        phase = TurnPhase.AWAITING_MOVE;
-        return roll;
+        return state.roll(this);
     }
 
     /** @return {@code true} if the active player may roll now */
     public boolean canRoll() {
-        if (phase == TurnPhase.AWAITING_ROLL) {
-            return true;
-        }
-        return phase == TurnPhase.AWAITING_MOVE && bonusRoll && legalMoves().isEmpty();
+        return state.canRoll(this);
     }
 
     /**
@@ -124,14 +117,7 @@ public final class StandardTurnManager implements TurnManager {
      */
     @Override
     public Map<Piece, Move> legalMoves() {
-        if (phase != TurnPhase.AWAITING_MOVE || lastRoll == null || lastRoll.cancelled()) {
-            return Map.of();
-        }
-        if (cachedMoves == null) {
-            Map<Piece, Move> moves = moveEngine.legalMoves(current(), lastRoll);
-            cachedMoves = Collections.unmodifiableMap(new LinkedHashMap<>(moves));
-        }
-        return cachedMoves;
+        return state.legalMoves(this);
     }
 
     /**
@@ -146,35 +132,13 @@ public final class StandardTurnManager implements TurnManager {
      */
     @Override
     public MoveResult move(Piece piece) {
-        if (phase != TurnPhase.AWAITING_MOVE) {
-            throw new IllegalStateException("No move is expected now (phase " + phase + ")");
-        }
-        Move move = legalMoves().get(piece);
-        if (move == null) {
-            throw new IllegalArgumentException(piece + " has no legal move with this roll");
-        }
-        MoveResult result = Objects.requireNonNull(moveEngine.apply(move), "the move engine returned no result");
-        cachedMoves = null;
-        Player mover = current();
-        if (result.pieceFinished()) {
-            ranking.onPieceFinished(mover);
-        }
-        if (ranking.isGameOver()) {
-            phase = TurnPhase.GAME_OVER;
-            bonusRoll = false;
-        } else if (ranking.hasFinished(mover)) {
-            bonusRoll = false; // a finished player takes no more turns (FR-43)
-            phase = TurnPhase.MOVING;
-        } else {
-            phase = bonusRoll ? TurnPhase.AWAITING_ROLL : TurnPhase.MOVING;
-        }
-        return result;
+        return state.move(this, piece);
     }
 
     /** @return {@code true} if the active player must roll again before the turn can end (FR-21) */
     @Override
     public boolean hasBonusRoll() {
-        return bonusRoll && phase != TurnPhase.GAME_OVER;
+        return bonusRoll && state != gameOver;
     }
 
     /**
@@ -187,9 +151,66 @@ public final class StandardTurnManager implements TurnManager {
      */
     @Override
     public String endTurn() {
-        if (phase == TurnPhase.GAME_OVER) {
-            throw new IllegalStateException("The game is over");
+        return state.endTurn(this);
+    }
+
+    // ------------------------------------------------------------------ steps shared by the states
+
+    /** The Rule of 6 on a new roll (FR-21, FR-22); then a move is awaited. */
+    DiceRoll rollDice() {
+        DiceRoll roll = Objects.requireNonNull(dice.roll(level), "the dice returned no roll");
+        sixesInRow = roll.regular() == 6 ? sixesInRow + 1 : 0;
+        if (sixesInRow == SIXES_LIMIT) {
+            roll = new DiceRoll(roll.regular(), roll.specialType(), roll.special(), roll.movement(),
+                    roll.surpriseRoll(), true);
+            bonusRoll = false;
+        } else {
+            bonusRoll = roll.regular() == 6;
         }
+        lastRoll = roll;
+        cachedMoves = null;
+        state = awaitingMove;
+        return roll;
+    }
+
+    /** The legal moves of the last roll, asked once from the move engine; none for a cancelled roll (FR-22). */
+    Map<Piece, Move> computeLegalMoves() {
+        if (lastRoll == null || lastRoll.cancelled()) {
+            return Map.of();
+        }
+        if (cachedMoves == null) {
+            Map<Piece, Move> moves = moveEngine.legalMoves(current(), lastRoll);
+            cachedMoves = Collections.unmodifiableMap(new LinkedHashMap<>(moves));
+        }
+        return cachedMoves;
+    }
+
+    /** Applies a legal move and chooses the next state: game over, extra roll or end of turn (FR-21, FR-43). */
+    MoveResult applyMove(Piece piece) {
+        Move move = computeLegalMoves().get(piece);
+        if (move == null) {
+            throw new IllegalArgumentException(piece + " has no legal move with this roll");
+        }
+        MoveResult result = Objects.requireNonNull(moveEngine.apply(move), "the move engine returned no result");
+        cachedMoves = null;
+        Player mover = current();
+        if (result.pieceFinished()) {
+            ranking.onPieceFinished(mover);
+        }
+        if (ranking.isGameOver()) {
+            state = gameOver;
+            bonusRoll = false;
+        } else if (ranking.hasFinished(mover)) {
+            bonusRoll = false; // a finished player takes no more turns (FR-43)
+            state = moved;
+        } else {
+            state = bonusRoll ? awaitingRoll : moved;
+        }
+        return result;
+    }
+
+    /** @throws IllegalStateException if the player has not rolled, must still move (FR-20) or roll again (FR-21) */
+    void requireTurnCanEnd() {
         if (lastRoll == null) {
             throw new IllegalStateException("The active player has not rolled yet");
         }
@@ -199,31 +220,40 @@ public final class StandardTurnManager implements TurnManager {
         if (hasBonusRoll()) {
             throw new IllegalStateException("The player rolled a 6 and rolls again (FR-21)");
         }
-        String message = null;
-        if (phase == TurnPhase.AWAITING_MOVE) {
-            Player p = current();
-            message = lastRoll.cancelled()
-                    ? p.name() + " rolled a third 6 in a row: the roll is cancelled and the turn ends."
-                    : p.name() + " has no legal move with a " + lastRoll.movement() + "; the turn passes.";
-        }
+    }
+
+    /** @return the message for a turn that ends without a move: a cancelled third 6 (FR-22) or no move (FR-23) */
+    String noMoveMessage() {
+        Player p = current();
+        return lastRoll.cancelled()
+                ? p.name() + " rolled a third 6 in a row: the roll is cancelled and the turn ends."
+                : p.name() + " has no legal move with a " + lastRoll.movement() + "; the turn passes.";
+    }
+
+    /** Clears the turn and passes it to the next player who has not finished (FR-15, FR-43, FR-44). */
+    String passTurn(String message) {
         lastRoll = null;
         cachedMoves = null;
         sixesInRow = 0;
         bonusRoll = false;
         if (ranking.isGameOver()) {
-            phase = TurnPhase.GAME_OVER;
+            state = gameOver;
             return message;
         }
         for (int step = 1; step <= players.size(); step++) {
             int next = (currentIndex + step) % players.size();
             if (!ranking.hasFinished(players.get(next))) {
                 currentIndex = next;
-                phase = TurnPhase.AWAITING_ROLL;
+                state = awaitingRoll;
                 return message;
             }
         }
-        phase = TurnPhase.GAME_OVER; // nobody is left to play
+        state = gameOver; // nobody is left to play
         return message;
+    }
+
+    boolean bonusRoll() {
+        return bonusRoll;
     }
 
     Dice dice() {

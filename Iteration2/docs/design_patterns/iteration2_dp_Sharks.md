@@ -2,7 +2,7 @@
 
 Assembly file of task **N2-05** ([#71](https://github.com/shafeekseef81-svg/Sharks/issues/71)), assembled by Shafeek Saif from the sections the pattern owners write. The deliverable is the Word or PDF file `iteration2_dp_Sharks` (Assignment 5, deliverable 4), due with the submission on 06/12/2026 23:59 (internal deadline 05/12).
 
-**Status 19/11: skeleton.** The four sections exist, but none of them is merged into `iteration-2` yet (see the table in section 2).
+**Status 23/11.** All four sections have headings 1–6. Strategy and State are merged into `iteration-2`, and the rest is in open PRs (see the table in section 2).
 
 ## 1. What the assignment asks for
 - Each student implements one design pattern. Singleton and MVC do not count. A pattern that was not taught in the course needs the TA's approval several days before the deadline.
@@ -14,12 +14,12 @@ Assembly file of task **N2-05** ([#71](https://github.com/shafeekseef81-svg/Shar
 
 Order in the document: the order in which a turn uses them (dice → turn phases → question → effects).
 
-| # | Pattern (GoF) | Problem it solves | Task | Owner | Section file | Status 19/11 |
+| # | Pattern (GoF) | Problem it solves | Task | Owner | Section file | Status 23/11 |
 |---|---|---|---|---|---|---|
-| 1 | Strategy (behavioural) | A different die and movement formula per level (FR-16, FR-17) | T2-04 [#55](https://github.com/shafeekseef81-svg/Sharks/issues/55) | Shafeek Saif | `Strategy_Shafeek.md` | in PR #88, waiting for a Light review |
-| 2 | State (behavioural) | What the player may do in each phase of a turn (D3, NFR-09) | T2-13 [#64](https://github.com/shafeekseef81-svg/Sharks/issues/64) | Rakan Ziyan | `State_Rakan.md` | in PR #79, Deep review 1/2 |
-| 3 | Factory Method (creational) | A question of the square's own level, without a `switch` on the level (FR-34..FR-37) | T2-08 [#59](https://github.com/shafeekseef81-svg/Sharks/issues/59) | Mohamed Zereny | `FactoryMethod_Mohamed.md` (today `Iteration2/docs/T2-08_FactoryMethod.md`; a move into this folder was asked in the review of #89) | in PR #89, Deep review 1/2 |
-| 4 | Command (behavioural) | Question and surprise effects run in order, with the game rules and a chain guard (FR-41, FR-42) | T2-10 [#61](https://github.com/shafeekseef81-svg/Sharks/issues/61) | Shafeek Saif | `Command_Shafeek.md` | part 1 in PR #87 (Deep 1/2); part 2 updates it |
+| 1 | Strategy (behavioural) | A different die and movement formula per level (FR-16, FR-17) | T2-04 [#55](https://github.com/shafeekseef81-svg/Sharks/issues/55) | Shafeek Saif | `Strategy_Shafeek.md` | merged (#88, 22/11) |
+| 2 | State (behavioural) | What the player may do in each phase of a turn (D3, NFR-09) | T2-13 [#64](https://github.com/shafeekseef81-svg/Sharks/issues/64) | Rakan Ziyan | `State_Rakan.md` | merged with #79 (22/11); the `ResolvingState` update and the trade-offs are in #96, which merges after #92 |
+| 3 | Factory Method (creational) | A question of the square's own level, without a `switch` on the level (FR-34..FR-37) | T2-08 [#59](https://github.com/shafeekseef81-svg/Sharks/issues/59) | Mohamed Zereny | `FactoryMethod_Mohamed.md` (moved here from `Iteration2/docs/T2-08_FactoryMethod.md` in #98) | code merged (#89); the section is in #98, approved, with one fix before merge |
+| 4 | Command (behavioural) | Question and surprise effects run in order, with the game rules and a chain guard (FR-41, FR-42) | T2-10 [#61](https://github.com/shafeekseef81-svg/Sharks/issues/61) | Shafeek Saif | `Command_Shafeek.md` | part 1 merged (#87); part 2 in #92 (Deep 2/2); the trade-offs (section 6) are in a PR stacked on #92 |
 
 ## 3. One structure for every section
 
@@ -34,10 +34,10 @@ Each section uses the same headings, so the document reads as one text:
 
 | Section | 1–5 | 6 | Screenshot list | To do |
 |---|---|---|---|---|
-| Strategy | yes | "Use in the rest of Iteration 2" | yes | add the trade-offs |
-| State | yes | "Extension in Iteration 2" | yes | mention `ResolvingState` (T2-10 part 2) once it is merged |
-| Factory Method | different headings | "Benefits and trade-offs" | no | map to headings 1–6, shorten, add a screenshot list, move the file |
-| Command | yes | no | yes | add the trade-offs; update the tests after part 2 |
+| Strategy | yes | "Trade-offs" | yes | done (#88) |
+| State | yes | "Trade-offs" (in #96) | yes | merge #96 after #92 |
+| Factory Method | yes, with longer heading names (#98) | "Trade-offs and alternatives" | yes (#98) | merge #98; for the document, drop the review history and align the heading names (review of #98) |
+| Command | yes | "Trade-offs" | yes | merge after #92 |
 
 ## 4. Assembly steps (by 05/12)
 1. Every section is merged into `iteration-2` with its pattern task.

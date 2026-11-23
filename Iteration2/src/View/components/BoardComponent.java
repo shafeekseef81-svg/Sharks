@@ -250,14 +250,39 @@ public class BoardComponent extends JComponent {
         repaint();
     }
 
-    /** Moves a piece square by square with a small hop (NFR-04: at most about 1.6 s). */
+    /** Shortest movement animation, so a single square is still visible (ms). */
+    public static final int MIN_MOVE_MILLIS = 260;
+
+    /**
+     * Longest movement animation (ms). NFR-04 gives every movement two seconds, and the measured time
+     * is this budget plus the Swing timer's latency and the repaints of the frame it ends on. Iteration 2
+     * made the longest movement much longer than Iteration 1's six squares: on Hard a Regular 6 with an
+     * UltraBoost 6 moves 30 squares (FR-17). At the Iteration 1 budget of 1600 ms a 30-square move was
+     * measured at 1702 ms off-screen and at 2140 ms under load (task T2-14, PR #93) - over the limit.
+     * 1200 ms keeps the budget itself well clear of 2000 ms, and still gives 40 ms per square at 30
+     * squares, so the movement stays square by square.
+     */
+    public static final int MAX_MOVE_MILLIS = 1200;
+
+    /** Milliseconds spent on one square before the budget caps the whole movement. */
+    public static final int MILLIS_PER_SQUARE = 120;
+
+    /**
+     * The animation budget of a movement of {@code steps} squares (NFR-04). Public so the timing tests of
+     * NFR-04 can check the budget without repeating its numbers.
+     */
+    public static int moveMillis(int steps) {
+        return Math.max(MIN_MOVE_MILLIS, Math.min(MAX_MOVE_MILLIS, steps * MILLIS_PER_SQUARE));
+    }
+
+    /** Moves a piece square by square with a small hop (NFR-04: at most {@value #MAX_MOVE_MILLIS} ms). */
     public void animateAlong(Piece piece, List<Cell> cells, Runnable done) {
         if (cells.size() < 2) {
             done.run();
             return;
         }
         int steps = cells.size() - 1;
-        int duration = Math.max(260, Math.min(1600, steps * 120));
+        int duration = moveMillis(steps);
         Animations.animate(duration, t -> {
             double pos = t * steps;
             int i = Math.min((int) pos, steps - 1);

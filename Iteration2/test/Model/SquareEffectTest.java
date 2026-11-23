@@ -1,6 +1,7 @@
 package Model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -31,6 +32,12 @@ class SquareEffectTest {
     private Board board;
     private EffectMover mover;
     private EffectQueue queue;
+    private MoveEngine engine;
+    /**
+     * Dice moves go through a turn without effects, so the queue under test is the only one. Since T2-10 part 2
+     * the turn inside {@link GameModel} has a queue of its own, which these unit tests of the queue leave out.
+     */
+    private StandardTurnManager turns;
 
     @BeforeEach
     void setUp() {
@@ -48,9 +55,11 @@ class SquareEffectTest {
         List<Player> players = model.players();
         SquareRules squareRules = new StandardSquareRules(board, players);
         HomePathRules homePathRules = new StandardHomePathRules(board);
-        MoveEngine engine = new StandardMoveEngine(board, players, squareRules, homePathRules);
+        engine = new StandardMoveEngine(board, players, squareRules, homePathRules);
         mover = new EffectMover(board, players, squareRules, homePathRules, engine);
         queue = new EffectQueue(mover);
+        turns = new StandardTurnManager(players, Difficulty.MEDIUM, level -> roll(2), engine,
+                new StandardRankingTracker(players));
     }
 
     // ---------------------------------------------------------------- helpers
@@ -102,19 +111,21 @@ class SquareEffectTest {
         return progress;
     }
 
-    /** A dice move of the first Red piece from {@code from} by the scripted 2, through the real game. */
+    /** A dice move of the first Red piece from {@code from} by the scripted 2, through the real turn rules. */
     private MoveResult diceMove(int from) {
         Piece piece = put(red(0), from);
-        assertEquals(2, model.roll().movement(), "the scripted dice roll 2");
-        return model.move(piece);
+        assertEquals(2, turns.roll().movement(), "the scripted dice roll 2");
+        return turns.move(piece);
     }
 
-    /** Lets Blue pass (no piece out, no move), rolls the scripted 2 for Red and returns {@code piece}. */
+    /** Ends Red's turn, lets Blue pass (no piece out, no move), rolls the scripted 2 for Red and returns {@code piece}. */
     private Piece rollForRed(Piece piece) {
-        while (model.currentPlayer() != model.playerOf(PlayerColor.RED)) {
-            model.roll();
+        turns.endTurn();
+        while (turns.current() != model.playerOf(PlayerColor.RED)) {
+            turns.roll();
+            turns.endTurn(); // Blue has no piece out: no legal move (FR-23)
         }
-        model.roll();
+        turns.roll();
         return piece;
     }
 
@@ -330,6 +341,17 @@ class SquareEffectTest {
     }
 
     @Test
+    @DisplayName("A piece leaving its castle activates no square: only a STEPS move does (review of #87)")
+    void castleExitActivatesNothing() {
+        Square surprise = mark(5, SquareType.SURPRISE);
+        Piece piece = red(0);
+        MoveResult exit = new MoveResult(piece, MoveResult.Kind.EXIT_CASTLE, Piece.IN_CASTLE, 5,
+                List.of(surprise.cell()), null, List.of(), surprise, false, false, false);
+        queue.start(exit);
+        assertTrue(queue.isEmpty(), "even on a special square, an exit from the castle starts no chain");
+    }
+
+    @Test
     @DisplayName("R2 chain guard: a square is activated once per chain, so the chain ends; the next dice move resets it")
     void eachSquareOncePerChain() {
         Square q7 = mark(7, SquareType.QUESTION);
@@ -343,7 +365,7 @@ class SquareEffectTest {
         assertTrue(queue.isEmpty());
 
         // A new dice move starts a new chain: 5 -> 7 activates q7 again.
-        queue.start(model.move(rollForRed(piece)));
+        queue.start(turns.move(rollForRed(piece)));
         assertSame(q7, queue.next().square());
     }
 
@@ -368,7 +390,7 @@ class SquareEffectTest {
         assertTrue(queue.isEmpty());
 
         mark(3, SquareType.SURPRISE);
-        queue.start(model.move(rollForRed(put(red(1), 1))));
+        queue.start(turns.move(rollForRed(put(red(1), 1))));
         EffectQueue.Activation skipped = queue.skip(); // e.g. "skip the next turn" moves no piece
         assertSame(red(1), skipped.piece());
         assertTrue(queue.isEmpty());
@@ -389,5 +411,29 @@ class SquareEffectTest {
                 "red 2 is still in its castle");
         assertSame(red(0), queue.next().piece(), "the square still waits");
         assertThrows(NullPointerException.class, () -> queue.run(null));
+    }
+    @Test
+    @DisplayName("T2-10, T2-13: while a square waits (RESOLVING) the turn cannot end, roll or move, and nothing changes")
+    void resolvingRefusesTheOtherRequests() {
+        List<Player> players = model.players();
+        StandardTurnManager resolving = new StandardTurnManager(players, Difficulty.MEDIUM, level -> roll(3), engine,
+                new StandardRankingTracker(players), queue);
+        mark(5, SquareType.QUESTION);
+        Piece piece = put(red(0), 2);
+        resolving.roll();
+        resolving.move(piece);
+        assertEquals(TurnPhase.RESOLVING, resolving.phase());
+        Player red = resolving.current();
+
+        assertThrows(IllegalStateException.class, resolving::endTurn);
+        assertThrows(IllegalStateException.class, resolving::roll);
+        assertThrows(IllegalStateException.class, () -> resolving.move(piece));
+        assertFalse(resolving.canRoll());
+        assertTrue(resolving.legalMoves().isEmpty());
+
+        assertEquals(TurnPhase.RESOLVING, resolving.phase(), "the refusals change nothing");
+        assertSame(red, resolving.current());
+        assertEquals(on(PlayerColor.RED, 5), piece.progress());
+        assertSame(piece, queue.next().piece(), "the square still waits");
     }
 }

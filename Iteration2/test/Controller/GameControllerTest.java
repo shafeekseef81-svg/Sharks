@@ -2,6 +2,7 @@ package Controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -31,6 +32,10 @@ import Model.GameSettings;
 import Model.Piece;
 import Model.Player;
 import Model.PlayerColor;
+import Model.Question;
+import Model.TurnPhase;
+import View.QuestionDialog;
+import View.SurpriseDialog;
 import View.components.Animations;
 import View.components.ModalOverlay;
 
@@ -220,6 +225,57 @@ class GameControllerTest {
             assertTrue(texts(nav.resultsView()).contains("2 players"));
             assertTrue(texts(nav.resultsView()).contains("Easy"), "FR-47: the level is shown");
         });
+    }
+
+    @Test
+    @DisplayName("T2-10, T2-11, FR-34, FR-39: full Medium and Hard games answer the question and surprise cards and "
+            + "end on the results screen")
+    void questionAndSurpriseCardsInFullGames() throws Exception {
+        int[] cards = new int[2]; // questions, surprises
+        for (Difficulty level : List.of(Difficulty.MEDIUM, Difficulty.HARD)) {
+            onEdt(() -> {
+                nav.startGame(new GameSettings(level, List.of(
+                        new GameSettings.PlayerSetup("Rakan", PlayerColor.RED),
+                        new GameSettings.PlayerSetup("Mohamed", PlayerColor.YELLOW),
+                        new GameSettings.PlayerSetup("Shafeek", PlayerColor.GREEN))), new Random(11));
+                GameModel m = model();
+                int steps = 0;
+                while (!NavigationController.RESULTS.equals(nav.currentScreen())) {
+                    assertTrue(++steps < 50_000, "the game must end: " + level);
+                    ModalOverlay open = ModalOverlay.top();
+                    if (open == null) {
+                        assertFalse(game().isBusy(), "instant mode: nothing is left running between clicks");
+                        if (m.legalMoves().isEmpty()) {
+                            game().roll();
+                        } else {
+                            game().pieceSelected(m.legalMoves().keySet().iterator().next());
+                        }
+                        continue;
+                    }
+                    assertEquals(TurnPhase.RESOLVING, m.phase(), "a card is open only while a square waits");
+                    assertTrue(game().isBusy(), "rolls and clicks are ignored while the card is open");
+                    if (open.card() instanceof QuestionDialog question) {
+                        cards[0]++;
+                        assertEquals(m.pendingEffect().square().questionLevel(), question.question().level(),
+                                "FR-34: the square's level");
+                        question.submit(steps % Question.ANSWER_COUNT);
+                        question.continueButton().doClick();
+                    } else {
+                        SurpriseDialog surprise = assertInstanceOf(SurpriseDialog.class, open.card());
+                        cards[1]++;
+                        if (surprise.targetCount() > 0) {
+                            surprise.targetChip(0).doClick();
+                        }
+                        surprise.confirm();
+                    }
+                    assertNotSame(open, ModalOverlay.top(), "the card closes after the answer");
+                }
+                assertTrue(m.isGameOver());
+                assertEquals(3, m.ranking().size());
+            });
+        }
+        assertTrue(cards[0] > 0, "question cards were shown");
+        assertTrue(cards[1] > 0, "surprise cards were shown");
     }
 
     // ------------------------------------------------------------------ leaving

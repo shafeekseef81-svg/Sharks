@@ -25,6 +25,10 @@ import java.util.Map;
  * <p><b>Iteration 2 hook (T2-10):</b> the effect queue of question and surprise squares adds a state for
  * {@link TurnPhase#RESOLVING}, entered from {@link AwaitingMoveState} after a move that lands on such a square and
  * left when the queue is empty. No other state has to change.
+ *
+ * <p>T2-10 part 2 added {@link ResolvingState} and the four effect requests at the end of this interface. They
+ * are default methods that refuse, so the four states above did not change: only {@link ResolvingState}
+ * overrides them, and it refuses roll, move and end-turn in return.
  */
 interface TurnState {
 
@@ -71,6 +75,54 @@ interface TurnState {
      * @throws IllegalStateException if the turn may not end in this state
      */
     String endTurn(StandardTurnManager turn);
+
+    // ------------------------------------------------------------------ effects of special squares (T2-10)
+
+    /**
+     * Carries out the effect of the special square that waits (FR-35, FR-39..FR-42).
+     *
+     * @param turn   the context
+     * @param effect the command made from the answer or the surprise
+     * @return the result of the command
+     * @throws IllegalStateException if no special square waits in this state
+     */
+    default MoveResult runEffect(StandardTurnManager turn, SquareEffect effect) {
+        throw TurnState.refused("No special square is waiting for an effect", this);
+    }
+
+    /**
+     * Resolves the special square that waits without moving a piece: a surprise that moves none, or a push
+     * with no opponent to push (FR-40).
+     *
+     * @param turn the context
+     * @throws IllegalStateException if no special square waits in this state
+     */
+    default void skipEffect(StandardTurnManager turn) {
+        throw TurnState.refused("No special square is waiting for an effect", this);
+    }
+
+    /**
+     * The surprise "skip the next turn": the player misses their next turn, and a pending roll from a 6 is
+     * cancelled (SRS Table 2, Q56).
+     *
+     * @param turn   the context
+     * @param player the player who misses the turn
+     * @throws IllegalStateException if no surprise is being resolved in this state
+     */
+    default void skipNextTurn(StandardTurnManager turn, Player player) {
+        throw TurnState.refused("A turn can only be skipped by a surprise", this);
+    }
+
+    /**
+     * The surprise "extra roll": one more roll with the Regular and UltraBoost dice, outside the rule of 6
+     * (SRS Table 2, Q27).
+     *
+     * @param turn the context
+     * @throws IllegalStateException if no surprise is being resolved in this state
+     */
+    default void grantSurpriseRoll(StandardTurnManager turn) {
+        throw TurnState.refused("An extra roll can only come from a surprise", this);
+    }
 
     /** Builds the exception for a request this state refuses. */
     static IllegalStateException refused(String what, TurnState state) {

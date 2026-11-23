@@ -7,6 +7,7 @@ import java.util.Random;
 import javax.swing.Timer;
 
 import Model.DiceRoll;
+import Model.EffectQueue;
 import Model.GameClock;
 import Model.GameEvent;
 import Model.GameModel;
@@ -15,10 +16,15 @@ import Model.Move;
 import Model.MoveResult;
 import Model.Piece;
 import Model.Player;
+import Model.SquareType;
+import Model.TurnPhase;
 import View.GameBoardView;
 import View.GameBoardView.StatusKind;
+import View.QuestionDialog;
+import View.SurpriseDialog;
 import View.components.Animations;
 import View.components.BoardComponent;
+import View.components.ModalOverlay;
 import View.components.Theme;
 
 /**
@@ -44,6 +50,8 @@ public final class GameController {
     private boolean busy;
     /** Message of the last {@link GameEvent.Type#TURN_PASSED} event (FR-22, FR-23), or null. */
     private String passMessage;
+    /** Players passed over by the surprise "skip the next turn" (Q56), announced when the next turn starts. */
+    private String skipNews = "";
     /** Increases with every new game, so delayed actions of an old game do nothing. */
     private int generation;
 
@@ -65,6 +73,7 @@ public final class GameController {
         generation++;
         busy = false;
         passMessage = null;
+        skipNews = "";
         model = new GameModel(settings, random);
         view = new GameBoardView();
         view.setActions(this::roll, () -> nav.confirmLeaveGame(nav::showMainMenu));
@@ -94,6 +103,9 @@ public final class GameController {
     private void onModelEvent(GameEvent event) {
         if (event.type() == GameEvent.Type.TURN_PASSED) {
             passMessage = event.message();
+        }
+        if (event.type() == GameEvent.Type.TURN_SKIPPED) {
+            skipNews += event.message() + " "; // shown when the next turn starts (Q56)
         }
         view.refresh();
     }
@@ -211,20 +223,81 @@ public final class GameController {
         }
     }
 
+    /**
+     * After a dice move or an effect move ({@code r} is null when an effect moved no piece): the end of the game,
+     * the next special square (T2-10), another roll, or the next turn.
+     */
     private void afterMove(Player mover, MoveResult r) {
         view.refresh();
-        String news = announce(mover, r);
-        if (r.gameOver() || model.isGameOver()) {
+        // The piece's owner made the capture or the finish; after an effect it may be an opponent (FR-42).
+        String news = r == null ? "" : announce(model.playerOf(r.piece().color()), r);
+        if ((r != null && r.gameOver()) || model.isGameOver()) {
             view.setStatus(news + "Game over!", StatusKind.SUCCESS);
             later(GAME_OVER_DELAY_MS, this::finishGame);
             return;
         }
+        if (model.phase() == TurnPhase.RESOLVING) {
+            resolveEffect(mover, news);
+            return;
+        }
         if (model.currentPlayer() == mover) {
-            // Same player again: the move was made with a 6 (FR-21).
+            // Same player again: the move was made with a 6 (FR-21), or a surprise gave an extra roll (Q27).
+            DiceRoll last = model.lastRoll();
+            boolean six = last != null && last.regular() == 6 && !last.surpriseRoll();
             view.board().showBanner("Roll again!", Theme.player(mover.color()));
-            startTurn(news + mover.name() + " rolled a 6: roll again!", StatusKind.SUCCESS);
+            startTurn(news + mover.name() + (six ? " rolled a 6: roll again!" : " has an extra roll: roll again!"),
+                    StatusKind.SUCCESS);
         } else {
             startTurn(news, news.isEmpty() ? StatusKind.INFO : StatusKind.SUCCESS);
+        }
+    }
+
+    // ------------------------------------------------------------------ special squares (T2-10, T2-11)
+
+    /**
+     * Shows the card of the waiting question or surprise square over the board (FR-34, FR-39, NFR-05). The active
+     * player answers or chooses, whoever owns the piece that reached the square (FR-34, FR-40). The card has no
+     * Escape action, so the turn cannot go on before the square is resolved.
+     */
+    private void resolveEffect(Player turnPlayer, String news) {
+        busy = true;
+        view.board().clearTargets();
+        view.board().setInteractive(false);
+        view.setControls(false, true);
+        EffectQueue.Activation waiting = model.pendingEffect();
+        String active = model.currentPlayer().name();
+        ModalOverlay[] holder = new ModalOverlay[1];
+        if (waiting.square().type() == SquareType.QUESTION) {
+            view.setStatus(news + active + " answers a question.", StatusKind.INFO);
+            QuestionDialog card = new QuestionDialog(model.pendingQuestion(), active, model::judgeAnswer,
+                    result -> {
+                        holder[0].close();
+                        afterEffect(turnPlayer, model.applyAnswer(result));
+                    });
+            holder[0] = nav.overlay(card);
+        } else {
+            view.setStatus(news + "Surprise for " + active + "!", StatusKind.INFO);
+            SurpriseDialog card = new SurpriseDialog(model.pendingSurprise(), color -> model.playerOf(color).name(),
+                    model::resolveSurprise, result -> {
+                        holder[0].close();
+                        afterEffect(turnPlayer, model.applySurprise(result));
+                    });
+            holder[0] = nav.overlay(card);
+        }
+    }
+
+    /** Animates the move of an effect, if it moved a piece, then goes on as after a dice move (FR-42). */
+    private void afterEffect(Player turnPlayer, MoveResult r) {
+        int game = generation;
+        Runnable next = () -> {
+            if (game == generation) {
+                afterMove(turnPlayer, r);
+            }
+        };
+        if (r == null) {
+            next.run();
+        } else {
+            animate(r, next);
         }
     }
 
@@ -260,7 +333,9 @@ public final class GameController {
         view.board().setInteractive(false);
         view.resetDice();
         view.setControls(true, true);
-        view.setStatus(prefix + model.currentPlayer().name() + ", roll the dice.", kind);
+        String skipped = skipNews;
+        skipNews = "";
+        view.setStatus(prefix + skipped + model.currentPlayer().name() + ", roll the dice.", kind);
         view.refresh();
     }
 

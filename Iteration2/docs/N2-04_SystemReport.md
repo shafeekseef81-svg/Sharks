@@ -104,10 +104,10 @@ input.
 | 2 | A complete **Medium** game: 17x17 board, 1 outer ring, 116 track squares, Boost die | **verified automatically** - section 3(e) |
 | 3 | A complete **Hard** game: 19x19 board, 2 outer rings, 188 track squares, UltraBoost die | **verified automatically** - section 3(e) |
 | 4 | **Double Blocks**: forming one, being stopped by an opponent's, breaking it | **verified automatically** - section 3(e) |
-| 5 | **Questions**: a question of the square's level, a right and a wrong answer | **TODO** - T2-08 (#89) and T2-10 (#87/#92) not merged |
-| 6 | **Surprises**: each of the six outcomes, and moving an opponent's piece | **TODO** - T2-09 (#90) and T2-10 not merged |
-| 7 | **Chained effects**: an effect landing on another special square | **TODO** - T2-10 not merged |
-| 8 | **Turn phases** refusing an illegal action | **TODO** - T2-13 (#79) not merged |
+| 5 | **Questions**: a question of the square's level, a right and a wrong answer | **TODO on `iteration-2`** - T2-08 (#89) and T2-10 part 1 (#87) are merged, but nothing asks a question until the wiring in **#92** merges. Verified automatically on the integration candidate - section 3(e) |
+| 6 | **Surprises**: each of the six outcomes, and moving an opponent's piece | **TODO on `iteration-2`** - needs T2-09 (#90) and **#92**. Verified automatically on the integration candidate, where all six outcomes are drawn - section 3(e) |
+| 7 | **Chained effects**: an effect landing on another special square | **TODO on `iteration-2`** - needs **#92**. Verified automatically on the integration candidate, though chains are rare in natural play - section 3(e) |
+| 8 | **Turn phases** refusing an illegal action | **verified automatically** - T2-13 (#79) merged as `c689a85`, and `TurnStateTest` is on the baseline. The `RESOLVING` phase itself is only ever entered once **#92** merges |
 
 ---
 

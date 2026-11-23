@@ -4,6 +4,8 @@ Task **T2-14** · Issue [#65](https://github.com/shafeekseef81-svg/Sharks/issues
 
 **This is a snapshot, not the final check.** The final check runs on `iteration-2` after the last merge (05/12) with the same script. This snapshot was measured on `iteration-2` `e9f6b2e` with every open PR that touches code or tests merged locally: #92, #95, #96, #97, #98, #103, #104 and #105 (#105 carries #99). Result: **700/700** tests, no conflicts. The first snapshot (19/11, `6e13bcf`, 641/641) is in the history of this file.
 
+**Update 23/11 afternoon.** #81, #92, #97 and #98 are now merged (`iteration-2` `4640416`). Measured again there with every PR that is still open merged locally (#95, #96, #99, #103, #104, #106, #107, #108): **700/700**, no conflicts.
+
 ## 1. Timing (NFR-02, NFR-04): `Iteration2/test/View/TimingTest.java`
 
 `TimingTest` prints a time only when it fails, so the times were read by setting the limit to 1 ms in a scratch copy. Two ways of running it give different times. In the full suite (`test.sh`) the JVM is already warm. On its own (`--select-class View.TimingTest`) the JVM is cold, which is closer to the first move after the program starts.
@@ -15,14 +17,14 @@ Task **T2-14** · Issue [#65](https://github.com/shafeekseef81-svg/Sharks/issues
 | NFR-04 | The longest move: Regular 6 × (UltraBoost 6 − 1) = 30 squares, animated square by square. | **1294–1319 ms** | **1612–1737 ms** | 2000 ms |
 | NFR-04 | The surprise jumps to the castle and to the finish. | 993 / 868–889 ms | 968–1051 / 852–889 ms | 2000 ms |
 
-**The risk of 19/11 is handled by #97, which must merge before the CP1 run.** On 19/11 the 30-square move took 1702 ms in the full suite, with a 1600 ms animation cap. #97 (Mohamed) lowers the cap to 1200 ms (`BoardComponent.MAX_MOVE_MILLIS`). Measured on 23/11, 3 cold runs each:
+**The risk of 19/11 is handled by #97, merged on 23/11 (`1f099f2`).** On 19/11 the 30-square move took 1702 ms in the full suite, with a 1600 ms animation cap. #97 (Mohamed) lowers the cap to 1200 ms (`BoardComponent.MAX_MOVE_MILLIS`). Measured on 23/11, 3 cold runs each:
 
 | Build | 30-square move, alone (cold JVM) |
 |---|---|
 | `iteration-2` `e9f6b2e`, without #97 | 1992, 2008, 2043 ms (**2 of 3 runs fail**) |
 | `iteration-2` + #97 | 1612, 1659, 1668 ms |
 
-The release script (#81) stops on any failed test. So without #97 the CP1 run can fail at random.
+The release script (#81, merged on 23/11) stops on any failed test. Without #97 the CP1 run could have failed at random, so #97 had to merge first, and it did.
 
 **The 30-square move is not Hard-only.** The `EXTRA_ROLL` surprise rolls the Regular and UltraBoost dice on every level (SRS Table 2, Q27), so a Medium move can also reach 30 squares (found in #105). The budget caps by distance, not by level, so the row above covers both levels.
 

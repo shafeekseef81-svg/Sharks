@@ -9,15 +9,19 @@ Nothing in this file is recorded as passed unless it was actually run and its nu
 
 ## 1. What this task has to accept, and what the baseline allows today
 
-The baseline for acceptance is `iteration-2`, today at **`1d47f2d`** (`e9f6b2e` earlier on 23/11,
-`d445a38` on 22/11, `6e13bcf` on 21/11).
+The baseline for acceptance is `iteration-2`, now at **`4640416`** (`1d47f2d` and `e9f6b2e` earlier on
+23/11, `d445a38` on 22/11, `6e13bcf` on 21/11).
 
 **Merged into it:** T2-01 (#84), T2-02 (#82), T2-03 (#83), T2-04 (#76, #80), T2-05 (#78), T2-06 (#77),
 T2-07 (#85), T2-08 (#89, `5540f53`), T2-10 part 1 (#87, `e2bbdaa`), T2-13 (#79, `c689a85`), T2-14 (#93),
 and — **new on 23/11** — **T2-09 (#90, `36661fc`)**, **T2-11 (#91, `12a01b6`)** and **T2-10 part 2
 (#92, `1d47f2d`)**.
 
-**Not merged:** NFR-04 (#97, approved), T2-12 (#95, approved).
+**Merged later on 23/11, after the first version of this plan:** N2-06 release tooling (#81, `9fea81d`),
+**NFR-04 (#97, `1f099f2`)**, T2-08 the pattern document (#98, `9c8c83f`) and N2-04 testing evidence
+(#102, `4640416`).
+
+**Not merged:** T2-12 (#95, approved), N2-05 the State section (#96, approved), and this PR with #103.
 
 > **History of this paragraph, kept so the corrections are traceable.** On 21/11 it listed T2-08, T2-10,
 > T2-13 and T2-14 as not merged; all four merged on 22/11. It then said the one remaining dependency for the
@@ -64,13 +68,19 @@ Games are played to their end through the `GameModel` facade with the real dice,
 all the real rule classes; there are no stubs and no fixed dice, so a pass means a player really can play
 that game. Deterministic seeds are used so a failure can be reproduced exactly.
 
-Measured on **23/11/2026**, branch `feature/mohamed/T2-15-acceptance` merged with `iteration-2`
-(**`1d47f2d`**, i.e. with #90, #91 and #92 in), Java 17 (Temurin 17.0.17), `Iteration2/test.sh`:
+Re-measured on **23/11/2026** against the current baseline, branch
+`feature/mohamed/T2-15-acceptance` merged with `iteration-2` (**`4640416`**, i.e. with #81, #97, #98 and
+#102 in as well), giving `3b31345`. Java 17 (Temurin 17.0.17), `Iteration2/test.sh`:
 
 * `Model.MediumHardAcceptanceTest` alone: **7 found, 7 successful, 0 failed**
-* the whole suite with it: **663 found, 663 successful, 0 failed**
-* the suite without it, i.e. the `iteration-2` baseline: **656** tests
+* the whole suite with it: **667 found, 667 successful, 0 failed**
+* the suite without it, i.e. the `iteration-2` baseline: **660** tests
 * `EducationalLudo.jar` builds
+* merged together with #103 (`b97dc0c`): **675/675**, and **675/675** again with the two merged in the
+  opposite order (`e0051c7`), so this PR and #103 do not depend on each other
+
+The figures on the previous baseline, kept so nothing looks rewritten: 7/7 with **663/663** on `1d47f2d`,
+where the baseline was **656**.
 
 Earlier figures for the same seven tests, kept so the growth is traceable: 7/7 with **547/547** on
 `e9f6b2e` (earlier on 23/11, before #92), 7/7 with **538/538** on `d445a38` (22/11), and 7/7 with

@@ -194,30 +194,46 @@ factories and effect queue - nothing scripted, nothing stubbed:
 | three complete **Medium** games, same | US-2.3 on Medium |
 | a game completes when **every answer is wrong** | FR-35 backward movement cannot deadlock a game |
 | a game completes when the player **always declines** | **D3** through real play |
-| distinct questions keep being dealt over a whole game | FR-37 in real play |
+| within one game, no question of a level repeats before that level's deck is used up | FR-37 in real play, as far as natural play can reach it |
+| the D2 turn-outcome check is reached in real play, and its cross-player case is not | **D2**, with its limit stated rather than implied |
 | phases always declared; `RESOLVING` only while a square waits | **US-2.4** / NFR-09 invariant |
 | rolling refused and no move offered while a square waits | NFR-09 reached by playing |
 
-**Measured on 22/11/2026** (Java 17, Temurin 17.0.17): full suite on that branch **602/602**, of which 7 are
-new; `EffectsAcceptanceTest` **7/7**; JAR builds. What the games really exercised:
+**Measured on 23/11/2026** (Java 17, Temurin 17.0.17) on `feature/mohamed/T2-15-effects-acceptance`
+(`50420fd`) over #92 (`9a22814`): `EffectsAcceptanceTest` **8/8**, full suite **664/664**, JAR builds.
+What the games really exercised:
 
-| Level | Seeds | Questions | Surprises | Chained effects | Finished |
-|---|---|---|---|---|---|
-| Hard | 1-5 | **94** (all distinct ids) | **22** | 2 | 3 of 4 every game |
-| Medium | 1-3 | **81** | **22** | 3 | 3 of 4 every game |
+| Level | Seeds | Questions asked | Distinct ids within each game | Distinct ids across the games | Surprises | Chain steps | Finished |
+|---|---|---|---|---|---|---|---|
+| Hard | 1-5 | **94** | **every question of a game was different** (0 repeats in any game) | **34** | **22** | 2 | 3 of 4 every game |
+| Medium | 1-3 | **81** | the same, 0 repeats in any game | **36** | **22** | 3 | 3 of 4 every game |
 
-**Two limits worth knowing, because they change what still needs covering:**
+> **Corrected 23/11/2026 — "94 questions, all distinct ids" was not supportable.** The course bank holds
+> **36** questions, 12 of each level (`Model/CourseQuestions`), and each game builds its own decks, so 94
+> *distinct* ids cannot exist: 94 is the number of questions **asked** over five games, and only **34**
+> distinct ids appear among them. What is true, and is the FR-37 property worth claiming, is that **within a
+> single game no question was ever asked twice** — measured, 0 repeats in any of the eight games. The three
+> things were being conflated, and the table above now separates them.
+
+**Three limits worth knowing, because they change what still needs covering:**
 
 1. **The cross-player D2 case never occurred** in any of the eight games - the counter stayed at 0. A turn
    outcome landing in a chain an *opponent's* piece set off is too rare to appear naturally. The D2 assertion
    in P12 is a standing guard, **not evidence**. What covers D2 is Rakan's scripted
    `skipFromAnOpponentsPieceFallsOnTheActivePlayer` in T2-12 (#95) - his mutation check shows it is the only
    test in the suite that catches a broken D2.
-2. **Chained effects are rare in natural play** - 2 in five Hard games. P12 shows chains happen and terminate;
-   it does not systematically exercise them. The scripted chain tests of T2-12 remain the real FR-42 coverage.
+2. **Chained effects are rare in natural play** - 2 chain steps in five Hard games, longest chain 2 effects.
+   P12 shows chains happen and terminate; it does not systematically exercise them, and it never approaches
+   the FR-42 chain guard. The scripted chain tests of T2-12 and #92 remain the real FR-42 coverage.
+3. **No level's deck is ever used up**, so **FR-37's reshuffle is not reached by natural play.** The most
+   questions of one level in one game is exactly **12**, which is the deck size, and no game passes it. P12
+   therefore covers the "no repeat until the level is exhausted" half of FR-37 and not the "then shuffle
+   again and keep dealing" half; that half is covered in isolation by `QuestionFactoryTest`, which can
+   exhaust a deck on purpose.
 
-Neither of these is a reason to weaken P12; they are the reason the independent scripted tests of T2-12 are
-not redundant with it.
+None of these is a reason to weaken P12; they are the reason the independent scripted tests of T2-12 are not
+redundant with it. All three are now stated inside `EffectsAcceptanceTest` itself, so a reader of the test
+does not have to find this document to learn them.
 
 ## 4. Manual test script
 

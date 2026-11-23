@@ -35,10 +35,10 @@ procedure (`Iteration1/docs/N07_Release.md`):
 | 2 | JAR: Main-Class `Controller.Main`, Java 17 class files | PASS, 194,338 bytes | PASS, 261,533 bytes | |
 | 3 | `test.sh` in the staged copy: tests ran, 0 failed (count recorded) | PASS, 380/380 | PASS, **685/685** | |
 | 4 | Unzipped into a path with Hebrew letters, `java -jar EducationalLudo.jar` starts without errors | PASS (computer 1) | PASS (computer 1), nothing on stderr | |
-| 5 | **Double-click** `run.bat` (Windows) opens the game window | | | |
-| 6 | Double-click `EducationalLudo.jar` opens the game window | | | |
-| 7 | Easy, Medium and Hard each start from the setup screen and accept a roll | n/a (Medium/Hard not in setup yet, T2-01) | | |
-| 8 | A full game reaches the results screen | | | |
+| 5 | **Double-click** `run.bat` (Windows) opens the game window | | PASS (computer 1, Rakan) | |
+| 6 | Double-click `EducationalLudo.jar` opens the game window | | PASS (computer 1, Rakan) | |
+| 7 | Easy, Medium and Hard each start from the setup screen and accept a roll | n/a (Medium/Hard not in setup yet, T2-01) | PASS (computer 1, Rakan) | |
+| 8 | A full game reaches the results screen | | PASS (computer 1, Rakan) | |
 | 9 | Checks 1–8 on a **second computer** (Mohamed) | | | |
 | 10 | ZIP SHA-256 recorded | `4155440d…` (dry run only) | `750414c8d76d140a…2b7878248` | |
 

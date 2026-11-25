@@ -11,9 +11,13 @@ and marked as such, or marked **TODO** with what is still needed. Nothing is ass
 measurement or playthrough is recorded that was not actually taken. The report cannot be finished before the
 Iteration 2 code is merged (see section 6).
 
-Baseline for everything measured here: `iteration-2` at **`4640416`** (23/11/2026, third revision; it was
-`1d47f2d` and `e9f6b2e` earlier the same day, `d445a38` on 22/11 and `6e13bcf` on 21/11). Baseline suite:
-**660 tests, all passing**.
+Baseline for everything measured here: `iteration-2` at **`1880c58`** (25/11/2026; it was `4640416` on
+23/11, `1d47f2d` and `e9f6b2e` earlier that day, `d445a38` on 22/11 and `6e13bcf` on 21/11). Baseline suite:
+**685 tests, all passing**.
+
+**#95 and #96 merged on 23/11** (`5decd43` and `1880c58`), which is what took the baseline from 660 to 685:
+#95 adds `EffectChainIndependentTest` (25 tests), the independent coverage SDP 5.3.4 asks for. The stale
+`CONFLICTING` flag on both cleared when they merged, exactly as this report predicted.
 
 **The whole feature scope of Iteration 2 is now merged.** T2-01 to T2-07, N2-03 (#86, #101), T2-10 part 1
 (#87, `e2bbdaa`), T2-08 (#89, `5540f53`), T2-13 the turn State pattern (#79, `c689a85`), T2-14 (#93),
@@ -641,6 +645,7 @@ keeps all 17 cases correct. It is raised on #81 as a suggestion, not a blocker.
 | **Complete candidate rehearsal, 23/11** (third revision, adds #96), isolated folder | `0928117` | **700/700** | **172 files, JAR 263,868 bytes**, SHA-256 `4dc64ff8…1deb2a` | — |
 | **Post-merge rehearsal, 23/11** (on the new baseline, after #81, #97, #98, #102), isolated folder | `4640416` + #95 + #96 + #99 + #103 (`1228597`) | **700/700** | **174 files**, JAR 263,868 bytes, SHA-256 `cf7c57ac…0506b0` | — |
 | **The release procedure run on plain `iteration-2`, 23/11** — i.e. exactly what CP1 would ship today, with nothing merged by hand | **`4640416`** | **660/660** | **168 files**, JAR 263,868 bytes, SHA-256 `a5d4bb3c…442d21` | — |
+| **CP1 ARTIFACT, 25/11** — the official script on merged `iteration-2`, nothing merged by hand | **`1880c58`** | **685/685** | **169 files**, JAR 263,868 bytes, **SHA-256 `1b6a4999…7620918e`**, 3,019,109 bytes | — |
 
 **The last row is the one that matters for CP1.** The release procedure works today on `iteration-2` with
 nothing merged by hand: **660/660 and a complete 168-file ZIP**. The candidate row above it (174 files) is
@@ -739,29 +744,145 @@ from a fresh clone, and record **who ran it and when**. Iteration 1's equivalent
 `Iteration1/docs/T28_SecondComputer_Checklist.md`. The partial run on branch
 `feature/mohamed/T28-second-computer` is **not** a completed verification and must not be reported as one.
 
+### Real-window GUI acceptance (23/11 and 25/11)
+
+**This is the first evidence in this report that comes from the application actually running on a screen.**
+Everything else in 3(e) is off-screen. The full run is recorded in
+`C:\Ludo\CP1-GUI-Acceptance\reports\GUI_ACCEPTANCE_REPORT.md`, outside the repository.
+
+Method: real Win32 mouse clicks and key presses delivered to the real Swing window on a real 1920x1200
+display, with every screenshot taken by `PrintWindow` against the verified game window only. Where moves
+were chosen by a script rather than by a person, the result is labelled **automation-driven gameplay** - it
+is genuine GUI interaction, but it is not a human play-test.
+
+**Launch checks (N2-06 rows 4, 5, 6), all by genuine double-clicks inside real File Explorer windows:**
+
+| N2-06 row | Check | Result on the CP1 ZIP (`1880c58`) |
+|---|---|---|
+| 5 | Double-click `run.bat` | **PASS** - window opens, responsive, **no console left behind** |
+| **6** | **Double-click `EducationalLudo.jar`** | **PASS** - no association prompt, no error |
+| 4/5 | `run.bat` from a path with Hebrew letters | **PASS** |
+| **4/6** | **JAR from a path with Hebrew letters** | **PASS** - the Iteration 1 *Unable to access jarfile* failure did **not** reproduce |
+
+**Confirmed on screen:** Medium 17x17 (track 52+64=116, 6 questions, 2 surprises) and Hard 19x19
+(52+64+72=188, 9 questions, 3 surprises); the dice panels and the `Regular x (special - 1)` formula; the
+turn order and the game clock; legal-move highlighting; a roll of 1 correctly passing the turn with all
+pieces in the castle (FR-19); name validation rejecting empty fields; and the leave-game confirmation.
+
+**FR-34 confirmed in the strongest possible way:** on the **Medium** board a question appeared with the
+**Easy** badge and "1 steps at stake", and on the **Hard** board both an **Easy** and a **Hard** question
+appeared. **The level follows the square, not the board.**
+
+**FR-35 and FR-36 confirmed on screen in both directions:** a correct answer gave *"Correct!"*, named the
+correct answer and moved the piece **1 square forward** (Easy); a wrong answer and a No Answer each gave
+*"Not correct"*, named the correct answer, and moved the piece **1 square backward** (Easy) and **3 squares
+backward** (Hard). In every case the reported correct answer matched the question's correct option.
+
+### The No Answer defect, found on screen and fixed (D3, FR-35, NFR-13)
+
+**This is the one defect the GUI run found, and the existing tests could not have found it.**
+
+On `iteration-2` the **No Answer** button of the question card was **completely invisible**. It was laid
+out, it held keyboard focus as the fourth Tab stop, and SPACE on it submitted `QuestionResult.NO_ANSWER`
+correctly - but nothing was painted. Measured on the running application: the region below the options was
+**a single uniform colour, pure white, across 80,400 sampled pixels**. So **a mouse user could never reach
+decision D3's "answer nothing" route at all**, and a keyboard user landed on it blind.
+
+Root cause: the button used `CustomButton.Variant.GHOST`, which is built for dark backgrounds, on the white
+question card (`Theme.SURFACE`). GHOST paints no fill, a white border, a `Theme.TEXT_ON_DARK` (white) label
+**and a white focus ring**, so setting only a foreground colour would have left NFR-13 still failing.
+
+Fix (**PR #111**, mine, not yet merged): use `Variant.SECONDARY` for that one button - the variant the four
+answer buttons on the same card already use. `CustomButton` is unchanged, so the dark-background Exit button
+keeps its styling. No gameplay rule, Model or Controller code is touched.
+
+**Why `QuestionDialogTest`'s 23 tests missed it:** they assert behaviour - `getText`, `isVisible`,
+`doClick`, the key binding, the submitted result - and every one of those passed while the button was
+invisible, because none looks at a painted pixel.
+
+**Regression test** (`test/View/NoAnswerVisibilityTest.java`, 4 tests) therefore renders the real card and
+measures the **WCAG 2.1 contrast** of the painted pixels against the card. Against the original GHOST
+implementation **2 of the 4 fail, both reporting a contrast ratio of exactly 1.00** - arithmetically
+"nothing was painted" - one for the label, one for the focus ring. With the fix all 4 pass.
+
+**Verified in the running application after the fix:** the formerly blank region now holds **250 distinct
+colours**; Tab shows **696 `Theme.ACCENT` pixels** forming a visible blue focus ring; and a **mouse click**
+on the button - previously impossible - produced *"Not correct"*, *"The correct answer is: Burndown Chart"*
+and *"Your piece moves 3 squares backward."* The disabled state is now visible grey as well.
+
+A stale source comment claiming *"Space or **Enter** presses it"* was also corrected: probed on the real
+class, the only binding is SPACE (pressed and released, `WHEN_FOCUSED`), ENTER maps to null, and the button
+is not the default button. No Enter binding was added, because no requirement asks for one.
+
+### NFR-04 measured on screen - two separate kinds of evidence
+
+These must not be conflated, so they are listed apart.
+
+**(a) Visible-window harness, 30 squares.** An isolated harness compiled **against the released JAR** puts
+the **real production `BoardComponent`**, bound to a real `GameModel`, into a **real visible window**, and
+runs the real `animateAlong` for the longest Hard move (Regular 6 x (UltraBoost 6 - 1) = 30 squares). The
+measurement ends **after the final frame is actually painted**, not when the callback fired.
+
+| Run | Frames repainted | ms to callback | **ms on screen** |
+|---|---|---|---|
+| 1 | 53 | 1222 | **1306** |
+| 2 | 60 | 1230 | **1313** |
+| 3 | 61 | 1216 | **1301** |
+| 4 | 61 | 1215 | **1296** |
+| 5 | 63 | - | **1311** |
+
+Mean about **1305 ms**, headroom about **695 ms** under NFR-04's 2000 ms. 53-63 repaints for 30 squares is
+about two painted frames per square, so the movement really is animated square by square. **This is a real
+component in a real window - but it is not the full game being played.**
+
+**(b) Inside a complete running game, measured from outside the process.** The board region is completely
+static at rest (0 of 29 frame pairs changed over 2.5 s), so a move can be bounded externally: t0 at the
+mouse click on the piece, t1 at the last capture where the board still changed. Resolution about 90 ms.
+
+**16 valid in-game measurements on a Hard game, every one under 2000 ms**, the longest being **1578 ms for a
+10-step move** (`5 x (3 - 1) = 10 steps`, evidence `ingame_move_30_1577ms.png`).
+
+That 10-step figure is **not** a weaker version of the 30-square case. The budget is
+`max(260, min(1200, steps x 120))`, so **any move of 10 squares or more is already at the 1200 ms cap** - a
+10-step and a 30-step move are given exactly the same budget. The 30-step move paints more intermediate
+frames, so the two are not identical, but the in-game figure is at the cap and under the limit.
+
+**A 30-square move was not produced by natural play** in the bounded run, so case (b) covers up to 10 steps.
+13 further attempts could not be timed: when a legal piece is highlighted it **glows**, so the board never
+goes quiet and the external timer hits its limit. Those are **measurement timeouts, not slow moves**, and
+are excluded rather than reported as failures.
+
 ### What has not been verified yet
 
 1. **A human playthrough** of a complete Medium and Hard game (scripts M1, M2). The short, run-it-now
-   version is `Iteration2/docs/T2-15_ManualChecklist_CP1.md`.
+   version is `Iteration2/docs/T2-15_ManualChecklist_CP1.md`. **Automation-driven play on 23/11 and 25/11
+   covered setup, both boards, the dice, highlighting, four question cards and about 200 turns without a
+   freeze - but no game was played to the results screen, and no surprise square was reached.** Those two
+   remain genuinely unverified and must not be reported as passed.
 2. ~~**Questions, surprises and chains as player-visible behaviour**~~ - **no longer outstanding.** #90, #91
    and #92 merged on 23/11, so a player can now reach every Iteration 2 rule in a build made from
    `iteration-2`, and sections 3(b)-3(d) are written as fact rather than as TODO. What is left of this item
    is item 1: **the code is all there, and nobody has played it.** The independent effect tests (#95) are
    still unmerged, which is a coverage gap rather than a functionality gap - see the D4 caveat in the
    decision register.
-3. **The double-click start on both computers** with the final ZIP (N2-06). **Partly done, and the limit is
-   stated:** on 23/11 I verified on a real Windows display that `EducationalLudo.jar` started by
+3. **The double-click start on both computers** with the final ZIP (N2-06). **Row 5 and row 6 both PASS on
+   this computer**, by genuine Explorer double-clicks on the CP1 ZIP, including from a Hebrew-letter path
+   (see the GUI acceptance section). **The second computer is still outstanding.** The earlier, weaker
+   statement is kept below for the record: on 23/11 I verified on a real Windows display that `EducationalLudo.jar` started by
    `java -jar`, and that `run.bat` started the game through `javaw`, each opening a visible top-level window
    titled "Educational Ludo - Team Sharks" and leaving no console window behind. **Both were started from a
    command line, not by a double-click in File Explorer**, which also exercises the `.jar` file association
    and the working directory Explorer hands the process. The double-click itself, on both computers, is
    still TODO.
-4. **The real on-screen animation timing** (NFR-04), as above. Every automated timing figure in this report
-   is **off-screen**; none of them paints a real window, which is exactly the gap that produced the 2140 ms
-   measurement. A stopwatch on a real window is the only thing that closes it.
-5. ~~**Independent tests of the question and surprise rules**~~ - **done**, pending merge. T2-12 (#95, Rakan)
-   adds `EffectChainIndependentTest`, 25 tests, with the eight mutation checks above. It merges after #92. The
-   gap the T2-14 coverage snapshot listed is closed in code, not yet in `iteration-2`.
+4. **The real on-screen animation timing** (NFR-04). **This is now partly closed** - see the two kinds of
+   on-screen evidence above: a visible-window harness at about **1305 ms** for 30 squares, and **16 in-game
+   measurements all under 2000 ms**, the longest **1578 ms** for a 10-step move, which is already at the
+   1200 ms cap. **What is still missing is a 30-square move produced by natural play inside the full game**,
+   and a human stopwatch alongside it.
+5. ~~**Independent tests of the question and surprise rules**~~ - **done and merged.** T2-12 (#95, Rakan)
+   added `EffectChainIndependentTest`, 25 tests, and merged on 23/11 as `5decd43`. The independence gap
+   SDP 5.3.4 cares about is closed in `iteration-2` itself, and the **D4** caveat that waited on it is
+   discharged.
 6. **Screenshots.** None are in this file. The list for the design-pattern document is in
    `docs/design_patterns/FactoryMethod_Mohamed.md`; the report needs its own, and they can only be taken from
    the final build.

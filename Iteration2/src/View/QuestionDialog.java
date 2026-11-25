@@ -39,7 +39,8 @@ import View.components.UiKit;
  * T2-13.
  *
  * <p><b>Answering nothing (Product Owner decision D3, approved 21/11/2026).</b> Beside the four answers the
- * card shows an explicit <b>No Answer</b> button. It submits {@link QuestionResult#NO_ANSWER} through the
+ * card shows an explicit <b>No Answer</b> button, styled {@code SECONDARY} so that it is visible on the
+ * white card and shows a visible keyboard focus ring. It submits {@link QuestionResult#NO_ANSWER} through the
  * same {@link Judge} as every other answer, so FR-35 - not answering counts as a wrong answer, and the piece
  * moves backward by the level of the question - is decided by the Model and never by this class. There is
  * deliberately <b>no timer</b>, and closing the card is not an answer: only pressing this button is.
@@ -93,7 +94,7 @@ public class QuestionDialog extends CustomPanel {
     private final List<CustomButton> answers = new ArrayList<>();
     private final JPanel feedback = new JPanel();
     private final CustomButton continueButton = new CustomButton("Continue", CustomButton.Variant.PRIMARY);
-    private final CustomButton noAnswerButton = new CustomButton("No Answer", CustomButton.Variant.GHOST);
+    private final CustomButton noAnswerButton = new CustomButton("No Answer", CustomButton.Variant.SECONDARY);
     private QuestionResult result;
     private boolean continued;
 
@@ -175,7 +176,16 @@ public class QuestionDialog extends CustomPanel {
 
         // D3: an explicit way to answer nothing. FR-35 counts it as a wrong answer, and the Model decides
         // that - this button only submits QuestionResult.NO_ANSWER, exactly as an answer button submits its
-        // own index. It is a JButton, so Tab reaches it and Space or Enter presses it.
+        // own index. It is a JButton, so Tab reaches it and Space presses it. Enter does NOT: the button's
+        // only key binding is SPACE (WHEN_FOCUSED), it is not the root pane's default button, and no Enter
+        // binding is added here, because no requirement asks for one.
+        //
+        // SECONDARY, not GHOST. GHOST is for dark backgrounds: it paints no fill, white text
+        // (Theme.TEXT_ON_DARK), a white border and a white focus ring, so on this white card
+        // (Theme.SURFACE) the whole button was invisible - present, focusable and working, but unpaintable
+        // to the eye. SECONDARY paints a white fill with a Theme.BORDER outline, Theme.TEXT label and a
+        // Theme.ACCENT focus ring, all of which contrast against the card. CustomButton itself is unchanged,
+        // so the dark-background GHOST button in MainMenuView keeps its styling.
         column.add(UiKit.vgap(10));
         noAnswerButton.setName(NO_ANSWER_NAME);
         noAnswerButton.setToolTipText("Answer nothing. This counts as a wrong answer (FR-35).");

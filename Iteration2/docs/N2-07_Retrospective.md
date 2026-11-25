@@ -19,9 +19,9 @@ Status: **draft, 23/11/2026.** Written by the SM from the GitHub record (pull re
 | # | Action from Iteration 1 | Result in Iteration 2 |
 |---|---|---|
 | 1 | Protect the iteration branch, one approval per PR | **Done.** `iteration-2` is protected and needs one approval (N2-02, #74). Two gaps remain: stale approvals are not dismissed, and the rule does not apply to admins. |
-| 2 | No single PR blocks more than two others | **Not met.** T2-10 was split into two parts (#87, #92), which helped. Still, #79 held #92, #95 and #96 until 22/11, and #92 now holds six PRs (#95, #96, #103, #104, #105 and the fix for #99). |
-| 3 | Review within 24 hours | **Partly.** 14 of the 25 PRs reviewed so far got their first review within 24 hours. From 17/11 to 21/11 eight PRs waited for the same reviewer; the queue was cleared on 21/11. |
-| 4 | JAR on two computers at the middle checkpoint | **In progress.** CP1 is on 25/11. The release script (#81) has been open since 16/11 and was not merged by 23/11. |
+| 2 | No single PR blocks more than two others | **Not met.** T2-10 was split into two parts (#87, #92), which helped. Still, #79 held #92, #95 and #96 until 22/11, and #92 then held six PRs (#95, #96, #103, #104, #105 and the fix for #99). After #79 merged (22/11), #92 merged the next morning, so the chain cleared before CP1. |
+| 3 | Review within 24 hours | **Partly.** 14 of the 25 PRs reviewed so far got their first review within 24 hours. From 17/11 to 21/11 eight PRs waited for the same reviewer; the queue was cleared in one day (21/11): all 12 open PRs were reviewed, each with a test run. |
+| 4 | JAR on two computers at the middle checkpoint | **Partly.** The release script (#81) was opened on 16/11 and merged only on 23/11 (9fea81d), two days before CP1; the fix for its review finding went in on the day it was asked for (22/11). CP1 run (#109): checks 1–8 PASS on computer 1, 685/685; the second computer is still to be filled in. |
 | 5 | Scrum Report in the repository, updated at every merge | **Done**, once per merge day rather than per merge (#86, #101). |
 | 6 | Independent tests together with the code | **Done.** T2-05 (#78), T2-07 (#85) and T2-12 (#95) were written from the SRS while the code PRs were still open. |
 
@@ -31,7 +31,7 @@ Status: **draft, 23/11/2026.** Written by the SM from the GitHub record (pull re
 - **Cross-PR test runs found a real break before it reached the branch.** #99's acceptance tests pass on `iteration-2`, but 5 of 7 fail once #92 is merged (`RESOLVING` refuses the roll). It was found in review, and the fix was proved on #105 before anything merged.
 - **Timing tests found a risk early.** T2-14 measured the 30-square Hard move at 1.7 s of the 2 s limit (2.1 s on a cold JVM). #97 lowered the animation budget to 1200 ms before CP1.
 - **Decisions were written down with their evidence.** The PO register (D1–D5) records the options, the SRS text and the reason for each decision, so the code and the tests can point to it.
-- **Tests were checked against broken code.** Mutation checks were done for the move rules (8 of 8 caught, #102), for FR-29 passing through a block (#99) and for T2-10 part 2.
+- **Tests were checked against broken code.** Mutation checks were done for the special-square rules (8 of 8 caught, T2-12 #95/#102; the Q81 mutant was missed at first and the test was rewritten), for Double Blocks (16 of 19 tests fail with blocks off, T2-07 #85), for FR-29 passing through a block (#99) and for T2-10 part 2.
 
 ## 4. What did not go well (change)
 
@@ -39,7 +39,7 @@ Status: **draft, 23/11/2026.** Written by the SM from the GitHub record (pull re
 - **Approved PRs waited to be merged.** #90 has had two Deep approvals since 22/11 14:09, and #91 an approval since 22/11 14:10; on 23/11 neither was merged, and nothing else could move. We had no rule for who merges an approved PR, and by when.
 - **Approvals went stale without notice.** New commits after an approval (#90 and #91 on 21/11) left the green tick in place, because the repository does not dismiss stale approvals. We relied on the author pointing it out.
 - **No CI.** Tests ran only when someone ran them. Whichever of #92 and #99 merged second would have broken `iteration-2` with nobody notified.
-- **The release script came late again.** #81 was opened on 16/11, but two days before CP1 it still waits for a re-review.
+- **The release script came late again.** #81 was opened on 16/11 and merged only on 23/11, two days before CP1.
 - **Our texts grew long.** PR descriptions, reviews and status comments of more than 100 lines became common, so reading them took time that reviewing needed.
 
 ## 5. Actions for Iteration 3

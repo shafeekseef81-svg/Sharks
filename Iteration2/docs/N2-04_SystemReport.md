@@ -11,9 +11,12 @@ and marked as such, or marked **TODO** with what is still needed. Nothing is ass
 measurement or playthrough is recorded that was not actually taken. The report cannot be finished before the
 Iteration 2 code is merged (see section 6).
 
-Baseline for everything measured here: `iteration-2` at **`1880c58`** (25/11/2026; it was `4640416` on
-23/11, `1d47f2d` and `e9f6b2e` earlier that day, `d445a38` on 22/11 and `6e13bcf` on 21/11). Baseline suite:
-**685 tests, all passing**.
+Baseline for everything measured here: `iteration-2` at **`071cf90`** (25/11/2026; it was `1880c58`
+earlier the same day, `4640416` on 23/11, `1d47f2d` and `e9f6b2e` earlier that day, `d445a38` on 22/11 and
+`6e13bcf` on 21/11). Baseline suite: **685 tests, all passing**.
+
+**#104, #106 and #108 merged on 25/11** (`8edc371`, `01cb666`, `071cf90`). All three are documentation, so
+the suite stayed at 685.
 
 **#95 and #96 merged on 23/11** (`5decd43` and `1880c58`), which is what took the baseline from 660 to 685:
 #95 adds `EffectChainIndependentTest` (25 tests), the independent coverage SDP 5.3.4 asks for. The stale
@@ -646,6 +649,8 @@ keeps all 17 cases correct. It is raised on #81 as a suggestion, not a blocker.
 | **Post-merge rehearsal, 23/11** (on the new baseline, after #81, #97, #98, #102), isolated folder | `4640416` + #95 + #96 + #99 + #103 (`1228597`) | **700/700** | **174 files**, JAR 263,868 bytes, SHA-256 `cf7c57ac…0506b0` | — |
 | **The release procedure run on plain `iteration-2`, 23/11** — i.e. exactly what CP1 would ship today, with nothing merged by hand | **`4640416`** | **660/660** | **168 files**, JAR 263,868 bytes, SHA-256 `a5d4bb3c…442d21` | — |
 | **CP1 ARTIFACT, 25/11** — the official script on merged `iteration-2`, nothing merged by hand | **`1880c58`** | **685/685** | **169 files**, JAR 263,868 bytes, **SHA-256 `1b6a4999…7620918e`**, 3,019,109 bytes | — |
+| **CP1 ARTIFACT, after #104/#106/#108** — official script, nothing merged by hand | **`071cf90`** | **685/685** | **169 files**, JAR 263,868 bytes, **SHA-256 `bb0a393d…1a6eda3d`** | — |
+| **Verification candidate** (NOT a submission artifact) — `071cf90` + #111 + #99 + #103 | `d434dba` | **705/705** | 175 files, JAR 263,841 bytes, SHA-256 `f3677b4b…c64ba8` | — |
 
 **The last row is the one that matters for CP1.** The release procedure works today on `iteration-2` with
 nothing merged by hand: **660/660 and a complete 168-file ZIP**. The candidate row above it (174 files) is
@@ -790,7 +795,17 @@ decision D3's "answer nothing" route at all**, and a keyboard user landed on it 
 
 Root cause: the button used `CustomButton.Variant.GHOST`, which is built for dark backgrounds, on the white
 question card (`Theme.SURFACE`). GHOST paints no fill, a white border, a `Theme.TEXT_ON_DARK` (white) label
-**and a white focus ring**, so setting only a foreground colour would have left NFR-13 still failing.
+**and a white focus ring**, so setting only a foreground colour would have made the label readable while
+leaving the keyboard focus indicator invisible.
+
+**Requirement basis, corrected 25/11.** An earlier version of this section cited **NFR-13** for "visible
+keyboard focus". That was wrong. NFR-13 reads *"In 10,000 simulated draws, each die value and surprise
+outcome shall be within 2 percentage points of its expected probability"* - it is **dice distribution**,
+which is also how the rest of the code uses it (`DiceStrategy`, `RegularDiceTest`, `SurpriseFactoryTest`).
+NFR-24 covers text size and colour identification, not focus. **No SRS requirement mandates a visible focus
+indicator.** The defect's basis is therefore **D3** (an invisible button does not deliver the approved
+decision to a player using the mouse) and **FR-35**; the focus-ring work is recorded as supporting D3's
+usability, not as satisfying a numbered requirement.
 
 Fix (**PR #111**, mine, not yet merged): use `Variant.SECONDARY` for that one button - the variant the four
 answer buttons on the same card already use. `CustomButton` is unchanged, so the dark-background Exit button
@@ -800,10 +815,25 @@ keeps its styling. No gameplay rule, Model or Controller code is touched.
 `doClick`, the key binding, the submitted result - and every one of those passed while the button was
 invisible, because none looks at a painted pixel.
 
-**Regression test** (`test/View/NoAnswerVisibilityTest.java`, 4 tests) therefore renders the real card and
-measures the **WCAG 2.1 contrast** of the painted pixels against the card. Against the original GHOST
-implementation **2 of the 4 fail, both reporting a contrast ratio of exactly 1.00** - arithmetically
-"nothing was painted" - one for the label, one for the focus ring. With the fix all 4 pass.
+**Regression test** (`test/View/NoAnswerVisibilityTest.java`, **5 tests**) therefore renders the real card
+and measures the painted pixels. The label check is **WCAG 2.1 contrast**; the two focus checks count pixels
+close to **`Theme.ACCENT`**, the colour the ring is drawn in, so a dark label cannot satisfy them.
+
+**A first version of the focus test was itself wrong, and is worth recording.** It measured peak contrast
+across the whole button - which the dark label satisfies on its own, so it would have passed with the ring
+removed entirely - and it tried to establish focus by dispatching a `FocusEvent`. Probed on the real class,
+`isFocusOwner()` stays **false** after such a dispatch, and `CustomButton` paints its ring only when that is
+true, so no ring was ever rendered in that test. It asserted nothing. The replacement establishes focus
+either through a test-only subclass overriding `isFocusOwner`, or - in a second test - by putting the real
+card in a real window and **waiting until `isFocusOwner()` actually becomes true**.
+
+Evidence that the tests catch what they claim:
+
+| Mutation | Result |
+|---|---|
+| the original `GHOST` implementation | **3 of 5 fail** - contrast 1.00 for the label, 0 accent pixels for each focus check |
+| **only** the focus ring disabled in `CustomButton`, nothing else | **2 of 5 fail**, both focus tests, "only 0 accent pixels"; the label test correctly still passes |
+| the fix | **5 of 5 pass** |
 
 **Verified in the running application after the fix:** the formerly blank region now holds **250 distinct
 colours**; Tab shows **696 `Theme.ACCENT` pixels** forming a visible blue focus ring; and a **mouse click**
@@ -851,6 +881,53 @@ frames, so the two are not identical, but the in-game figure is at the cap and u
 13 further attempts could not be timed: when a legal piece is highlighted it **glows**, so the board never
 goes quiet and the external timer hits its limit. Those are **measurement timeouts, not slow moves**, and
 are excluded rather than reported as failures.
+
+### Manual release checks recorded by Rakan on computer 1 (N2-06, #109)
+
+**These are Rakan's results, run by hand on his machine. They are not mine and are not automation.** They
+are recorded here because they cover exactly the scenarios my automated GUI run could not reach.
+
+| N2-06 row | Check | Result |
+|---|---|---|
+| 1 | ZIP structure | PASS, 169 files, one top folder, no backslash, no `build/` |
+| 2 | JAR manifest and Java 17 class files | PASS, 261,533 bytes |
+| 3 | Suite in the staged copy | **PASS, 685/685** |
+| 4 | `java -jar` from a Hebrew-letter path | PASS (computer 1) |
+| 5 | **Double-click `run.bat`** | **PASS** (computer 1, Rakan) |
+| 6 | **Double-click `EducationalLudo.jar`** | **PASS** (computer 1, Rakan) |
+| 7 | **Easy, Medium and Hard each start and accept a roll** | **PASS** (computer 1, Rakan) |
+| 8 | **A full game reaches the results screen** | **PASS** (computer 1, Rakan) |
+| 9 | Checks 1-8 on a **second computer** | **still open - mine to run** |
+
+**#99 and #103 re-verified on `071cf90`:** baseline 685, with #99 **692/692**, with #103 **693/693**, with
+both **700/700**, every merge clean. Adding #111 as well gives **705/705**.
+
+Row 7 and row 8 are the two things this report could not otherwise claim: **an Easy game, and a complete
+game played through to the results screen.** They are Rakan's manual evidence, and nothing in my automated
+run is presented as covering them.
+
+### The release artifact must be one file, not two rebuilds
+
+**Rakan's ZIP and mine, both built from `1880c58`, do not match:**
+
+| | Rakan (computer 1) | Mohamed (computer 2) |
+|---|---|---|
+| Files | 169 | 169 |
+| Tests | 685/685 | 685/685 |
+| **JAR size** | **261,533 bytes** | **263,868 bytes** |
+| **SHA-256** | `750414c8d76d140a...2b7878248` | `1b6a49997d3a079f...7620918e` |
+
+There are **two independent reasons** a rebuild cannot reproduce a checksum, so "the SHA-256 should match
+while `iteration-2` stays at 1880c58" does not hold:
+
+1. **The ZIP embeds build timestamps.** Measured here: the same commit built twice on the same machine gave
+   different SHA-256 values, and the entry timestamps span the moment the JAR was rebuilt.
+2. **The JARs themselves differ in size** - 2,335 bytes - from identical source. That is a toolchain
+   difference between the two machines (this one is Temurin 17.0.17+10), not a content difference.
+
+**So row 9 must be run on a byte-identical copy of one artifact, not on an independently rebuilt one.** The
+procedure is: build the final ZIP once, after the approved merges; record its SHA-256; copy that exact file
+to the second computer; verify the hash there with `Get-FileHash -Algorithm SHA256` before testing.
 
 ### What has not been verified yet
 

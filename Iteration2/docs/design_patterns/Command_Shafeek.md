@@ -57,7 +57,7 @@ A chain therefore has at most as many effects as the board has special squares: 
 Turn surprises are not commands: "skip the next turn" and "extra roll" change the turn, not a piece, so they go to the turn (`skipNextTurn`, `grantSurpriseRoll`) and the square is resolved with `skip()`. The receiver of the commands stays the movement of pieces only.
 
 ## 5. How it was tested
-`SquareEffectTest` has 20 tests on a Medium board with the real board, the real rules and scripted dice.
+`SquareEffectTest` has 21 tests on a Medium board with the real board, the real rules and scripted dice.
 - **Receiver:**
   - forward and backward steps, with the cells in the order they are passed;
   - stop at the starting square;
@@ -76,11 +76,29 @@ Turn surprises are not commands: "skip the next turn" and "extra roll" change th
   - each square once per chain, and a new dice move resets the guard;
   - an opponent pushed onto a special square;
   - jumps and `skip` end the chain;
-  - misuse is refused, and a failing command leaves the square waiting.
-  - a piece leaving its castle starts nothing.
-- **Part 2, `EffectResolutionTest` (12 tests):** the turn waits in `RESOLVING` and refuses roll and move; the question has the square's level and a right or wrong answer moves ±1/2/3; a wrong answer chains into a surprise; a 6 still rolls again after the chain; an opponent pushed onto a surprise square is resolved by the active player; a jump that brings an opponent's last piece home ranks that opponent and ends the game (FR-43, FR-44); a push with nobody to push does nothing; only the drawn surprise is carried out; "skip the next turn" cancels the 6 and passes over the player once; the extra roll uses the UltraBoost die, does not count for the rule of 6 and comes before the roll of a 6; stale answers are refused.
+  - misuse is refused, and a failing command leaves the square waiting;
+  - a piece leaving its castle starts nothing;
+  - while a square waits (`RESOLVING`), end of turn, roll and move are refused and change nothing.
+- **Part 2, `EffectResolutionTest` (13 tests):** the turn waits in `RESOLVING` and refuses roll and move; the question has the square's level and a right or wrong answer moves ±1/2/3; a wrong answer chains into a surprise; a 6 still rolls again after the chain; an opponent pushed onto a surprise square is resolved by the active player; a jump that brings an opponent's last piece home ranks that opponent and ends the game (FR-43, FR-44); a push with nobody to push does nothing; only the drawn surprise is carried out; "skip the next turn" cancels the 6 and passes over the player once; the extra roll uses the UltraBoost die, does not count for the rule of 6 and comes before the roll of a 6; an extra roll that reaches "skip the next turn" cancels the 6, and one turn is missed (D5); stale answers are refused.
 - **Whole games:** `SpecialDiceGameTest` plays 48 complete Medium and Hard games with random answers and picks, and `GameControllerTest` plays a Medium and a Hard game through the real question and surprise cards to the results screen.
 - **Mutation check:** switching off the chain guard, the blocks, the stop at the start square or the captures each makes at least one test fail; so does switching off the ranking of an effect finish, the cancelled 6, the missed turn, or the UltraBoost dice of the extra roll.
 - The independent rule tests are task T2-12 (Rakan Ziyan).
+
+## 6. Trade-offs
+**The extension proved the design.** Part 2 connected the queue to the turn, the questions, the surprises and the cards. It did not change a line of the three commands or of the receiver, and `EffectQueue` changed by one Javadoc line. Everything part 2 added sits around the pattern: the clients (`GameModel.applyAnswer`, `GameModel.applySurprise`) and the invoker's caller (`ResolvingState`). The effect is known only after the player answers, and that needed nothing special: the reached square waits in the queue as an `Activation`, the turn waits in `RESOLVING`, and the client creates the command once the answer or the outcome is known.
+
+**What it costs**
+- Six small types (the interface, three commands, the receiver and the invoker) for three kinds of movement. One method per effect in the turn manager would be shorter, but each method would repeat the block, start-square and capture checks and the chain guard.
+- No undo. Command is often chosen for undo and redo, but here an effect is final; for example, a capture before a question is not reversed by the answer (FR-38). The pattern is used to separate creating an effect from running it, and to queue and guard the runs.
+- Surprises end in one of two ways. "Skip the next turn" and "extra roll" change the turn, not a piece, so they are not commands (section 4). A reader has to know both paths. Making them commands would have given the receiver access to the turn and mixed piece movement with turn rules.
+- The invoker does not drive itself. Its caller takes `next()`, then `run(...)` or `skip()`, one square at a time, while the player answers. This order is kept by `ResolvingState` and `GameModel`, so a mistake there is caught by the refusals (a stale answer; roll, move or end of turn in `RESOLVING`) and by the tests, not by the types.
+
+**Alternatives considered**
+
+| Alternative | Why not |
+|---|---|
+| A `switch` on the outcome in the turn manager | Every new outcome edits the turn code, the rule checks and the chain guard are repeated in each branch, and an effect that waits for the player needs extra flags. |
+| Events only (Observer, like `GameListener`) | A listener is told *that* something happened. It gives no order, no single place for the chain guard, and no result to check. |
+| Strategy | A strategy is one interchangeable algorithm chosen in advance, like the dice of T2-04. Here each effect is a separate request: it is created when the answer is known, queued, and run later. That is what Command is for. |
 
 *Screenshots for the Word version: `SquareEffect.java` (interface with Javadoc), `EffectQueue.run` and `reach` (chain guard), `EffectMover.moveSteps`, and `GameModel.applySurprise` (the client turning a surprise into a command).*

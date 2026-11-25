@@ -108,8 +108,9 @@ const EDITS = {
                 + '`SquareEffectTest` and independently in `EffectChainIndependentTest` (T2-12).\n'
                 + '* **Showing the question** is T2-11 and the **surprise outcomes** are T2-09.\n',
         },
-        // After the section numbers below become 4.x, this reference goes to the Strategy section of the document.
+        // After the section numbers become 4.x, these two references go to other sections of the document.
         { find: 'graded pattern of the dice (section 4.1)', replace: 'graded pattern of the dice (section 2)', late: true },
+        { find: 'effect queue of T2-10 (section 4.5)', replace: 'effect queue of T2-10 (section 5)', late: true },
     ],
     Command: [
         { find: 'Section for `iteration2_dp_Sharks` (task N2-05, #71). ', replace: '' },
@@ -422,16 +423,24 @@ function applyEdits(key, md, late) {
     return md;
 }
 
+/** A heading's text in the heading style; `code` in it is set in the code font, without the backticks. */
+function headingRuns(text) {
+    return text.split('`').filter((s) => s !== '').map((s) => {
+        const code = text.indexOf('`' + s + '`') >= 0;
+        return new TextRun(code ? { text: s, font: MONO } : { text: s });
+    });
+}
+
 function renderBlocks(blocks, number) {
     const out = [];
     for (const b of blocks) {
         if (b.type === 'h1') {
-            out.push(P({ heading: HeadingLevel.HEADING_1, pageBreakBefore: true, children: [new TextRun(`${number}. ${b.text}`)] }));
+            out.push(P({ heading: HeadingLevel.HEADING_1, pageBreakBefore: true, children: headingRuns(`${number}. ${b.text}`) }));
         } else if (b.type === 'h2') {
             const m = /^(\d+)\.\s+(.*)$/.exec(b.text);
-            out.push(P({ heading: HeadingLevel.HEADING_2, children: [new TextRun(m ? `${number}.${m[1]} ${m[2]}` : b.text)] }));
+            out.push(P({ heading: HeadingLevel.HEADING_2, children: headingRuns(m ? `${number}.${m[1]} ${m[2]}` : b.text) }));
         } else if (b.type === 'h3') {
-            out.push(P({ heading: HeadingLevel.HEADING_3, children: [new TextRun(b.text)] }));
+            out.push(P({ heading: HeadingLevel.HEADING_3, children: headingRuns(b.text) }));
         } else if (b.type === 'p') {
             out.push(P({ spacing: { after: 120 }, children: inline(b.text) }));
         } else if (b.type === 'li') {

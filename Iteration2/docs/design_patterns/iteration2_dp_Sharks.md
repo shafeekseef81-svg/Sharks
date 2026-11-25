@@ -45,4 +45,6 @@ Each section uses the same headings, so the document reads as one text:
 3. The class names, file names and test counts in each section match the final code.
 4. The screenshots are taken from the final code, as each section lists them.
 5. Shafeek puts the document together: a title page (team, members and roles, Iteration 2, date), this section 2 as the overview, the four sections in the order of section 2, then Word or PDF `iteration2_dp_Sharks`.
+   - **Draft 25/11:** `iteration2_dp_Sharks.docx` and `.pdf` at the repository root, built by `tools/make_dp_docx.js` from the four section files and the code at `071cf90`. The screenshots of code are code excerpts with line numbers; the script checks each excerpt against the code and stops if the code moved. The Factory Method changes agreed in section 3 (one row of the measurement table, the shorter "Open/Closed" paragraph and "Scope" list) are made by the script, not in the section file.
+   - **Before 05/12:** run the script again on the final `iteration-2` with `--final`, and replace the question-card picture (`tools/dp_assets/question_card.png`) if the dialog changes.
 6. Review by Rakan and Mohamed (N2-05), then the file goes into the submission ZIP (N2-06).

@@ -6,53 +6,24 @@ Deliverable 3 of Assignment 5: a Word or PDF file named `iteration2_report_Shark
 Iteration 1 report** (`iteration1_report_Sharks.docx` / `.pdf` in the repository root). The sections below
 follow the brief's required structure 3(a)–3(e).
 
-**Status 23/11/2026: structure complete, content partly verified.** Every statement here is either measured
-and marked as such, or marked **TODO** with what is still needed. Nothing is assumed, and no screenshot,
-measurement or playthrough is recorded that was not actually taken. The report cannot be finished before the
-Iteration 2 code is merged (see section 6).
+**Status 28/11/2026: all Iteration 2 code is merged; the measured content below is final except for the
+items listed in section 6.** Every statement here is either measured and marked as such, or marked **TODO**
+with what is still needed. Nothing is assumed, and no screenshot, measurement or playthrough is recorded
+that was not actually taken.
 
-Baseline for everything measured here: `iteration-2` at **`071cf90`** (25/11/2026; it was `1880c58`
-earlier the same day, `4640416` on 23/11, `1d47f2d` and `e9f6b2e` earlier that day, `d445a38` on 22/11 and
-`6e13bcf` on 21/11). Baseline suite: **685 tests, all passing**.
+Baseline for everything measured here: `iteration-2` at **`06e2ab2`**. Baseline suite: **705 tests found,
+705 passed, 0 failed, 0 skipped, 0 aborted** - re-run for this revision on 28/11/2026 with
+`Iteration2/test.sh` on Temurin 17.0.17+10, and independently by Shafeek Saif on 26/11.
 
-**#104, #106 and #108 merged on 25/11** (`8edc371`, `01cb666`, `071cf90`). All three are documentation, so
-the suite stayed at 685.
+**The whole feature scope of Iteration 2 is merged**, in 32 pull requests (#74-#111). The last feature
+merges were **#111** (the No Answer fix), **#99** and **#103** (the acceptance evidence) on 25/11. Sections
+3(b)-3(d) therefore state player-visible behaviour as fact rather than as a plan: a player can reach every
+Iteration 2 rule in a build made from `iteration-2`.
 
-**#95 and #96 merged on 23/11** (`5decd43` and `1880c58`), which is what took the baseline from 660 to 685:
-#95 adds `EffectChainIndependentTest` (25 tests), the independent coverage SDP 5.3.4 asks for. The stale
-`CONFLICTING` flag on both cleared when they merged, exactly as this report predicted.
-
-**The whole feature scope of Iteration 2 is now merged.** T2-01 to T2-07, N2-03 (#86, #101), T2-10 part 1
-(#87, `e2bbdaa`), T2-08 (#89, `5540f53`), T2-13 the turn State pattern (#79, `c689a85`), T2-14 (#93),
-N2-05 (#88, #94), and — **new on 23/11** — **T2-09 surprise outcomes (#90, `36661fc`)**, **T2-11 the
-question and surprise dialogs (#91, `12a01b6`)** and **T2-10 part 2, the effect wiring (#92, `1d47f2d`)**.
-
-**Four more pull requests merged later on 23/11**, after the figures above were first written:
-
-| PR | Task | What it adds | Merge commit |
-|---|---|---|---|
-| **#81** | N2-06 release tooling (Rakan) | `tools/make_iteration2_zip.py`, the only sanctioned way to build the submission ZIP | `9fea81d` |
-| **#97** | NFR-04 animation budget (mine) | `MAX_MOVE_MILLIS` 1600 ms → **1200 ms**, verified present in `src/View/components/BoardComponent.java:265` | `1f099f2` |
-| **#98** | T2-08 Factory Method doc (mine) | the pattern section under `docs/design_patterns/` | `9c8c83f` |
-| **#102** | N2-04 testing evidence (Rakan) | section 3(e) evidence for Rakan's tasks, and the reading of FR-19 used in 3(c) and 3(e) | `4640416` |
-
-**#97 merging removes the CP1 release blocker that this report named earlier.** The baseline now carries the
-1200 ms budget, so the submission ZIP can be built from `iteration-2` on a slower machine without the
-30-square timing test failing.
-
-**Still not merged:** the independent effect tests (**#95**, approved), the State section (**#96**, approved)
-and my two acceptance PRs (**#99**, **#103**).
-
-**What that changes for this report.** Until #92 merged, a question or surprise square was an ordinary
-square in any build made from `iteration-2` — nothing opened a dialog, so no amount of manual testing could
-accept US-2.3 from the release branch. That is no longer true: **a player can now reach every Iteration 2
-rule in a build made from `iteration-2`.** Sections 3(b)–3(d) are therefore no longer TODO for the
-player-visible behaviour; what remains genuinely unverified is that **nobody has sat down and played it**
-(see "What has not been verified yet").
-
-**#97 was a release blocker for CP1 and is now merged** (`1f099f2`), so that deadline item is closed. The
-evidence is kept in the NFR-04 subsection of 3(e), because the measurement is the reason the budget is
-1200 ms and a grader will ask.
+Two earlier release risks named by this report are closed. **#97** lowered the NFR-04 animation budget to
+1200 ms; the evidence is kept in the NFR-04 subsection of 3(e), because it is the reason the budget is
+1200 ms and a grader will ask. **#95** added the independent effect tests SDP 5.3.4 requires, which
+discharged the caveat that the **D4** ratification used to carry.
 
 ---
 
@@ -160,7 +131,11 @@ Verified board and dice values, read from `Model.LevelConfig` on 21/11/2026:
   movement of 0 and moves nothing** - on Medium this happens on roughly a third of all rolls and on Hard
   roughly a sixth (measured, section 3(e)). This is the formula the SRS specifies; it is noted here because a
   player will notice it.
-- The longest movement is **12** on Medium and **30** on Hard (Regular 6 with a special 6).
+- **The longest movement from the level's own dice is 12 on Medium** (Regular 6 x (Boost 3 - 1)) **and 30
+  on Hard** (Regular 6 x (UltraBoost 6 - 1)). On Medium that 12 is **not** the overall bound: the
+  `EXTRA_ROLL` surprise rolls Regular + UltraBoost on *every* level (SRS Table 2, Q27), so a Medium move can
+  reach the same 30. Measured on `06e2ab2`, the longest Medium surprise-roll movement actually seen is
+  **24**. The NFR-04 animation budget caps by distance and not by level, so it covers this.
 - A Regular 6 brings a piece out of its castle onto its start square and grants an extra roll; three Regular
   6s in a row cancel the third roll and end the turn (FR-19, FR-21, FR-22).
 - A piece landing on an unprotected square holding a single opponent piece captures it, and the captured
@@ -205,10 +180,11 @@ with an opponent's piece. Evidence: `SurpriseFactoryTest` (47 tests), `SurpriseD
 obeying the ordinary movement and blocking rules, with a guard against an endless chain (FR-41, FR-42). A
 backward movement **stops at** the piece's start square rather than wrapping or being cancelled (FR-32).
 **Decision D4 is OPEN for ratification only** — the behaviour is implemented and matches FR-32; what is
-outstanding is the Product Owner's formal sign-off, which carries a caveat until #95 merges, because without
-it FR-32's only tests are by the author of the code under test. **D5 is likewise OPEN for ratification
-only**: an EXTRA_ROLL and a SKIP_TURN can both arise in one **turn**, but never in one **chain**. Evidence:
-`EffectResolutionTest`, `SquareEffectTest`, and `EffectChainIndependentTest` (25 tests) once #95 merges.
+outstanding is the Product Owner's formal sign-off. The caveat this used to carry is **discharged**: #95
+merged on 23/11 (`5decd43`), so FR-32 is no longer tested only by the author of the code under test.
+**D5 is likewise OPEN for ratification only**: an EXTRA_ROLL and a SKIP_TURN can both arise in one **turn**,
+but never in one **chain**. Evidence: `EffectResolutionTest`, `SquareEffectTest`, and
+`EffectChainIndependentTest` (25 tests, merged).
 
 **Scenario 8, turn phases (verified).** Moving before rolling, or rolling twice without moving, is refused,
 and a roll is refused while a special square is still waiting to be resolved (phase `RESOLVING`). Evidence:
@@ -243,9 +219,25 @@ and a roll is refused while a special square is still waiting to be resolved (ph
 
 ### Method
 
-- **JUnit 5**, run by `Iteration2/test.sh` or `test.bat` through the standalone console JAR. Every test's
-  `@DisplayName` names the SRS requirement it verifies, so the test output is itself the traceability
-  evidence.
+- **JUnit 5**, run by `Iteration2/test.sh` or `test.bat` through the standalone console JAR. **Most tests'
+  `@DisplayName` names the requirement, decision or course answer they verify - 607 of the 705** - so the
+  test output is itself a large part of the traceability evidence. The remaining 98 are the ones with no
+  single requirement to name: constructor and argument validation, helper classes and pattern-structure
+  checks (for example "isPassable refuses null arguments", "Context: RandomDice rolls with the strategy of
+  the level it is given"). Counted on `06e2ab2` from the JUnit XML report, which carries the full,
+  untruncated display name of each of the 705 tests:
+
+  ```bash
+  cd Iteration2 && ./test.sh                      # 705/705
+  java -jar lib/junit-platform-console-standalone-1.10.2.jar execute \
+       --class-path "build/classes;build/test-classes" --scan-class-path \
+       --details=none --reports-dir=/tmp/reports
+  # then count display-name lines matching FR-nn, NFR-nn, Dn/decision or Qnn
+  ```
+
+  The console's `--details=tree` output **truncates** long display names, so counting from it undercounts;
+  the XML report is the reliable source. The traceability claim that does not depend on this count is the
+  RTM below: `GAPS: none` for FR-15..FR-47.
 - **Rule tests are written by a member who did not implement the rule** (SDP 5.3.4). Tests whose names begin
   "independent" are that second pair of eyes.
 - **Acceptance tests** play complete games through the `GameModel` facade with the real dice, the real random
@@ -257,55 +249,33 @@ and a roll is refused while a special square is still waiting to be resolved (ph
 
 ### Measured results
 
-All figures Java 17 (Temurin 17.0.17), `Iteration2/test.sh`, measured **23/11/2026** unless a row says
+All figures Java 17 (Temurin 17.0.17+10), `Iteration2/test.sh`, measured **28/11/2026** unless a row says
 otherwise.
 
 | What | Tests | Result |
 |---|---|---|
-| `iteration-2` baseline `1d47f2d` | 656 | **656 passed, 0 failed** |
-| **`iteration-2` baseline `4640416`** (after #81, #97, #98, #102) | **660** | **660 passed, 0 failed** |
-| `4640416` + **#99** (`3b31345`) | **667** | **667 passed, 0 failed** |
-| `4640416` + **#103** (`3f07547`) | **668** | **668 passed, 0 failed** |
-| `4640416` + **#99 + #103** (`b97dc0c`) | **675** | **675 passed, 0 failed** |
-| `4640416` + **#103 + #99**, merged in the opposite order (`e0051c7`) | **675** | **675 passed, 0 failed** |
-| with the T2-15 acceptance tests (#99, `df396b6`) | 663 | **663 passed, 0 failed** |
-| with the US-2.3 end-to-end acceptance (#103, `ee465e4`) | 664 | **664 passed, 0 failed** |
-| **#99 and #103 together** | 671 | **671 passed, 0 failed** |
-| **the CP1 candidate: `iteration-2` + #97 + #98 + #95 + #96 + #99 + #103** | **700** | **700 passed, 0 failed** |
+| **`iteration-2` `06e2ab2` - the final Iteration 2 baseline** | **705** | **705 found, 705 passed, 0 failed, 0 skipped, 0 aborted** |
+| the same commit, measured independently by Shafeek Saif on 26/11 | 705 | 705 passed, 0 aborted |
+| `071cf90` before the last three merges (#111, #99, #103) | 685 | 685 passed, 0 failed |
+| `4640416` on 23/11, after #81, #97, #98 and #102 | 660 | 660 passed, 0 failed |
+| `1d47f2d` (23/11) | 656 | 656 passed, 0 failed |
 
-The last row is the number that matters for CP1: **700/700** on `1228597`, the new baseline `4640416` plus
-the four PRs still open (#95, #96, #99, #103), **all merged with no conflict**. The figure is independently
-corroborated: Shafeek measured the same **700/700** on his own locally-merged candidate (#106, T2-14
-snapshot of 23/11), built from a different starting commit and a slightly different set of PRs. It has now
-also held across three different baselines (`e9f6b2e`, `1d47f2d`, `4640416`) as the merges arrived.
+The suite grew from **433** on 21/11 (`6e13bcf`) through 531, 540, 656 and 685 to **705**, because tasks
+merged and not because tests changed. The three merges of 25/11 account for the last 20: **#111** +5
+(`NoAnswerVisibilityTest`), **#99** +7 and **#103** +8.
 
-**#99 and #103 are independent of each other**, which matters for the merge order: each merges cleanly onto
-`4640416` on its own (667/667 and 668/668), and merging them **in either order** gives the same 675/675. So
-neither has to wait for the other, and whichever Shafeek reviews first can go in first.
+Each of those three was re-verified against `071cf90` before it merged, on its own and combined, in
+throwaway worktrees: #99 alone **692/692**, #103 alone **693/693**, the two together **700/700**, and with
+#111 as well **705/705** - which is exactly the figure the merged branch now gives. Nothing was pushed to
+anyone else's branch.
 
-**#95 and #96 are not really conflicting — GitHub's flag is stale.** Both are shown as `CONFLICTING`
-against `iteration-2`, and both in fact **merge cleanly**. Verified twice: onto `1d47f2d`, and again onto
-the new baseline **`4640416`** after the four merges of 23/11, each in an isolated worktree. **The flag did
-not clear itself when the baseline moved**, so it will probably still be showing at merge time — it is not
-evidence of a real problem. The flag was computed while they were still stacked behind
-#92; now that #92 is merged their real net content is small — #95 adds
-`test/Model/EffectChainIndependentTest.java` and #96 changes
-`docs/design_patterns/State_Rakan.md`. GitHub normally recomputes this by itself; merging `iteration-2` into
-each branch would refresh it immediately. **Neither branch was modified**, since both are Rakan's.
+### An integration failure the reviews caught (kept as a lesson, not as PR history)
 
-The unmerged rows are integration checks done in throwaway worktrees; **nothing was pushed to anyone else's
-branch.** Earlier figures, kept so the growth stays traceable: the baseline was 540 on `e9f6b2e` (earlier on
-23/11), 531 on `d445a38` (22/11) and 433 on `6e13bcf` (21/11). The suite grew because tasks merged, not
-because tests changed.
+Reviewing against the *integrated* system, and not only against a branch's own baseline, caught a break
+that would otherwise have reached `iteration-2` days before CP1.
 
-### An integration failure the reviews caught, and how it was fixed
-
-This is the clearest evidence this iteration that reviewing against the *integrated* system, and not only
-against a branch's own baseline, is worth the effort — so it is recorded in full.
-
-**What was found.** Shafeek reviewed #99 (T2-15 acceptance) on 23/11. The seven acceptance tests passed on
-`iteration-2`, and the whole suite was 547/547. But he also ran them against **`iteration-2` + #92**, and
-**five of the seven failed**:
+**What happened.** #99's seven acceptance tests passed on `iteration-2` and the whole suite was green. Run
+against **`iteration-2` + #92**, **five of the seven failed**:
 
 ```
 java.lang.IllegalStateException: Resolve the special square first (phase RESOLVING)
@@ -313,44 +283,32 @@ java.lang.IllegalStateException: Resolve the special square first (phase RESOLVI
     at Model.MediumHardAcceptanceTest.playToEnd(MediumHardAcceptanceTest.java:96)
 ```
 
-**Why.** Since #92, a move onto a question or surprise square leaves the turn in `RESOLVING`, and the next
-`roll()` is refused until the square is resolved. The acceptance test's play loop rolled again regardless.
-Every test that plays a complete game failed.
+Since #92, a move onto a question or surprise square leaves the turn in `RESOLVING` and the next `roll()`
+is refused until the square is resolved; the acceptance loop rolled again regardless. There is no CI on
+`iteration-2`, so whichever of #92 and #99 merged second would have broken the branch with nobody notified.
+`playToEnd` now resolves every waiting square, and any chain it sets off, before taking the next turn. Both
+PRs are merged and the branch is green at 705/705.
 
-**Why it mattered more than a failing test.** There is no CI on `iteration-2`. Whichever of #92 and #99
-merged second would have broken the branch, days before CP1, and nobody would have seen it until someone
-happened to run the suite.
+**A rule came out of it, not just a fix.** The first run of the corrected loop failed with
+`MEDIUM: the special die of the level is rolled ==> expected: <BOOST> but was: <ULTRA_BOOST>`. The
+`EXTRA_ROLL` surprise rolls **Regular + UltraBoost whatever level is being played** (SRS Table 2, Q27;
+`StandardTurnManager.SURPRISE_ROLL_DICE`). The assumption that a level only ever rolls its own dice is
+false, and it had been written into an acceptance test.
 
-**How it was fixed, in two stages.** It was reproduced exactly in an isolated worktree, and fixed — but at
-first **not on #99**. The fix needs `pendingEffect()`, `judgeAnswer()` and `resolveSurprise()`, and none of
-those existed on `iteration-2`, which was #99's own target; putting the fix there would have stopped #99
-compiling against the branch it merges into. So the fix was proved green on a Draft follow-up, **#105**,
-built on `iteration-2` + #92 + #99, at 663/663, while #99 itself stayed buildable on its target at 547/547.
+**Player-visible consequence: a Medium game can produce a movement of more than 12.** The bound that holds
+on Medium is the UltraBoost one, 6 x (6 - 1) = **30**, not 12. Measured on `06e2ab2`, the longest Medium
+movement **from the level's own dice is 12** and the longest **surprise-roll** movement actually seen is
+**24**; both are read from `MediumHardAcceptanceTest` by tightening its two bounds until they report the
+value. The test's own javadoc records the same 24.
 
-**Once #92 merged later the same day, the fix moved into #99 itself** (`df396b6`), which is where it
-belongs, and **#105 became redundant — it is to be closed without merging, not merged**, because its diff
-also contains all of #92 and #99. `playToEnd` now resolves every waiting square, and any chain it sets off,
-before taking the next turn.
+> An earlier revision of this report gave this figure as **25** in one place and **24** in another. The
+> measured value on the merged baseline is **24**, and the 25 is withdrawn. The number that matters for
+> NFR-04 is neither: the animation budget caps by **distance and not by level**, so the 30-square bound
+> covers the Medium case as well.
 
-**Why the two-stage route was the right one, and not over-caution.** Had the loop gone straight onto #99, the
-PR would have stopped compiling against its own target branch — the exact failure mode the review was
-warning about, only pointed the other way. Keeping the two apart meant that at every moment one branch was
-green against `iteration-2` and the other was green against the integrated tree, and neither claim depended
-on a merge that had not happened.
+Anywhere a text says "the longest Medium movement is 12" it needs the qualifier **"from the level's own
+dice"**.
 
-**A second finding came out of that fix, and it is a rule rather than a bug.** The first run of the fixed
-loop failed with `MEDIUM: the special die of the level is rolled ==> expected: <BOOST> but was:
-<ULTRA_BOOST>`. The `EXTRA_ROLL` surprise rolls the **Regular + UltraBoost** dice *whatever level is being
-played* (SRS Table 2, Q27; `StandardTurnManager.SURPRISE_ROLL_DICE`). So the assumption that a level only
-ever rolls its own dice is false on the integrated game, and it was written into an acceptance test.
-
-Player-visible consequence, worth the team's attention: **a Medium game can produce a movement of more than
-12 squares.** Measured over nine Medium games, the longest ordinary movement was 12 as specified, but the
-longest surprise-roll movement was **25**, and the bound that actually holds on Medium is the UltraBoost
-one, 6 × (6 − 1) = **30**. The NFR-04 animation budget caps by distance and not by level, so **it still
-covers this** — but the 30-square case is no longer Hard-only, and anywhere we have written "the longest
-Medium movement is 12" needs the qualifier "from the level's own dice". Shafeek's Strategy section of
-`iteration2_dp_Sharks` already records the underlying rule.
 
 **Complete games actually played by the acceptance tests** (four players, random board, random legal choice,
 measured 21/11/2026):
@@ -371,20 +329,22 @@ So 12 complete Medium and Hard games ended with a winner and a full ranking.
 | Hard | 1–5 | **94** | **0** | **34** | **22** | 2 | 3 of 4, every game |
 | Medium | 1–3 | **81** | **0** | **36** | **22** | 3 | 3 of 4, every game |
 
-> **Corrected 23/11/2026.** An earlier draft of this table said "**94**, all distinct ids". That was not
-> supportable and has been withdrawn. The course bank holds **36** questions, 12 of each level
-> (`Model/CourseQuestions`), and each game builds its own decks, so 94 distinct ids cannot exist. Three
-> different things were being conflated, and they are now separate columns: **94** is the number of
-> questions *asked* over five games; **34** distinct ids appear among them, of the 36 that exist; and **0**
-> questions repeated within any single game — which is the FR-37 property actually worth claiming.
+The three columns are deliberately separate, because they are easy to conflate. The course bank holds
+**36** questions, 12 of each level (`Model/CourseQuestions`), and each game builds its own decks. So **94**
+is the number of questions *asked* over the five Hard games; **34** distinct ids appear among them, of the
+36 that exist; and **0** questions repeated within any single game — which is the FR-37 property worth
+claiming.
 
 All six surprise outcomes are drawn across these games, so the outcome table of FR-39 is exercised end to
 end rather than in part.
 
 **Three limits of this evidence**, recorded because they decide what still needs covering:
 
-* **The cross-player case of PO decision D2 never occurs naturally.** Measured, 26 turn outcomes across nine
-  games and **0** of them opponent-triggered. The D2 check in the full-game tests is a standing guard over
+* **The cross-player case of PO decision D2 never occurs naturally.** On `06e2ab2` the acceptance test
+  prints `[T2-15 D2] turn outcomes reached by natural play: 7 (of which opponent-triggered, i.e. D2's
+  cross-player half: 0)`. Across the wider set of games measured earlier the count was 26, also with **0**
+  opponent-triggered. The figure moves with the seeds and the merged rule set; what does not move is the
+  zero. The D2 check in the full-game tests is a standing guard over
   the common half; what covers the rare half is the scripted independent test described below — not the
   full-game runs. The acceptance test now asserts this limit explicitly, so the class cannot look as though
   it covers a case it never reaches.
@@ -532,11 +492,11 @@ Every rule is tested by a member who did not implement it. Expected values are w
 SRS — cells from the board's paths, step counts, ⌈R/2⌉, the Table 2 shares — and never read from the code
 under test. Source: `Iteration2/docs/N2-04_Testing_Rakan.md` (PR #102, Rakan Ziyan), integrated here.
 
-| Rules | Test class | Tests | Code author | PR | Status 22/11 |
+| Rules | Test class | Tests | Code author | PR | Status |
 |---|---|---|---|---|---|
 | Dice distribution, movement formula, routes (FR-16, FR-17, FR-25, NFR-13) | `DiceRouteIndependentTest` | 15 | Shafeek (T2-04) | #78 | merged |
 | Double Block (FR-19, FR-28–FR-30) | `DoubleBlockIndependentTest` | 19 | Rakan (T2-06) | #85 | merged |
-| Questions, surprises, chains (FR-32, FR-34–FR-42, Table 2, decision D2) | `EffectChainIndependentTest` | 25 | Mohamed (T2-08, T2-09), Shafeek (T2-10) | #95 | approved, merges after #92 |
+| Questions, surprises, chains (FR-32, FR-34–FR-42, Table 2, decision D2) | `EffectChainIndependentTest` | 25 | Mohamed (T2-08, T2-09), Shafeek (T2-10) | #95 | **merged** 23/11 (`5decd43`) |
 
 How they work:
 
@@ -643,19 +603,23 @@ keeps all 17 cases correct. It is raised on #81 as a suggestion, not a blocker.
 | Dry run, 16/11 | `iteration-2` `38e2e1d` (Iteration 1 code) | 380/380 | 106 files | yes |
 | CP1 rehearsal, 21/11, all 16 open PRs merged locally | local merge `3b4039e` | 664/664 | 168 files, JAR 261,390 bytes | yes, no error output |
 | Script check after the review fix, 22/11 | `iteration-2` `d445a38` | 531/531 | 142 files, JAR 222,254 bytes | — |
-| **Full rehearsal, 23/11**, into an isolated folder | integration candidate (`13bc5b3`) | **700/700** | **171 files, JAR 263,868 bytes**, SHA-256 `05b3e113…3544b9` | — |
-| **CP1 candidate rehearsal, 23/11** (second revision), isolated folder | `iteration-2` `1d47f2d` + #97 + #95 + #99 + #103 + #98 (`a312868`) | **700/700** | **172 files, JAR 263,868 bytes**, SHA-256 `462c774a…4ac386` | — |
-| **Complete candidate rehearsal, 23/11** (third revision, adds #96), isolated folder | `0928117` | **700/700** | **172 files, JAR 263,868 bytes**, SHA-256 `4dc64ff8…1deb2a` | — |
-| **Post-merge rehearsal, 23/11** (on the new baseline, after #81, #97, #98, #102), isolated folder | `4640416` + #95 + #96 + #99 + #103 (`1228597`) | **700/700** | **174 files**, JAR 263,868 bytes, SHA-256 `cf7c57ac…0506b0` | — |
+| **Integration rehearsals, 23/11**, four runs in isolated folders on rising baselines | `13bc5b3`, `a312868`, `0928117`, `1228597` | **700/700** each | 171–174 files, JAR 263,868 bytes in all four | — |
 | **The release procedure run on plain `iteration-2`, 23/11** — i.e. exactly what CP1 would ship today, with nothing merged by hand | **`4640416`** | **660/660** | **168 files**, JAR 263,868 bytes, SHA-256 `a5d4bb3c…442d21` | — |
-| **CP1 ARTIFACT, 25/11** — the official script on merged `iteration-2`, nothing merged by hand | **`1880c58`** | **685/685** | **169 files**, JAR 263,868 bytes, **SHA-256 `1b6a4999…7620918e`**, 3,019,109 bytes | — |
-| **CP1 ARTIFACT, after #104/#106/#108** — official script, nothing merged by hand | **`071cf90`** | **685/685** | **169 files**, JAR 263,868 bytes, **SHA-256 `bb0a393d…1a6eda3d`** | — |
+| **THE CP1 RELEASE RECORD — Rakan Ziyan's artifact, PR #109** | **`1880c58`** | **685/685** | **169 files**, JAR **261,533 bytes**, **SHA-256 `750414c8…2b7878248`** | — |
+| My own build of the same commit (a **second build**, not the CP1 record) | `1880c58` | 685/685 | 169 files, JAR 263,868 bytes, SHA-256 `1b6a4999…7620918e`, 3,019,109 bytes | — |
+| My own build after #104/#106/#108 (a **second build**) | `071cf90` | 685/685 | 169 files, JAR 263,868 bytes, SHA-256 `bb0a393d…1a6eda3d` | — |
 | **Verification candidate** (NOT a submission artifact) — `071cf90` + #111 + #99 + #103 | `d434dba` | **705/705** | 175 files, JAR 263,841 bytes, SHA-256 `f3677b4b…c64ba8` | — |
+| **THE FINAL SUBMISSION ARTIFACT** — to be built **once** from the final `iteration-2` after the last merge | **TODO** | **TODO** | **TODO** — one file, copied to the second computer, never rebuilt there | — |
 
-**The last row is the one that matters for CP1.** The release procedure works today on `iteration-2` with
-nothing merged by hand: **660/660 and a complete 168-file ZIP**. The candidate row above it (174 files) is
-what the ZIP becomes once #95, #96, #99 and #103 land; the JAR is byte-for-byte the same size in both,
-because none of the open PRs changes compiled code.
+**Which row is the CP1 record.** It is the first of the artifact rows: **Rakan Ziyan's ZIP from `1880c58`,
+PR #109, SHA-256 `750414c8…`**, with checks 1–8 passed by hand on computer 1. That is the artifact the team
+approved as the CP1 release record, and it is his work, not mine. The rows below it are **my own separate
+builds** of the same and later commits; they corroborate that the script reproduces the structure and the
+test count, but **they are not the CP1 artifact and must not be quoted as it**. The rehearsal rows above
+are integration checks in throwaway folders.
+
+**The final submission ZIP does not exist yet** and is the last row. It is built once, from the final
+`iteration-2`, after the last merge — see "The release artifact must be one file, not two rebuilds".
 
 Both ZIPs were opened and checked entry by entry: **all entries under the single top folder
 `iteration2_Sharks/`, no backslash in any entry**, and `EducationalLudo.jar`, `run.bat`, `build.bat`,
@@ -665,7 +629,6 @@ correctly excluded.
 The candidate's JAR was also started once to confirm it runs: it opened a real top-level window titled
 **"Educational Ludo - Team Sharks"** on a 1920×1200 display and printed nothing to stderr. That is a
 **launch** check and nothing more — it is not a playthrough, and no screenshot was taken.
-| CP1, 25/11 | merged `iteration-2` | **TODO** | **TODO** | **TODO**, both computers |
 
 The CP1 rehearsal also showed that every open PR merges without a conflict in the planned order.
 
@@ -687,8 +650,8 @@ git worktree add /c/Ludo/Sharks-CP1 origin/iteration-2 --detach
 ```
 
 **Step 2 — build and test.** In File Explorer open `C:\Ludo\Sharks-CP1\Iteration2`, then run `build.bat`
-and `test.bat`. Expect **660 found, 660 successful, 0 failed**. If `test.bat` reports any failure, stop: the
-release script will refuse to build a ZIP anyway.
+and `test.bat`. Expect **705 found, 705 successful, 0 failed, 0 skipped, 0 aborted** on `06e2ab2`. If
+`test.bat` reports any failure, stop: the release script will refuse to build a ZIP anyway.
 
 **Step 3 — build the submission ZIP.** From `C:\Ludo\Sharks-CP1` in Git Bash:
 
@@ -696,8 +659,9 @@ release script will refuse to build a ZIP anyway.
 python tools/make_iteration2_zip.py --ref origin/iteration-2 --out /c/Ludo/CP1-out
 ```
 
-It prints the file count, the test count and the SHA-256. On 23/11 that was **168 files, 660/660, SHA-256
-`a5d4bb3c…442d21`**. **Do not build the ZIP any other way** — not with Windows Explorer's "Send to
+It prints the file count, the test count and the SHA-256. On `06e2ab2` expect **705/705**; the file count
+is 169 plus the evidence images added in this revision. **Record the SHA-256 it prints: that one value is
+what the second computer must reproduce on the copied file.** **Do not build the ZIP any other way** — not with Windows Explorer's "Send to
 compressed folder", which writes backslash separators.
 
 **Step 4 — the double-click tests, which are the ones that can disqualify the assignment.** Unzip the ZIP to
@@ -731,7 +695,7 @@ disqualifies the whole assignment."* No console window may stay behind afterward
 |---|---|---|
 | 1 | Start a **Medium** game with 4 named players, then a **Hard** game; confirm the Hard board is visibly larger | layout on a real display |
 | 2 | Land on a **question square** and confirm the question's level matches **the square's colour**, not the board's | FR-34; the level mapping is only visible on screen |
-| 3 | In the question dialog, press **Tab** repeatedly then **Space** | keyboard traversal and focus visibility (NFR-13) |
+| 3 | In the question dialog, press **Tab** repeatedly then **Space** | keyboard traversal and focus visibility. No SRS requirement mandates a focus indicator; this supports decision **D3** |
 | 4 | Answer one question **right** and one **wrong**; then use **No Answer** followed by **Continue** | FR-35–FR-37 and decision D3 as the player meets them |
 | 5 | Trigger a **surprise**; for "push an opponent back" confirm **you** choose the piece and nothing is auto-selected; watch for a **second** dialog if it lands on another special square | FR-40, FR-42 |
 | 6 | **Stopwatch the longest Hard move** (Regular 6 with UltraBoost 6 = 30 squares) and **write down the milliseconds** | **the only check that closes NFR-04.** Every automated figure in this report is off-screen |
@@ -752,8 +716,30 @@ from a fresh clone, and record **who ran it and when**. Iteration 1's equivalent
 ### Real-window GUI acceptance (23/11 and 25/11)
 
 **This is the first evidence in this report that comes from the application actually running on a screen.**
-Everything else in 3(e) is off-screen. The full run is recorded in
-`C:\Ludo\CP1-GUI-Acceptance\reports\GUI_ACCEPTANCE_REPORT.md`, outside the repository.
+Everything else in 3(e) is off-screen.
+
+**The screenshots are in the repository**, under `Iteration2/docs/evidence/`, so they travel with the
+submission ZIP and a grader can open them without any machine of ours. They are referenced by figure number
+below. The fuller working log of the run stays outside the repository, on my machine, at
+`C:\Ludo\CP1-GUI-Acceptance\` — nothing in this report depends on reading it.
+
+| Figure | File | What it shows |
+|---|---|---|
+| G1 | `evidence/01_launch_main_menu.png` | the main menu of the game started from the CP1 ZIP |
+| G2 | `evidence/02_medium_board.png` | the Medium 17x17 board, legend and dice panel |
+| G3 | `evidence/03_hard_board.png` | the Hard 19x19 board; the legend counts match 3(c) exactly |
+| G4 | `evidence/04_question_card_level.png` | a question card carrying the **square's** level (FR-34) |
+| G5 | `evidence/05_answer_feedback.png` | the answer feedback naming the correct answer (FR-35, FR-36) |
+| G6 | `evidence/06_noanswer_visible_after_fix.png` | the No Answer button, visible, after #111 |
+| G7 | `evidence/07_noanswer_focus_ring.png` | its keyboard focus ring |
+| G8 | `evidence/08_noanswer_mouse_result.png` | the result of a **mouse** click on it |
+| G9 | `evidence/09_nfr04_harness.png` | the NFR-04 visible-window harness mid-move |
+
+**One honest limit on G1.** The four launch routes below (run.bat, the JAR, and each from a Hebrew-letter
+path) were each performed separately, and each opened the game — the automation log records four distinct
+process ids. But the main menu is a static screen, so the four captures came out **byte-identical**, and a
+single image is kept. **The pixels therefore do not distinguish the four routes; the logs do.** G1 shows
+what every route opened, not which one.
 
 Method: real Win32 mouse clicks and key presses delivered to the real Swing window on a real 1920x1200
 display, with every screenshot taken by `PrintWindow` against the verified game window only. Where moves
@@ -769,21 +755,22 @@ is genuine GUI interaction, but it is not a human play-test.
 | 4/5 | `run.bat` from a path with Hebrew letters | **PASS** |
 | **4/6** | **JAR from a path with Hebrew letters** | **PASS** - the Iteration 1 *Unable to access jarfile* failure did **not** reproduce |
 
-**Confirmed on screen:** Medium 17x17 (track 52+64=116, 6 questions, 2 surprises) and Hard 19x19
-(52+64+72=188, 9 questions, 3 surprises); the dice panels and the `Regular x (special - 1)` formula; the
+**Confirmed on screen:** Medium 17x17 (track 52+64=116, 6 questions, 2 surprises, **figure G2**) and
+Hard 19x19 (52+64+72=188, 9 questions, 3 surprises, **figure G3**) — in both, the board legend on screen
+prints the same counts as the `LevelConfig` table in 3(c), which is the table checked against the code; the dice panels and the `Regular x (special - 1)` formula; the
 turn order and the game clock; legal-move highlighting; a roll of 1 correctly passing the turn with all
 pieces in the castle (FR-19); name validation rejecting empty fields; and the leave-game confirmation.
 
-**FR-34 confirmed in the strongest possible way:** on the **Medium** board a question appeared with the
-**Easy** badge and "1 steps at stake", and on the **Hard** board both an **Easy** and a **Hard** question
-appeared. **The level follows the square, not the board.**
+**FR-34 confirmed in the strongest possible way (figure G4):** on the **Medium** board a question appeared
+with the **Easy** badge and "1 steps at stake", and on the **Hard** board both an **Easy** and a **Hard**
+question appeared. **The level follows the square, not the board.**
 
-**FR-35 and FR-36 confirmed on screen in both directions:** a correct answer gave *"Correct!"*, named the
+**FR-35 and FR-36 confirmed on screen in both directions (figure G5):** a correct answer gave *"Correct!"*, named the
 correct answer and moved the piece **1 square forward** (Easy); a wrong answer and a No Answer each gave
 *"Not correct"*, named the correct answer, and moved the piece **1 square backward** (Easy) and **3 squares
 backward** (Hard). In every case the reported correct answer matched the question's correct option.
 
-### The No Answer defect, found on screen and fixed (D3, FR-35, NFR-13)
+### The No Answer defect, found on screen and fixed (decision D3, FR-35)
 
 **This is the one defect the GUI run found, and the existing tests could not have found it.**
 
@@ -798,16 +785,15 @@ question card (`Theme.SURFACE`). GHOST paints no fill, a white border, a `Theme.
 **and a white focus ring**, so setting only a foreground colour would have made the label readable while
 leaving the keyboard focus indicator invisible.
 
-**Requirement basis, corrected 25/11.** An earlier version of this section cited **NFR-13** for "visible
-keyboard focus". That was wrong. NFR-13 reads *"In 10,000 simulated draws, each die value and surprise
-outcome shall be within 2 percentage points of its expected probability"* - it is **dice distribution**,
-which is also how the rest of the code uses it (`DiceStrategy`, `RegularDiceTest`, `SurpriseFactoryTest`).
-NFR-24 covers text size and colour identification, not focus. **No SRS requirement mandates a visible focus
-indicator.** The defect's basis is therefore **D3** (an invisible button does not deliver the approved
-decision to a player using the mouse) and **FR-35**; the focus-ring work is recorded as supporting D3's
-usability, not as satisfying a numbered requirement.
+**Which requirement this defect is against.** **No SRS requirement mandates a visible keyboard focus
+indicator.** NFR-13 is **dice distribution** - *"in 10,000 simulated draws, each die value and surprise
+outcome shall be within 2 percentage points of its expected probability"* - which is how the rest of the
+code uses it (`DiceStrategy`, `RegularDiceTest`, `SurpriseFactoryTest`), and NFR-24 covers text size and
+colour identification, not focus. The basis is therefore **decision D3** - an invisible button does not
+deliver the approved "answer nothing" route to a player using the mouse - together with **FR-35**. The
+focus-ring work is recorded as supporting D3's usability, not as satisfying a numbered requirement.
 
-Fix (**PR #111**, mine, not yet merged): use `Variant.SECONDARY` for that one button - the variant the four
+Fix (**PR #111**, mine, **merged 25/11**): use `Variant.SECONDARY` for that one button - the variant the four
 answer buttons on the same card already use. `CustomButton` is unchanged, so the dark-background Exit button
 keeps its styling. No gameplay rule, Model or Controller code is touched.
 
@@ -836,8 +822,8 @@ Evidence that the tests catch what they claim:
 | the fix | **5 of 5 pass** |
 
 **Verified in the running application after the fix:** the formerly blank region now holds **250 distinct
-colours**; Tab shows **696 `Theme.ACCENT` pixels** forming a visible blue focus ring; and a **mouse click**
-on the button - previously impossible - produced *"Not correct"*, *"The correct answer is: Burndown Chart"*
+colours** (**figure G6**); Tab shows **696 `Theme.ACCENT` pixels** forming a visible blue focus ring
+(**figure G7**); and a **mouse click** on the button - previously impossible - produced (**figure G8**) *"Not correct"*, *"The correct answer is: Burndown Chart"*
 and *"Your piece moves 3 squares backward."* The disabled state is now visible grey as well.
 
 A stale source comment claiming *"Space or **Enter** presses it"* was also corrected: probed on the real
@@ -861,6 +847,8 @@ measurement ends **after the final frame is actually painted**, not when the cal
 | 4 | 61 | 1215 | **1296** |
 | 5 | 63 | - | **1311** |
 
+The harness window mid-move is **figure G9**.
+
 Mean about **1305 ms**, headroom about **695 ms** under NFR-04's 2000 ms. 53-63 repaints for 30 squares is
 about two painted frames per square, so the movement really is animated square by square. **This is a real
 component in a real window - but it is not the full game being played.**
@@ -870,7 +858,12 @@ static at rest (0 of 29 frame pairs changed over 2.5 s), so a move can be bounde
 mouse click on the piece, t1 at the last capture where the board still changed. Resolution about 90 ms.
 
 **16 valid in-game measurements on a Hard game, every one under 2000 ms**, the longest being **1578 ms for a
-10-step move** (`5 x (3 - 1) = 10 steps`, evidence `ingame_move_30_1577ms.png`).
+10-step move** (`5 x (3 - 1) = 10 steps`).
+
+> **Read the evidence filename carefully.** That measurement is saved as `ingame_move_30_1577ms.png`, and
+> the **30 is the attempt number, not a number of squares** — the capture loop names its files
+> `ingame_move_<attempt>_<ms>ms.png`. The move it shows is **10 steps in 1577 ms**. No 30-square move was
+> produced by natural play in this run.
 
 That 10-step figure is **not** a weaker version of the 30-square case. The budget is
 `max(260, min(1200, steps x 120))`, so **any move of 10 squares or more is already at the 1200 ms cap** - a
@@ -898,9 +891,6 @@ are recorded here because they cover exactly the scenarios my automated GUI run 
 | 7 | **Easy, Medium and Hard each start and accept a roll** | **PASS** (computer 1, Rakan) |
 | 8 | **A full game reaches the results screen** | **PASS** (computer 1, Rakan) |
 | 9 | Checks 1-8 on a **second computer** | **still open - mine to run** |
-
-**#99 and #103 re-verified on `071cf90`:** baseline 685, with #99 **692/692**, with #103 **693/693**, with
-both **700/700**, every merge clean. Adding #111 as well gives **705/705**.
 
 Row 7 and row 8 are the two things this report could not otherwise claim: **an Easy game, and a complete
 game played through to the results screen.** They are Rakan's manual evidence, and nothing in my automated
@@ -931,55 +921,42 @@ to the second computer; verify the hash there with `Get-FileHash -Algorithm SHA2
 
 ### What has not been verified yet
 
-1. **A human playthrough** of a complete Medium and Hard game (scripts M1, M2). The short, run-it-now
-   version is `Iteration2/docs/T2-15_ManualChecklist_CP1.md`. **Automation-driven play on 23/11 and 25/11
-   covered setup, both boards, the dice, highlighting, four question cards and about 200 turns without a
-   freeze - but no game was played to the results screen, and no surprise square was reached.** Those two
-   remain genuinely unverified and must not be reported as passed.
-2. ~~**Questions, surprises and chains as player-visible behaviour**~~ - **no longer outstanding.** #90, #91
-   and #92 merged on 23/11, so a player can now reach every Iteration 2 rule in a build made from
-   `iteration-2`, and sections 3(b)-3(d) are written as fact rather than as TODO. What is left of this item
-   is item 1: **the code is all there, and nobody has played it.** The independent effect tests (#95) are
-   still unmerged, which is a coverage gap rather than a functionality gap - see the D4 caveat in the
-   decision register.
-3. **The double-click start on both computers** with the final ZIP (N2-06). **Row 5 and row 6 both PASS on
-   this computer**, by genuine Explorer double-clicks on the CP1 ZIP, including from a Hebrew-letter path
-   (see the GUI acceptance section). **The second computer is still outstanding.** The earlier, weaker
-   statement is kept below for the record: on 23/11 I verified on a real Windows display that `EducationalLudo.jar` started by
-   `java -jar`, and that `run.bat` started the game through `javaw`, each opening a visible top-level window
-   titled "Educational Ludo - Team Sharks" and leaving no console window behind. **Both were started from a
-   command line, not by a double-click in File Explorer**, which also exercises the `.jar` file association
-   and the working directory Explorer hands the process. The double-click itself, on both computers, is
-   still TODO.
-4. **The real on-screen animation timing** (NFR-04). **This is now partly closed** - see the two kinds of
-   on-screen evidence above: a visible-window harness at about **1305 ms** for 30 squares, and **16 in-game
-   measurements all under 2000 ms**, the longest **1578 ms** for a 10-step move, which is already at the
-   1200 ms cap. **What is still missing is a 30-square move produced by natural play inside the full game**,
-   and a human stopwatch alongside it.
-5. ~~**Independent tests of the question and surprise rules**~~ - **done and merged.** T2-12 (#95, Rakan)
-   added `EffectChainIndependentTest`, 25 tests, and merged on 23/11 as `5decd43`. The independence gap
-   SDP 5.3.4 cares about is closed in `iteration-2` itself, and the **D4** caveat that waited on it is
-   discharged.
-6. **Screenshots.** None are in this file. The list for the design-pattern document is in
-   `docs/design_patterns/FactoryMethod_Mohamed.md`; the report needs its own, and they can only be taken from
-   the final build.
+This list is what an examiner should treat as **not** evidenced. Everything else in 3(e) is measured.
 
----
+1. **A human playthrough** of a complete Medium and Hard game by one of us, from the menu to the results
+   screen (scripts M1 and M2; the short version is `Iteration2/docs/T2-15_ManualChecklist_CP1.md`).
+   Automation-driven play on 23/11 and 25/11 covered setup, both boards, the dice, highlighting, four
+   question cards and about 200 turns without a freeze, **but reached neither the results screen nor a
+   surprise square**. Rakan Ziyan did play a full game by hand on computer 1 (N2-06 row 8, #109); that is
+   his evidence, recorded above under his name, and it is not a substitute for the scripted M1/M2 run.
+2. **The second computer** (N2-06 row 9). Rows 1-8 pass on computer 1, and rows 5 and 6 - the two
+   double-click checks - also pass on this computer by genuine Explorer double-clicks on the CP1 ZIP,
+   including from a Hebrew-letter path. **No check has been run on a second physical computer for
+   Iteration 2.** It must be run on a byte-identical copy of the final ZIP, not on a rebuild.
+3. **A 30-square move produced by natural play, timed on screen** (NFR-04). This is **partly** closed: a
+   visible-window harness runs the real `BoardComponent` for a real 30-square move at about **1305 ms**,
+   and **16 in-game measurements are all under 2000 ms**, the longest **1578 ms** for a 10-step move, which
+   is already at the 1200 ms cap. What is missing is the 30-square case arising inside a full game, with a
+   human stopwatch beside it.
+4. **Surprise outcomes, opponent-piece selection and chained effects as seen on screen.** They are covered
+   by automated tests end to end, and all six outcomes are drawn in the full-game runs, but **no surprise
+   square was reached in the real-window GUI run**. The on-screen evidence above covers questions, not
+   surprises.
+5. **Decisions D1, D4 and D5.** D1 is **OPEN** and needs the course staff's answer on Q7/Q35; D4 and D5 are
+   implemented and tested and need only the Product Owner's formal ratification.
 
 ## 6. What finishing this report needs
 
 | # | Needed | Depends on |
 |---|---|---|
-| 1 | ~~Merge the remaining Iteration 2 feature PRs, then rewrite 3(b)-3(d)~~ **done 23/11** - #90, #91 and #92 merged; 3(b)-3(d) now state the behaviour as fact | — |
-| 1b | ~~**Merge #97 before building the CP1 artifact**~~ **done 23/11** — merged as `1f099f2`; the budget is 1200 ms in the baseline and the timing test passes 4/4 cold on the candidate | — |
-| 2 | Run the manual script M1-M7 and paste the filled-in tables in as the 3(e) evidence | T2-15, N2-06 |
-| 3 | Re-run the whole suite on the final `iteration-2` and replace every test count | after the last merge — done once for `4640416` (660/660) and for the candidate (700/700); must be repeated after #95, #96, #99 and #103 land |
-| 4 | Take the screenshots from the final build | a human; step 5 of the procedure in 3(e) |
-| 5 | Accept the **D1** lock-out explicitly for Iteration 2, and ratify **D4** and **D5** (both implemented and tested; see the register). 3(c) already states the rule FR-19 specifies; what is outstanding is whether a Double Block forms on a start square at all | staff clarification on Q7/Q35, then the Product Owner |
-| 5b | Add the US-2.3 end-to-end acceptance evidence of **#103** to 3(e) once it merges, and the independent-test evidence of #95 | both re-tested against the new baseline `4640416` and ready; #99 → 667/667, #103 → 668/668, together 675/675 |
-| 5c | ~~Move the fix on **#105** into #99~~ **done 23/11** (`df396b6`). #105 is now redundant and is to be **closed without merging** | — |
-| 5d | Fill in `T2-15_ManualChecklist_CP1.md` on both computers, including the stopwatch row, and paste the filled tables into 3(e) | a human, before CP1 |
-| 6 | Continue the Iteration 1 report: keep its structure and numbering, add Iteration 2 as the new iteration rather than replacing it, and export to Word or PDF as `iteration2_report_Sharks` | all of the above |
+| 1 | Run the manual scripts M1 and M2 (a complete Medium and Hard game played by a person) and paste the filled-in tables in as 3(e) evidence | a human, before 05/12 |
+| 2 | Run N2-06 row 9 on a **second physical computer**, from a byte-identical copy of the final ZIP | the final ZIP, then a human |
+| 3 | Build the **final submission ZIP once** from the final `iteration-2`, record its SHA-256 in the release table, and use that one file everywhere | the last merge |
+| 4 | Stopwatch a 30-square move on screen inside a full game (the last open part of NFR-04) | a human; step 5 of the procedure in 3(e) |
+| 5 | Settle **D1**, and ratify **D4** and **D5** | staff clarification on Q7/Q35, then the Product Owner |
+| 6 | Export this text as `iteration2_report_Sharks` (Word and PDF), continuing `iteration1_report_Sharks`: keep its structure and numbering and add Iteration 2 as the new iteration rather than replacing it | all of the above |
 
-**This file is the source text, not the deliverable.** The deliverable is the Word or PDF
-`iteration2_report_Sharks`, continuing `iteration1_report_Sharks`.
+**This file is the source text, not the deliverable.** The deliverable is the Word and PDF
+`iteration2_report_Sharks`, continuing `iteration1_report_Sharks`. The export keeps the final numbers and
+the measured evidence; it does not carry the pull-request history, which belongs here and in the Scrum
+Report.

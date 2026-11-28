@@ -6,19 +6,11 @@ This is the short, run-it-now version of the scripts M1–M7 in `T2-15_Acceptanc
 
 ## 0. Which build to test, and why it matters
 
-**Updated 23/11/2026 (third revision): #81, #97, #98 and #102 have now merged too**, on top of #90, #91 and
-#92 earlier the same day. Two things changed for the tester:
-
-* **One build covers every row.** The earlier split across two builds is gone, because questions and
-  surprises can now be reached from `iteration-2` itself.
-* **You no longer have to merge #97 by hand.** The 1200 ms animation budget is in the baseline, so
-  **row 10 measures the right budget straight from `iteration-2`.**
+**Updated 28/11/2026. All Iteration 2 code is merged**, so there is one build and no PR to merge by hand.
 
 | Build | Contains | Use it for |
 |---|---|---|
-| **`iteration-2` `4640416`** | everything: boards, dice, Double Blocks, rankings, the question and surprise dialogs, chained effects, the turn phases, **and the 1200 ms animation budget** | **all rows** |
-
-**The simple build — this is enough for every row:**
+| **`iteration-2` `06e2ab2`** | everything: boards, dice, Double Blocks, rankings, the question and surprise cards, chained effects, the turn phases, the 1200 ms animation budget, **and the No Answer fix (#111)** | **all rows** |
 
 ```bash
 cd /c/Ludo/Sharks
@@ -27,8 +19,8 @@ git worktree add /c/Ludo/Sharks-CP1 origin/iteration-2 --detach
 cd /c/Ludo/Sharks-CP1/Iteration2 && ./build.bat && ./test.bat
 ```
 
-Expect **660 found, 660 successful, 0 failed**. If you want to be sure the budget really is in the build
-before trusting row 10, check the constant:
+Expect **705 found, 705 successful, 0 failed, 0 skipped, 0 aborted**. If you want to be sure the animation
+budget really is in the build before trusting row 10:
 
 ```bash
 grep -n "MAX_MOVE_MILLIS" src/View/components/BoardComponent.java
@@ -36,39 +28,40 @@ grep -n "MAX_MOVE_MILLIS" src/View/components/BoardComponent.java
 
 It should read `1200`.
 
-**Optional — the full CP1 candidate (700/700).** Only needed if you want the four PRs that are still open
-as well. Nothing player-visible changes: #95 and #96 are tests and documentation, #99 and #103 are my
-acceptance tests.
+**Better still, test the release artifact rather than a worktree**, because that is what is submitted:
+unzip the ZIP built by `tools/make_iteration2_zip.py` and run the rows inside the unzipped folder. The
+build of 28/11 from `06e2ab2` is 175 files, 705/705, SHA-256 `0ac4d6fb…e707543`.
 
-```bash
-git merge --no-edit origin/feature/rakan/T2-12-effect-tests              # #95  - independent tests
-git merge --no-edit origin/feature/rakan/N2-05-state-resolving           # #96  - docs
-git merge --no-edit origin/feature/mohamed/T2-15-acceptance              # #99
-git merge --no-edit origin/feature/mohamed/T2-15-effects-acceptance      # #103
-cd Iteration2 && ./build.bat && ./test.bat
-```
+> **One build note.** Row 3 asks you to press **Tab** then **Space** on the question card. Before #111 the
+> **No Answer** button was painted white on a white card — invisible, though it worked. It is fixed on this
+> baseline, so the button must be **visible** and must show a blue focus ring when Tab reaches it. If it is
+> not visible, you are testing an old build.
 
-All four merged with **no conflict** onto `4640416` on 23/11 and the suite was **700/700**. (#95 and #96 are
-still shown as "conflicting" on GitHub. That flag is stale — it dates from when they were stacked behind
-#92, and it did not clear when the baseline moved. They merge cleanly; I checked on both baselines.)
+## 1. What is already verified on this PC — do not re-run unless you want to
 
-## 1. What I already verified on this PC (23/11/2026) — do not re-run unless you want to
+Re-verified on **28/11/2026** against the merged baseline `iteration-2` **`06e2ab2`** and the release ZIP
+built from it.
 
 | # | Check | Result | How it was verified |
 |---|---|---|---|
-| 0.1 | The JAR starts and opens a real window | **PASS** | `java -jar EducationalLudo.jar` on the CP1 candidate created a visible top-level window titled **"Educational Ludo - Team Sharks"**, confirmed in `tasklist /V` as *Running* on a real 1920×1200 display, with nothing on stderr |
-| 0.2 | `run.bat` starts the game | **PASS** | `run.bat` started **javaw.exe** with the same window title, *Running*. The script uses `javaw`, so no console window stays behind |
-| 0.3 | The suite passes on the new baseline | **PASS** | **660 found, 660 successful, 0 failed** (Java 17, Temurin 17.0.17) on `iteration-2` `4640416` — that is with no PR merged by hand |
-| 0.3b | The suite passes on the full CP1 candidate | **PASS** | **700 found, 700 successful, 0 failed** on `4640416` + #95 + #96 + #99 + #103 (`1228597`). All four merged with no conflict |
-| 0.4 | The release script produces a ZIP from that candidate | **PASS** | **174 files**, JAR 263,868 bytes, Java 17 class files, `Main-Class: Controller.Main`, 700/700, SHA-256 `cf7c57ac…0506b0`, into an isolated folder — the team's official artifact was not touched |
-| 0.5 | The ZIP's structure is correct | **PASS** | Opened and checked entry by entry: 174 entries, **all under the single top folder** `iteration2_Sharks/`, **no backslash** in any entry, and `EducationalLudo.jar`, `run.bat`, `build.bat`, `test.bat`, `run.sh`, `build.sh`, `test.sh` and `README.md` all present, with `build/` excluded |
-| 0.6 | Animation timing, **off-screen** | **PASS** | `View.TimingTest` 4/4 on three cold-JVM runs and `View.MovementAnimationTest` 15/15, on the candidate built from the new baseline. This is off-screen and does **not** substitute for row 10 |
-| 0.7 | Every FR has a test (NFR-14) | **PASS** | The team's own `tools/rtm_coverage.py`, run against the real SRS text: **`GAPS: none` for FR-15…FR-47.** The SRS dump comes from `pdftotext -layout Assignment3_Prototype/Sharks_SRS.pdf` |
-| 0.8 | #99 and #103 do not depend on each other | **PASS** | Each merges onto `4640416` alone (667/667 and 668/668), and merging both **in either order** gives 675/675. Either one can go first |
+| 0.1 | The suite passes on the merged baseline | **PASS** | **705 found, 705 successful, 0 failed, 0 skipped, 0 aborted** (Temurin 17.0.17+10) on `06e2ab2`, nothing merged by hand. Corroborated independently by Shafeek on 26/11 |
+| 0.2 | The release script produces a ZIP | **PASS** | **175 files**, JAR 263,841 bytes, Java 17 class files, `Main-Class: Controller.Main`, 705/705, SHA-256 `0ac4d6fb…e707543` |
+| 0.3 | The ZIP's structure is correct | **PASS** | All entries under the single top folder `iteration2_Sharks/`, no backslash in any entry, `build/` excluded, and the run/build/test scripts and `README.md` all present |
+| **0.4** | **Double-click `run.bat` in File Explorer** | **PASS** | A **genuine double-click inside a real File Explorer window**. The game window opened, 1600×950, responsive, and **0 console windows were left behind** |
+| **0.5** | **Double-click `EducationalLudo.jar` in File Explorer** | **PASS** | Same method. No file-association prompt and no error |
+| 0.6 | `java -jar` from a folder with **Hebrew letters** | **PASS** | Verified on 25/11 on this PC against the CP1 ZIP; the Iteration 1 *Unable to access jarfile* failure did not reproduce |
+| 0.7 | Animation timing, **off-screen** | **PASS** | `View.TimingTest` 4/4 on three cold-JVM runs, `View.MovementAnimationTest` 15/15. Off-screen — this does **not** substitute for row 10 |
+| 0.8 | Animation timing, **in a real window** | **PASS** | A harness compiled against the released JAR ran the real `BoardComponent` for a real 30-square move in a visible window: **1296–1313 ms** over 5 runs, limit 2000 ms. Still a harness, not a played game |
+| 0.9 | Every FR has a test (NFR-14) | **PASS** | `tools/rtm_coverage.py` against the real SRS text: **`GAPS: none` for FR-15…FR-47** |
+| 0.10 | The **No Answer** button is painted, focusable and clickable | **PASS** | On screen after #111: the formerly blank region holds 250 distinct colours, Tab shows a blue focus ring, and a **mouse click** on it produced *"Not correct"* with the correct answer named |
 
-**What 0.1 and 0.2 do *not* prove.** They were started from a command line, not by a **double-click in File Explorer**. That is still row 1 and row 2 below: a double-click also exercises the `.jar` file association and the working directory Explorer hands the process, and only you can do it.
+**Rows 0.4 and 0.5 are the two that can disqualify the assignment**, and they now pass on this computer by
+real double-clicks. **They have not been done on a second computer.**
 
-**No gameplay screenshots were taken.** A full-screen capture on this PC caught your own browser rather than the game, so I deleted it and did not retry. Screenshots are rows 11 below and are yours to take.
+**Some gameplay screenshots now exist**, taken from the game window only and committed to
+`Iteration2/docs/evidence/`. They cover the menu, both boards, the question card and the No Answer button.
+**They do not cover a surprise card, a chained effect or the results screen** — those are still yours to
+capture in rows 5, 6 and 7 below.
 
 ## 2. The checklist
 

@@ -734,6 +734,8 @@ below. The fuller working log of the run stays outside the repository, on my mac
 | G7 | [`evidence/07_noanswer_focus_ring.png`](evidence/07_noanswer_focus_ring.png) | its keyboard focus ring |
 | G8 | [`evidence/08_noanswer_mouse_result.png`](evidence/08_noanswer_mouse_result.png) | the result of a **mouse** click on it |
 | G9 | [`evidence/09_nfr04_harness.png`](evidence/09_nfr04_harness.png) | the NFR-04 visible-window harness mid-move |
+| **G10** | [`evidence/10_surprise_card_skip_turn.png`](evidence/10_surprise_card_skip_turn.png) | **the first surprise card ever captured on screen** (28/11) |
+| G11 | [`evidence/11_hard_30_step_roll.png`](evidence/11_hard_30_step_roll.png) | a Hard roll showing `6 x (6 - 1) = 30 steps`, the longest movement, in a real game |
 
 **One honest limit on G1.** The four launch routes below (run.bat, the JAR, and each from a Hebrew-letter
 path) were each performed separately, and each opened the game — the automation log records four distinct
@@ -865,10 +867,41 @@ mouse click on the piece, t1 at the last capture where the board still changed. 
 > `ingame_move_<attempt>_<ms>ms.png`. The move it shows is **10 steps in 1577 ms**. No 30-square move was
 > produced by natural play in this run.
 
+**The 30-step formula was seen on screen** in the same run (**figure G11**): on a Hard board a roll of
+Regular 6 with UltraBoost 6 printed `6 x (6 - 1) = 30 steps` in the dice panel. That is the formula and the
+bound displayed live by the real game - but it is **not** a timed 30-square animation, because on that turn
+every piece was still in the castle and a 6 brings a piece out rather than moving it 30 squares. **The
+timed 30-square move inside a full game is still open.**
+
 That 10-step figure is **not** a weaker version of the 30-square case. The budget is
 `max(260, min(1200, steps x 120))`, so **any move of 10 squares or more is already at the 1200 ms cap** - a
 10-step and a 30-step move are given exactly the same budget. The 30-step move paints more intermediate
 frames, so the two are not identical, but the in-game figure is at the cap and under the limit.
+
+### Surprise squares reached on screen (28/11/2026)
+
+**Until 28/11 no surprise square had ever been reached in a GUI run**, and this report said so. One has now
+been reached, by automation-driven gameplay on the merged baseline `06e2ab2` in a Hard two-player game
+(**figure G10**, `evidence/10_surprise_card_skip_turn.png`, game clock 00:06:56).
+
+The card read:
+
+> **Surprise square** - **Skip your next turn** - `30% chance` - `Tester's turn`
+> "You will miss your next turn, and any extra roll from a 6 is cancelled."
+
+Three things are confirmed by that one card, on screen rather than only in a test:
+
+* **FR-39** - landing on a surprise square triggered **exactly one** outcome, named and explained.
+* **Decision D2** - the badge says **"Tester's turn"**, and Tester was the **active player**. The turn
+  outcome fell on the active player.
+* **Decision D5, ratified the same day** - the card states *"any extra roll from a 6 is cancelled"*, which
+  is precisely the rule the Product Owner ratified (Q56). The behaviour the register and
+  `EffectResolutionTest` describe is the behaviour the player is told about.
+
+**What this still does not cover.** The outcome drawn was a **turn** outcome, which moves no piece. The
+**"move an opponent" case (FR-40), where the active player chooses which opponent piece moves, has still
+not been seen on screen**, and neither has a **chained effect**. Those remain open, and the automated tests
+remain their only evidence.
 
 **A 30-square move was not produced by natural play** in the bounded run, so case (b) covers up to 10 steps.
 13 further attempts could not be timed: when a legal piece is highlighted it **glows**, so the board never
@@ -938,12 +971,14 @@ This list is what an examiner should treat as **not** evidenced. Everything else
    and **16 in-game measurements are all under 2000 ms**, the longest **1578 ms** for a 10-step move, which
    is already at the 1200 ms cap. What is missing is the 30-square case arising inside a full game, with a
    human stopwatch beside it.
-4. **Surprise outcomes, opponent-piece selection and chained effects as seen on screen.** They are covered
-   by automated tests end to end, and all six outcomes are drawn in the full-game runs, but **no surprise
-   square was reached in the real-window GUI run**. The on-screen evidence above covers questions, not
-   surprises.
-5. **Decisions D1, D4 and D5.** D1 is **OPEN** and needs the course staff's answer on Q7/Q35; D4 and D5 are
-   implemented and tested and need only the Product Owner's formal ratification.
+4. **Opponent-piece selection (FR-40) and chained effects as seen on screen.** Partly closed on 28/11: a
+   **surprise card was reached and read on screen** for the first time (figure G10), confirming FR-39,
+   decision D2 and the ratified decision D5 in the running game. What remains open is the **"move an
+   opponent" outcome, where the active player chooses the piece**, and a **chained effect** opening a
+   second card. Both are covered by automated tests only.
+5. **Decision D1 only.** **D4 and D5 were RATIFIED by the Product Owner on 28/11/2026** (issue #75);
+   neither needed a gameplay change, and the register records the ratification with its evidence. **D1
+   stays OPEN** and needs the course staff's answer on Q7/Q35 - it is not closable by the Product Owner.
 
 ## 6. What finishing this report needs
 
@@ -953,7 +988,7 @@ This list is what an examiner should treat as **not** evidenced. Everything else
 | 2 | Run N2-06 row 9 on a **second physical computer**, from a byte-identical copy of the final ZIP | the final ZIP, then a human |
 | 3 | Build the **final submission ZIP once** from the final `iteration-2`, record its SHA-256 in the release table, and use that one file everywhere | the last merge |
 | 4 | Stopwatch a 30-square move on screen inside a full game (the last open part of NFR-04) | a human; step 5 of the procedure in 3(e) |
-| 5 | Settle **D1**, and ratify **D4** and **D5** | staff clarification on Q7/Q35, then the Product Owner |
+| 5 | Settle **D1** | the course staff's answer on Q7/Q35. **D4 and D5 were ratified on 28/11/2026** and are closed |
 | 6 | Export this text as `iteration2_report_Sharks` (Word and PDF), continuing `iteration1_report_Sharks`: keep its structure and numbering and add Iteration 2 as the new iteration rather than replacing it | all of the above |
 
 **This file is the source text, not the deliverable.** The deliverable is the Word and PDF

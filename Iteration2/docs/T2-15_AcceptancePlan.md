@@ -4,29 +4,27 @@ Task **T2-15** · Issue [#66](https://github.com/shafeekseef81-svg/Sharks/issues
 
 Stories: [US-2.1 #48](https://github.com/shafeekseef81-svg/Sharks/issues/48), [US-2.2 #49](https://github.com/shafeekseef81-svg/Sharks/issues/49), [US-2.3 #50](https://github.com/shafeekseef81-svg/Sharks/issues/50), [US-2.4 #51](https://github.com/shafeekseef81-svg/Sharks/issues/51).
 
-**Status 23/11/2026, second revision — the dependency is gone.** T2-09 (#90), T2-11 (#91) and T2-10 part 2 (#92) are **merged**, so questions, surprises and chained effects now run in a build made from `iteration-2`. The automated acceptance below is therefore of the **real** game, not of a baseline in which a third of the board did nothing. What stays manual stays manual by design.
+**Status 28/11/2026 — everything this plan waited for is merged.** All Iteration 2 code is in `iteration-2`
+at **`06e2ab2`**, suite **705/705** (0 failed, 0 skipped, 0 aborted). Questions, surprises and chained
+effects all run in a build made from the branch, so the automated acceptance below is of the **real** game.
+What stays manual stays manual by design.
 Nothing in this file is recorded as passed unless it was actually run and its numbers are given.
+
+**The Product Owner's acceptance of each story is recorded separately**, with its evidence, in
+`Iteration2/docs/T2-15_AcceptanceRecord.md`.
 
 ## 1. What this task has to accept, and what the baseline allows today
 
-The baseline for acceptance is `iteration-2`, now at **`4640416`** (`1d47f2d` and `e9f6b2e` earlier on
-23/11, `d445a38` on 22/11, `6e13bcf` on 21/11).
+The baseline for acceptance is `iteration-2` at **`06e2ab2`**.
 
-**Merged into it:** T2-01 (#84), T2-02 (#82), T2-03 (#83), T2-04 (#76, #80), T2-05 (#78), T2-06 (#77),
-T2-07 (#85), T2-08 (#89, `5540f53`), T2-10 part 1 (#87, `e2bbdaa`), T2-13 (#79, `c689a85`), T2-14 (#93),
-and — **new on 23/11** — **T2-09 (#90, `36661fc`)**, **T2-11 (#91, `12a01b6`)** and **T2-10 part 2
-(#92, `1d47f2d`)**.
+**The whole feature scope of Iteration 2 is merged**, in 32 pull requests (#74–#111): T2-01 to T2-14, the
+release tooling (#81), the NFR-04 budget (#97), the independent effect tests (#95), the acceptance evidence
+(#99, #103) and the No Answer fix (#111). **There is no unmerged dependency left for any acceptance step
+below.**
 
-**Merged later on 23/11, after the first version of this plan:** N2-06 release tooling (#81, `9fea81d`),
-**NFR-04 (#97, `1f099f2`)**, T2-08 the pattern document (#98, `9c8c83f`) and N2-04 testing evidence
-(#102, `4640416`).
-
-**Not merged:** T2-12 (#95, approved), N2-05 the State section (#96, approved), and this PR with #103.
-
-> **History of this paragraph, kept so the corrections are traceable.** On 21/11 it listed T2-08, T2-10,
-> T2-13 and T2-14 as not merged; all four merged on 22/11. It then said the one remaining dependency for the
-> US-2.3 acceptance was **#92** — and that was right, until #92 merged later on 23/11. **There is now no
-> unmerged dependency for the automated acceptance of US-2.3.**
+**Decisions.** D2 and D3 were decided on 21/11/2026; **D4 and D5 were ratified by the Product Owner on
+28/11/2026** (issue #75), neither needing a gameplay change. **D1 remains OPEN**, waiting on the course
+staff's answer to Q7/Q35, and is not closable by the Product Owner alone — so **step M3 stays unjudged**.
 
 That split decides what can honestly be accepted now:
 
@@ -68,17 +66,16 @@ Games are played to their end through the `GameModel` facade with the real dice,
 all the real rule classes; there are no stubs and no fixed dice, so a pass means a player really can play
 that game. Deterministic seeds are used so a failure can be reproduced exactly.
 
-Re-measured on **23/11/2026** against the current baseline, branch
-`feature/mohamed/T2-15-acceptance` merged with `iteration-2` (**`4640416`**, i.e. with #81, #97, #98 and
-#102 in as well), giving `3b31345`. Java 17 (Temurin 17.0.17), `Iteration2/test.sh`:
+Re-measured on **28/11/2026** on the merged baseline `iteration-2` **`06e2ab2`**, Java 17
+(Temurin 17.0.17+10), `Iteration2/test.sh`:
 
-* `Model.MediumHardAcceptanceTest` alone: **7 found, 7 successful, 0 failed**
-* the whole suite with it: **667 found, 667 successful, 0 failed**
-* the suite without it, i.e. the `iteration-2` baseline: **660** tests
-* `EducationalLudo.jar` builds
-* merged together with #103 (`b97dc0c`): **675/675**, and **675/675** again with the two merged in the
-  opposite order (`e0051c7`), so this PR and #103 do not depend on each other
+* `Model.MediumHardAcceptanceTest`: **7 found, 7 successful, 0 failed**
+* the whole suite: **705 found, 705 successful, 0 failed, 0 skipped, 0 aborted**
+* `EducationalLudo.jar` builds, and the release script produces a complete ZIP from this commit
+  (175 files, 705/705, SHA-256 `0ac4d6fb…e707543`)
 
+These tests are now **merged** (#99), so they run as part of the branch's own suite rather than as a
+candidate measured against it.
 The figures on the previous baseline, kept so nothing looks rewritten: 7/7 with **663/663** on `1d47f2d`,
 where the baseline was **656**.
 

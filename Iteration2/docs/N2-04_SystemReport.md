@@ -725,15 +725,15 @@ below. The fuller working log of the run stays outside the repository, on my mac
 
 | Figure | File | What it shows |
 |---|---|---|
-| G1 | `evidence/01_launch_main_menu.png` | the main menu of the game started from the CP1 ZIP |
-| G2 | `evidence/02_medium_board.png` | the Medium 17x17 board, legend and dice panel |
-| G3 | `evidence/03_hard_board.png` | the Hard 19x19 board; the legend counts match 3(c) exactly |
-| G4 | `evidence/04_question_card_level.png` | a question card carrying the **square's** level (FR-34) |
-| G5 | `evidence/05_answer_feedback.png` | the answer feedback naming the correct answer (FR-35, FR-36) |
-| G6 | `evidence/06_noanswer_visible_after_fix.png` | the No Answer button, visible, after #111 |
-| G7 | `evidence/07_noanswer_focus_ring.png` | its keyboard focus ring |
-| G8 | `evidence/08_noanswer_mouse_result.png` | the result of a **mouse** click on it |
-| G9 | `evidence/09_nfr04_harness.png` | the NFR-04 visible-window harness mid-move |
+| G1 | [`evidence/01_launch_main_menu.png`](evidence/01_launch_main_menu.png) | the main menu of the game started from the CP1 ZIP |
+| G2 | [`evidence/02_medium_board.png`](evidence/02_medium_board.png) | the Medium 17x17 board, legend and dice panel |
+| G3 | [`evidence/03_hard_board.png`](evidence/03_hard_board.png) | the Hard 19x19 board; the legend counts match 3(c) exactly |
+| G4 | [`evidence/04_question_card_level.png`](evidence/04_question_card_level.png) | a question card carrying the **square's** level (FR-34) |
+| G5 | [`evidence/05_answer_feedback.png`](evidence/05_answer_feedback.png) | the answer feedback naming the correct answer (FR-35, FR-36) |
+| G6 | [`evidence/06_noanswer_visible_after_fix.png`](evidence/06_noanswer_visible_after_fix.png) | the No Answer button, visible, after #111 |
+| G7 | [`evidence/07_noanswer_focus_ring.png`](evidence/07_noanswer_focus_ring.png) | its keyboard focus ring |
+| G8 | [`evidence/08_noanswer_mouse_result.png`](evidence/08_noanswer_mouse_result.png) | the result of a **mouse** click on it |
+| G9 | [`evidence/09_nfr04_harness.png`](evidence/09_nfr04_harness.png) | the NFR-04 visible-window harness mid-move |
 
 **One honest limit on G1.** The four launch routes below (run.bat, the JAR, and each from a Hebrew-letter
 path) were each performed separately, and each opened the game — the automation log records four distinct

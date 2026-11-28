@@ -53,7 +53,12 @@ Test counts are from the team's own `tools/rtm_coverage.py` on `06e2ab2`.
 **On screen (G):** both boards confirmed, with the track arithmetic, the counts of every special square and
 the dice panel; a roll of 1 correctly passing the turn with all pieces in the castle.
 
-**Nothing outstanding for this story.**
+**On screen (G), 28/11:** a complete **Hard** game ran to the results screen — `Game Completed!`,
+`Difficulty: Hard`, `Duration 00:49:11`, `2 players`, with 1st and 2nd place and their colours. That is
+FR-43 to FR-47 confirmed in the running game.
+
+**Outstanding:** **no complete Medium game has been played on screen**, by a person or by a script. The
+Medium board itself is confirmed on screen (figure G2); what is missing is a Medium game played to its end.
 
 > **Product Owner decision:** ______________________  **Date:** __________
 
@@ -127,13 +132,24 @@ card content there were **3**. The 116 is withdrawn, the script is fixed, and it
 rather than looping. **The application was not at fault** - the card stayed modal, the window stayed
 responsive, and the board correctly refused to advance while a square was unresolved (NFR-09).
 
-**Still outstanding, and the weakest point in the iteration's evidence:**
+**A third run, after the script was fixed, played a complete Hard game to the results screen** (209 turns,
+`Game Completed!`, Hard, 2 players, Tester 1st and Mohamed 2nd) and drew **four surprise cards covering
+three of the six outcomes**, each printing its Table 2 chance:
 
-1. **FR-40's "move an opponent" case has not been seen on screen.** The outcome drawn above was a **turn**
-   outcome, which moves no piece. The case where the **active player chooses which opponent piece moves** —
-   the one FR-40 is actually about — is still covered by **A** only.
+| Outcome | Chance | Confirms, on screen |
+|---|---|---|
+| Skip your next turn (×2) | 30% | FR-39; **D2** (the badge named the active player both times); **D5** as ratified (Q56) |
+| Extra roll! | 10% | **Q27** — "Roll again right away with the Regular + UltraBoost dice. This roll does not count for the rule of 6." |
+| Push an opponent back | 10% | **FR-40** — "an opponent piece on the shared track moves back half of the result, rounded up. **You choose which piece.** Regular die: 4 … moves back 2 squares." |
+
+**Still outstanding:**
+
+1. **A player actually choosing between candidate opponent pieces (FR-40).** The outcome was drawn and the
+   card stated the rule, but it ended *"No opponent piece is on the shared track, so this surprise does
+   nothing"* — so the **selection interaction itself was never exercised**. **A** only.
 2. **Chained effects** — 2 chain steps in five Hard games (**A**), never seen on screen.
-3. **FR-38 and FR-36 are the thinnest rows** (3 and 5 tests).
+3. The other three surprise outcomes, never seen on screen.
+4. **FR-38 and FR-36 are the thinnest rows** (3 and 5 tests).
 
 > **Product Owner decision:** ______________________  **Date:** __________
 
@@ -170,7 +186,7 @@ figure is **T** (a harness) and the in-game figure is a 10-step move (**G**); th
 | Criterion | State |
 |---|---|
 | PO acceptance recorded for each story | **This file, once the four decision lines are filled in.** |
-| A full game played to the end on Medium and on Hard | **Partly.** **A**: 12 complete Medium and Hard games, plus 8 more with every effect live, all to a winner and a full ranking. **H**: Rakan played one full game to the results screen by hand on computer 1 (N2-06 row 8, #109) — his evidence, on an unstated level. **Not done:** a complete Medium **and** a complete Hard game played to the results screen by a person following scripts M1 and M2. |
+| A full game played to the end on Medium and on Hard | **Partly.** **A**: 12 complete Medium and Hard games, plus 8 more with every effect live, all to a winner and a full ranking. **G**: a complete **Hard** game ran to the results screen on 28/11 (figure G12). **H**: Rakan played one full game to the results screen by hand on computer 1 (N2-06 row 8, #109) — his evidence, on an unstated level. **Not done:** a complete **Medium** game on screen at all, and a complete Medium **and** Hard game played by a person following scripts M1 and M2. |
 
 ---
 
@@ -197,13 +213,13 @@ gaps left.
 
 | # | Check | Why automation cannot close it | Script |
 |---|---|---|---|
-| H1 | A complete **Medium** game played by hand, menu to results screen | A script does not judge whether the game *looked* right on the way; this is the acceptance of US-2.1 and US-2.4 as a player meets them | M1 |
-| H2 | A complete **Hard** game played by hand, menu to results screen | as above | M2 |
-| H3 | **Reach a "move an opponent" surprise** and confirm that **you** choose which opponent piece moves, with nothing auto-selected (FR-40) | A surprise card has now been seen on screen (28/11), but it was a **turn** outcome. The piece-choice case — what FR-40 is about — has not been seen | M5 |
+| H1 | A complete **Medium** game played by hand, menu to results screen | A script does not judge whether the game *looked* right on the way. **No complete Medium game has been played on screen at all**, by hand or by script | M1 |
+| H2 | A complete **Hard** game played by hand, menu to results screen | A complete Hard game ran to the results screen on 28/11 (**G**, figure G12), but the moves were chosen by a script, so it is not the human play-test | M2 |
+| H3 | **Reach a "move an opponent" surprise while an opponent piece is on the shared track**, and confirm that **you** choose which piece moves, with nothing auto-selected (FR-40) | The outcome was drawn on screen on 28/11 and the card stated the rule — but no opponent piece was on the track, so no choice was offered. The **selection itself** has still not been exercised | M5 |
 | H4 | **See a chained effect**: a question or surprise movement landing on another special square and opening a second card (FR-41, FR-42) | Rare in natural play — 2 chain steps in five full automated games | M6 |
 | H5 | **Stopwatch a 30-square Hard move inside a real game** (Regular 6 × UltraBoost 6) and write down the milliseconds | The 30-square figure we have is from a harness; the in-game figure is a 10-step move. Only a person can do both at once | M2.4 |
 | H6 | Press **Tab** then **Space** on the question card and confirm the **No Answer** button is visible and shows its focus ring | The regression test proves the pixels; a person confirms it reads as a button | row 3 |
-| H7 | Confirm the **results screen**: ranking in finishing order, with the game clock (FR-43–FR-47) | FR-47 is the thinnest requirement in the range (2 tests) | M1.7 |
+| H7 | Confirm the **results screen** on a game *you* played (FR-43–FR-47) | Seen on screen on 28/11 (**G**, figure G12): "Game Completed!", Hard, duration, 1st and 2nd place with colours. FR-47 is the thinnest requirement in the range (2 tests), so a human confirmation is still wanted | M1.7 |
 | H8 | Record the **Product Owner acceptance** of US-2.1 to US-2.4 in this file | A judgement, not a measurement | — |
 
 ### Needs a second physical computer

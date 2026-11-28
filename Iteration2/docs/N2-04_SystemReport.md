@@ -736,6 +736,9 @@ below. The fuller working log of the run stays outside the repository, on my mac
 | G9 | [`evidence/09_nfr04_harness.png`](evidence/09_nfr04_harness.png) | the NFR-04 visible-window harness mid-move |
 | **G10** | [`evidence/10_surprise_card_skip_turn.png`](evidence/10_surprise_card_skip_turn.png) | **the first surprise card ever captured on screen** (28/11) |
 | G11 | [`evidence/11_hard_30_step_roll.png`](evidence/11_hard_30_step_roll.png) | a Hard roll showing `6 x (6 - 1) = 30 steps`, the longest movement, in a real game |
+| **G12** | [`evidence/12_results_screen_hard.png`](evidence/12_results_screen_hard.png) | **a complete Hard game played to the results screen** (FR-43 to FR-47) |
+| G13 | [`evidence/13_surprise_extra_roll.png`](evidence/13_surprise_extra_roll.png) | the **Extra roll!** surprise, naming the Regular + UltraBoost dice (Q27) |
+| G14 | [`evidence/14_surprise_push_opponent.png`](evidence/14_surprise_push_opponent.png) | the **Push an opponent back** surprise (FR-40), with the half-rounded-up calculation |
 
 **One honest limit on G1.** The four launch routes below (run.bat, the JAR, and each from a Hebrew-letter
 path) were each performed separately, and each opened the game — the automation log records four distinct
@@ -924,9 +927,40 @@ cannot be mistaken for progress again.
 correctly modal, the window stayed responsive, and the board correctly refused to advance while a special
 square was still unresolved - which is the `RESOLVING` phase of NFR-09 doing exactly what it should.
 
-**So, on screen today:** one surprise card, one Easy question and one Medium question, both on the Hard
-board (FR-34 again, with two different level badges). **No results screen was reached, no "move an
-opponent" surprise was drawn, and no chain was seen.**
+**A third bounded run, after the script was fixed, played a complete game.** 209 turns, ending in
+`GAME_OVER`: the real results screen, **figure G12**.
+
+> **Game Completed!** - `Difficulty: Hard` - `Duration 00:49:11` - `2 players`
+> **1st place - Tester (Yellow)**, **2nd place - Mohamed (Red)**
+
+That closes **FR-43 to FR-47 on screen**: the game ended when all but one player had finished, the ranking
+is in finishing order with each player's colour, and the duration is shown. **FR-47 is the thinnest
+requirement in the whole Iteration 2 range** - two automated tests - so seeing the results screen itself
+matters more here than elsewhere. The 00:49:11 duration includes the 22 minutes the previous run spent
+jammed on a card, so it is a measure of the session, not of how long a game takes to play.
+
+**Three of the six surprise outcomes were drawn and read on screen**, with their Table 2 chances printed on
+the card:
+
+| Outcome | Chance shown | What the card said | Confirms |
+|---|---|---|---|
+| **Skip your next turn** (twice) | 30% | "You will miss your next turn, and any extra roll from a 6 is cancelled." | FR-39; **D2** (the badge named the **active** player both times); **D5** as ratified (Q56) |
+| **Extra roll!** | 10% | "Roll again right away with the Regular + UltraBoost dice. This roll does not count for the rule of 6." | **Q27 / SRS Table 2** - the surprise roll uses Regular + UltraBoost, and does not feed the rule of 6 |
+| **Push an opponent back** | 10% | "A regular die is rolled: an opponent piece on the shared track moves back half of the result, rounded up. **You choose which piece.** Regular die: 4. The piece you choose moves back 2 squares." | **FR-40**, including the half-rounded-up arithmetic (4 -> 2) |
+
+**One careful distinction on FR-40.** The "Push an opponent back" outcome **was drawn**, and the card states
+the rule and the player's role in it. But that card also ended with *"No opponent piece is on the shared
+track, so this surprise does nothing"* - by then one player had three pieces home and the other two - so
+**the piece-selection interaction itself was still not exercised**. What is now evidenced on screen is that
+the outcome occurs and announces the rule correctly; what is still **not** evidenced on screen is a player
+actually choosing between candidate opponent pieces. That remains covered by the automated tests only.
+
+**And still not seen on screen:** a **chained effect** - one card leading to another - which the automated
+tests show is rare in natural play (2 chain steps in five full games).
+
+**So, across the three bounded runs of 28/11:** a complete Hard game to the results screen, **four surprise
+cards covering three distinct outcomes**, and question cards carrying **Easy, Medium and Hard** badges on
+the Hard board (FR-34 three times over).
 
 **A 30-square move was not produced by natural play** in the bounded run, so case (b) covers up to 10 steps.
 13 further attempts could not be timed: when a legal piece is highlighted it **glows**, so the board never
@@ -983,9 +1017,10 @@ This list is what an examiner should treat as **not** evidenced. Everything else
 
 1. **A human playthrough** of a complete Medium and Hard game by one of us, from the menu to the results
    screen (scripts M1 and M2; the short version is `Iteration2/docs/T2-15_ManualChecklist_CP1.md`).
-   Automation-driven play on 23/11 and 25/11 covered setup, both boards, the dice, highlighting, four
-   question cards and about 200 turns without a freeze, **but reached neither the results screen nor a
-   surprise square**. Rakan Ziyan did play a full game by hand on computer 1 (N2-06 row 8, #109); that is
+   **A complete Hard game has now been played to the results screen through the real GUI** (figure G12) -
+   but by a script choosing the moves, not by a person judging the board, so it is automation-driven
+   gameplay and **not** the human play-test M1 and M2 ask for. **No complete Medium game has been played
+   on screen at all.** Rakan Ziyan played a full game by hand on computer 1 (N2-06 row 8, #109); that is
    his evidence, recorded above under his name, and it is not a substitute for the scripted M1/M2 run.
 2. **The second computer** (N2-06 row 9). Rows 1-8 pass on computer 1, and rows 5 and 6 - the two
    double-click checks - also pass on this computer by genuine Explorer double-clicks on the CP1 ZIP,
@@ -996,11 +1031,15 @@ This list is what an examiner should treat as **not** evidenced. Everything else
    and **16 in-game measurements are all under 2000 ms**, the longest **1578 ms** for a 10-step move, which
    is already at the 1200 ms cap. What is missing is the 30-square case arising inside a full game, with a
    human stopwatch beside it.
-4. **Opponent-piece selection (FR-40) and chained effects as seen on screen.** Partly closed on 28/11: a
-   **surprise card was reached and read on screen** for the first time (figure G10), confirming FR-39,
-   decision D2 and the ratified decision D5 in the running game. What remains open is the **"move an
-   opponent" outcome, where the active player chooses the piece**, and a **chained effect** opening a
-   second card. Both are covered by automated tests only.
+4. **The FR-40 piece choice, and chained effects, as actually exercised on screen.** Largely closed on
+   28/11: a complete Hard game ran to the results screen (figure G12) and **four surprise cards covering
+   three of the six outcomes** were read on screen, including **Push an opponent back** (figure G14), which
+   is FR-40. What is **still** not evidenced on screen is narrower than before:
+   * **a player actually choosing between candidate opponent pieces** - when FR-40 was drawn, no opponent
+     piece was on the shared track, so the card correctly did nothing and offered no choice;
+   * **a chained effect**, one card leading to another;
+   * the three remaining surprise outcomes.
+   All three stay covered by the automated tests only.
 5. **Decision D1 only.** **D4 and D5 were RATIFIED by the Product Owner on 28/11/2026** (issue #75);
    neither needed a gameplay change, and the register records the ratification with its evidence. **D1
    stays OPEN** and needs the course staff's answer on Q7/Q35 - it is not closable by the Product Owner.

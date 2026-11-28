@@ -342,6 +342,10 @@ const s4 = [
     h('4.4 Surprise squares', HeadingLevel.HEADING_2),
     p([{ text: 'Landing on a surprise square triggers exactly one of six outcomes (FR-39). Two of them act on the turn rather than on a piece; for “move an opponent” the active player chooses which piece moves, and nothing is auto-selected (FR-40).' }]),
     ...figure('10_surprise_card_skip_turn.png', 'A surprise square on the Hard board. One card shows three rules at once: exactly one outcome is drawn and named (FR-39); the badge says whose turn it falls on, and it is the active player’s (decision D2); and the text states that an extra roll from a 6 is cancelled, which is the rule ratified as decision D5'),
+    ...figure('14_surprise_push_opponent.png', '“Push an opponent back” (FR-40): the card states that the active player chooses which opponent piece moves, and shows the half-rounded-up arithmetic – a regular die of 4 moves the chosen piece back 2 squares'),
+    h('4.5 The end of the game', HeadingLevel.HEADING_2),
+    p([{ text: 'A player who brings all four pieces to the finish leaves the turn order. The game ends when only one player is left; the results screen shows the ranking in finishing order with each player’s colour, the difficulty and the duration (FR-43 to FR-47).' }]),
+    ...figure('12_results_screen_hard.png', 'The results screen of a complete Hard game played through the real interface'),
 ];
 
 // ------------------------------------------------------------------ 5. Expected results  [3(c)]
@@ -475,6 +479,9 @@ const s6 = [
        { text: 'they all assert behaviour \u2013 the label text, visibility, a simulated click, the key binding, the result submitted \u2013 and every one of those passed while the button was invisible, because none of them looks at a painted pixel. The fix is one word, the button style; the regression test renders the real card and measures the pixels. Against the old code 3 of its 5 tests fail; with only the focus ring disabled, the 2 focus tests fail and the label test correctly still passes.' }]),
     p([{ text: 'The lesson is written into the Iteration 3 actions: ', italics: true },
        { text: 'a pull request that changes a screen or a dialog is opened in the running game before it is approved, and has at least one test that looks at the painted result.', italics: true }]),
+    p([{ text: 'A complete Hard game was also played through the interface (figure 10), ending on the real results screen. Four surprise cards were drawn and read, covering three of the six outcomes – “Skip your next turn” (twice), “Extra roll!” and “Push an opponent back” – each printing its probability. Between them they confirm, in the running game, that exactly one outcome is drawn (FR-39), that a turn outcome falls on the active player (decision D2), that a skip cancels a pending roll from a 6 (decision D5), and that the extra roll uses the Regular and UltraBoost dice without counting for the rule of 6 (SRS Table 2).' }]),
+    p([{ text: 'Two honest limits. ', bold: true },
+       { text: 'The moves were chosen by a script, so this is automation-driven gameplay and not a human play-test. And when “Push an opponent back” was drawn, no opponent piece was on the shared track, so the card correctly did nothing – the player’s choice between candidate pieces has still not been exercised on screen.' }]),
     h('6.7 Release checks', HeadingLevel.HEADING_2),
     p([{ text: 'The submission ZIP is built only by ' }, { text: 'tools/make_iteration2_zip.py', font: 'Consolas' },
        { text: '. It exports the versioned files, builds the JAR with --release 17, checks the manifest and that every class file is Java 17, runs the whole suite, and writes the ZIP with forward slashes under one top folder, printing the file count, the test count and the SHA-256. ' },
@@ -508,12 +515,12 @@ const s7 = [
        { text: 'not', italics: true }, { text: ' yet evidenced, so that nothing above is read as more than it is.' }]),
     table([
         ['#', 'Open item', 'State'],
-        ['1', 'A complete Medium and Hard game played by hand, from the menu to the results screen, by the Product Owner, following the acceptance script', 'One of us has played a full game by hand on computer 1 as part of the release checks. The scripted acceptance run is still to be done. The automated play covered setup, both boards, the dice, highlighting, four question cards and about 200 turns without a freeze, but reached neither the results screen nor a surprise square.'],
+        ['1', 'A complete Medium and Hard game played by hand, from the menu to the results screen, following the acceptance script', 'A complete HARD game was played through the interface on 28/11 and reached the results screen, and one of us played a full game by hand on computer 1 as part of the release checks. But the 28/11 run chose its moves by script, not by a person, and NO complete Medium game has been played on screen at all. The scripted human run of both levels is still to be done.'],
         ['2', 'The release checks on a second physical computer', 'NOT DONE for Iteration 2. It is run on a byte-identical copy of the final ZIP, not on a rebuild.'],
         ['3', 'A 30-square movement arising in a full game, timed on screen', 'Partly covered: a real-window harness measures the 30-square move at about 1305 ms, and 16 in-game measurements are all under the limit. The combination of the two is open.'],
-        ['4', 'Surprise squares seen on screen', 'Covered end to end by automated tests, and all six outcomes are drawn in the full-game runs, but no surprise square was reached in the on-screen run.'],
+        ['4', 'The remaining three surprise outcomes on screen', 'All six are drawn in the automated full-game runs; three of the six have now also been read on screen.'],
         ['5', 'Decision D1', 'OPEN, and not closable by the Product Owner alone: it needs the course staff’s answer on Q7/Q35. The implemented rule follows FR-19 meanwhile. D2 and D3 were decided on 21/11 and D4 and D5 ratified on 28/11, so D1 is the only decision still open.'],
-        ['6', 'FR-40’s “move an opponent” case, and a chained effect, seen on screen', 'A surprise card was reached on screen on 28/11, confirming FR-39 and decisions D2 and D5 in the running game. But the outcome drawn moves no piece, so the case where the player chooses which opponent piece moves has still not been seen, and neither has a chain.'],
+        ['6', 'A player actually choosing an opponent piece (FR-40), and a chained effect', 'Four surprise cards were read on screen on 28/11, covering three of the six outcomes, including “Push an opponent back”. But on that card no opponent piece was on the shared track, so it correctly did nothing and offered no choice: the selection itself has not been exercised. A chained effect has never been seen on screen either.'],
     ], [5, 30, 65]),
     p(''),
     p([{ text: 'Carried over from Iteration 1: ', bold: true },

@@ -4,18 +4,20 @@ Owner: **Mohamed Zereny** (Product Owner). Opened 21/11/2026. Related: issue
 [#75](https://github.com/shafeekseef81-svg/Sharks/issues/75), PRs #87, #89, #90, #91, #92, and the acceptance
 plan `Iteration2/docs/T2-15_AcceptancePlan.md`.
 
-**Status 23/11/2026 (second revision, after #90, #91 and #92 merged — `iteration-2` `1d47f2d`):**
+**Status 28/11/2026 (all Iteration 2 code merged — `iteration-2` `06e2ab2`, 705/705):**
 
 | # | State | What is left |
 |---|---|---|
 | **D1** | **OPEN** | waiting on course-staff clarification of Q7/Q35. **Not** to be closed by the Product Owner alone. |
-| **D2** | DECIDED 21/11, implemented, merged | nothing |
-| **D3** | DECIDED 21/11, implemented, merged | nothing |
-| **D4** | **OPEN — ratification only** | the behaviour is merged and matches FR-32; the Product Owner has only to record it |
-| **D5** | **OPEN — ratification only** | same; and the question itself was re-framed on 22/11 |
+| **D2** | DECIDED 21/11/2026, implemented, merged | nothing |
+| **D3** | DECIDED 21/11/2026, implemented, merged | nothing |
+| **D4** | **RATIFIED 28/11/2026** | nothing |
+| **D5** | **RATIFIED 28/11/2026** | nothing |
 
-D4 and D5 are no longer investigations. Everything they proposed is now merged on `iteration-2` and tested,
-so what remains is the Product Owner saying so. **D1 is a genuine open question** and stays open.
+**Four of the five decisions are closed.** D4 and D5 were ratified by the Product Owner on 28/11/2026 in
+[issue #75](https://github.com/shafeekseef81-svg/Sharks/issues/75); neither required a gameplay change,
+because both record behaviour that was already implemented, merged and tested. **D1 is the one genuine open
+question** and stays open: it needs the course staff, not the Product Owner.
 
 An entry marked OPEN ends in a **proposal**, which is not a decision: it becomes one only when the Product
 Owner records it as decided, with a date, and the team is told. Until then the code keeps behaving as it does
@@ -41,8 +43,8 @@ justifications written here are the developer's own and can be corrected without
 | D1 | A Double Block on a start square — **not** an FR-19/FR-29 conflict (corrected 23/11); the open question is whether a block forms there at all (Q7/Q35) | **OPEN** | **Yes** | `StandardMoveEngine.moveFor` (merged, Rakan) | M3 in the acceptance script |
 | D2 | Who gets SKIP_TURN / EXTRA_ROLL after an opponent's piece set off the chain | **DECIDED 21/11/2026 - Option A, the active player** | **Yes** | Product Owner; implemented in T2-09 and T2-11 | nothing - M5.4 can now be judged |
 | D3 | What "did not answer" means, and whether it can happen at all | **DECIDED 21/11/2026 - an explicit No Answer button** | **Yes** | Product Owner; implemented in T2-11 | nothing - M4.4 can now be judged |
-| D4 | A push-back that would go past the pushed piece's start square | **OPEN — ratification only** | **Yes** | already implemented in `EffectMover`, independently tested in #95 | M6.2, P10 |
-| D5 | EXTRA_ROLL and SKIP_TURN in one turn (they can **never** share one chain — corrected 22/11) | **OPEN — ratification only** | Rarely | implemented and **now tested** by Shafeek (`e89e0c2`, #92); P9 done | — |
+| D4 | A push-back that would go past the pushed piece's start square | **RATIFIED 28/11/2026** | **Yes** | Product Owner, [#75](https://github.com/shafeekseef81-svg/Sharks/issues/75); implemented in `EffectMover`, independently tested in #95 | nothing — M6.2 can now be judged |
+| D5 | The order of a surprise extra roll and a pending roll from a 6, and what a later SKIP_TURN cancels | **RATIFIED 28/11/2026** | Rarely | Product Owner, [#75](https://github.com/shafeekseef81-svg/Sharks/issues/75); implemented and tested by Shafeek (`e89e0c2`, #92) | nothing |
 
 ---
 
@@ -307,6 +309,25 @@ is kept only as a record of what was considered.
 
 ## D4 — A push-back that would go past the pushed piece's start square
 
+> ### ✅ RATIFIED by the Product Owner on 28/11/2026
+>
+> Recorded in [issue #75](https://github.com/shafeekseef81-svg/Sharks/issues/75), in the Product Owner's
+> own words:
+>
+> > **D4 — RATIFIED.** Backward movement stops at the moving piece's own starting square and never
+> > crosses it, in accordance with FR-32.
+>
+> **No gameplay change is required**: this is the behaviour already implemented and merged. The decision is
+> now closed.
+>
+> | | |
+> |---|---|
+> | Implemented in | `EffectMover` (Shafeek, T2-10, merged) |
+> | Author's tests | `EffectResolutionTest`, `SquareEffectTest` |
+> | Independent test | `EffectChainIndependentTest` (Rakan, T2-12, #95, merged `5decd43`) |
+> | Mutation-checked | yes — breaking FR-32 on purpose is caught by `pushStopsOnTheStartSquare` and `wrongAnswerStopsOnTheStartSquare` |
+> | Status of planned test P10 | satisfied by the independent test above |
+
 **The exact rule in question.** FR-32 says backward movement caused by questions or surprises stops at the
 start square and does not go past it. When a surprise pushes an **opponent's** piece back ⌈R/2⌉ squares and
 that would take it past **its own** start square, does it stop there, or is the push cancelled, or does the
@@ -377,6 +398,37 @@ not a reason to delay the ratification.
 ---
 
 ## D5 — EXTRA_ROLL and SKIP_TURN in the same **turn** (they can never share one **chain**)
+
+> ### ✅ RATIFIED by the Product Owner on 28/11/2026
+>
+> Recorded in [issue #75](https://github.com/shafeekseef81-svg/Sharks/issues/75), in the Product Owner's
+> own words:
+>
+> > **D5 — RATIFIED.** A surprise extra roll is taken before a pending roll from a regular 6. A
+> > subsequent SKIP_TURN cancels the pending roll from the 6, and the player misses exactly one turn
+> > (Q27, Q56).
+>
+> **This is exactly the narrowed proposal this entry arrived at** after the correction of 22/11 — points
+> (1) and (2) of the correction block below — and **no gameplay change is required**: it is the behaviour
+> already implemented and merged.
+>
+> **Verified on `06e2ab2` for this ratification**, by running the two named tests:
+>
+> ```
+> EffectResolutionTest > D5, Q56: the extra roll reaches skip-the-next-turn: the pending 6 is cancelled  [OK]
+> EffectResolutionTest > Table 2, Q56: skip the next turn cancels the pending 6 and passes over the ...  [OK]
+> 2 tests successful, 0 failed
+> ```
+>
+> | | |
+> |---|---|
+> | Implemented in | `StandardTurnManager.markSkip` / `addSurpriseRoll` (Shafeek, merged) |
+> | Tests | `EffectResolutionTest.skipTurnAfterTheExtraRollCancelsTheSix`, `.skipTurnCancelsTheSixAndPassesOverThePlayerOnce` (`e89e0c2`, #92) |
+> | Mutation-checked | yes, by Shafeek — without the 6 being cancelled in `markSkip`, both tests fail |
+> | Status of planned test P9 | done |
+>
+> The alternatives A/B/C further down are kept only as the record of what was considered before it was
+> understood that a chain can never hold both outcomes. **They were not what was ratified.**
 
 > **The title of this entry was wrong until 22/11/2026, and the wrong title *was* the problem.** It read
 > "in the same effect chain". The two words matter and are not interchangeable:
@@ -490,8 +542,10 @@ entry) and has tested the one case that can actually happen, in
 
 **Still to do:**
 
-2. **D1** needs an explicit Product Owner acceptance of the start-square lock-out, or a change in Rakan's
-   merged code - the first is cheap, the second is not. Blocks M3.
+2. **D1 is the only decision still open.** It needs the **course staff's** answer on Q7/Q35, and is
+   explicitly **not** closable by the Product Owner alone: the SRS cites those answers by number without
+   reproducing them, and the Q&A sheet is not in this repository. The Product Owner confirmed on 28/11/2026
+   that **the implementation stays unchanged meanwhile**, following the text of FR-19. Blocks M3.
 3. **D4** and **D5** are now **ratifications, not investigations.** Both were checked against the
    integration build on 21/11/2026 and the code already behaves as this register proposed:
    - **D4** is implemented in `EffectMover` and covered by Rakan's independent test

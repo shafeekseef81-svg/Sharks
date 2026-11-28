@@ -903,6 +903,31 @@ Three things are confirmed by that one card, on screen rather than only in a tes
 not been seen on screen**, and neither has a **chained effect**. Those remain open, and the automated tests
 remain their only evidence.
 
+**The bounded full-game attempts of 28/11, and what actually came of them.** Two bounded runs were made on
+the merged baseline, in a Hard two-player game driven through the real GUI. They are reported here in full,
+including a defect in **my own tooling**, because the alternative is a misleading count.
+
+| Run | Bound | What really happened |
+|---|---|---|
+| 1 | 450 turns / 25 min | About 70 turns of genuine play, clock to 00:06:56. Reached the surprise square above. Ended early on a bug in my script (a keyword clash in its own logging). |
+| 2 | 400 turns / 25 min | Dismissed that surprise, answered one Easy question, then **jammed for 22 minutes on a single Medium question card**. |
+
+**The jam was my script's fault, not the game's.** It looks for the orange **Continue** button anywhere in
+the card. On a **Medium** question card the amber **"Medium" level badge** near the top matches the same
+colour test, so the script clicked the badge instead of answering, about 114 times. The run's own counter
+reported "116 cards"; **de-duplicating the captures by card content shows only 3 distinct cards** - one
+surprise and two questions. **The 116 figure is withdrawn.** The script now searches for Continue only in
+the lower part of the card, and stops with an explicit error if the same card returns four times, so this
+cannot be mistaken for progress again.
+
+**What the jam does say about the application, and it is positive.** For 22 minutes the card stayed
+correctly modal, the window stayed responsive, and the board correctly refused to advance while a special
+square was still unresolved - which is the `RESOLVING` phase of NFR-09 doing exactly what it should.
+
+**So, on screen today:** one surprise card, one Easy question and one Medium question, both on the Hard
+board (FR-34 again, with two different level badges). **No results screen was reached, no "move an
+opponent" surprise was drawn, and no chain was seen.**
+
 **A 30-square move was not produced by natural play** in the bounded run, so case (b) covers up to 10 steps.
 13 further attempts could not be timed: when a legal piece is highlighted it **glows**, so the board never
 goes quiet and the external timer hits its limit. Those are **measurement timeouts, not slow moves**, and

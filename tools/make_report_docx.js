@@ -339,6 +339,9 @@ const s4 = [
        { text: ' \u2013 it was laid out and it worked, but it was painted white on the white card, so a player using the mouse could not reach it at all. It is fixed, and the fix is covered by tests that read the painted pixels; section 6.6 has the detail.' }]),
     ...figure('06_noanswer_visible_after_fix.png', 'The question card with the No Answer button visible'),
     ...figure('07_noanswer_focus_ring.png', 'The same button holding keyboard focus, with its focus ring'),
+    h('4.4 Surprise squares', HeadingLevel.HEADING_2),
+    p([{ text: 'Landing on a surprise square triggers exactly one of six outcomes (FR-39). Two of them act on the turn rather than on a piece; for “move an opponent” the active player chooses which piece moves, and nothing is auto-selected (FR-40).' }]),
+    ...figure('10_surprise_card_skip_turn.png', 'A surprise square on the Hard board. One card shows three rules at once: exactly one outcome is drawn and named (FR-39); the badge says whose turn it falls on, and it is the active player’s (decision D2); and the text states that an extra roll from a 6 is cancelled, which is the rule ratified as decision D5'),
 ];
 
 // ------------------------------------------------------------------ 5. Expected results  [3(c)]
@@ -389,8 +392,8 @@ const s5 = [
         ['D1', 'An opponent Double Block standing on a player\u2019s start square keeps that player\u2019s pieces in the castle, even on a Regular 6.', 'OPEN. This is what FR-19 specifies \u2013 it states the exception itself, \u201cunless an opponent Double Block occupies that square\u201d. What is open is narrower: whether two pieces on a start square form a Double Block there at all. The course answers Q7/Q35 are cited by the SRS but not reproduced in it, so this needs the staff, not the Product Owner. The implemented rule follows FR-19 meanwhile.'],
         ['D2', 'When an effect chain started by an opponent\u2019s piece gives a skip-turn or an extra roll, who gets it?', 'DECIDED: the active player, never the owner of the piece that landed on the square.'],
         ['D3', 'May a player decline to answer a question?', 'DECIDED: yes, by an explicit No Answer button, and it counts as a wrong answer.'],
-        ['D4', 'Where does a backward movement stop?', 'Implemented and tested to FR-32 \u2013 at the piece\u2019s own start square. Awaiting formal ratification only.'],
-        ['D5', 'Can an extra roll and a skip-turn both arise together?', 'Implemented and tested \u2013 both can arise in one turn, never in one chain. Awaiting formal ratification only.'],
+        ['D4', 'Where does a backward movement stop?', 'RATIFIED 28/11/2026: at the moving piece’s own starting square, never crossing it (FR-32). No gameplay change was needed – this is the behaviour already implemented, merged and independently tested.'],
+        ['D5', 'How do a surprise extra roll and a pending roll from a 6 interact?', 'RATIFIED 28/11/2026: the surprise extra roll is taken first; a later skip-turn also cancels the pending roll from the 6, and the player misses exactly one turn (Q27, Q56). No gameplay change was needed – and the running game states this rule on the surprise card itself.'],
     ], [6, 30, 64]),
 ];
 
@@ -509,8 +512,8 @@ const s7 = [
         ['2', 'The release checks on a second physical computer', 'NOT DONE for Iteration 2. It is run on a byte-identical copy of the final ZIP, not on a rebuild.'],
         ['3', 'A 30-square movement arising in a full game, timed on screen', 'Partly covered: a real-window harness measures the 30-square move at about 1305 ms, and 16 in-game measurements are all under the limit. The combination of the two is open.'],
         ['4', 'Surprise squares seen on screen', 'Covered end to end by automated tests, and all six outcomes are drawn in the full-game runs, but no surprise square was reached in the on-screen run.'],
-        ['5', 'Decision D1', 'OPEN, and not closable by the Product Owner alone: it needs the course staff\u2019s answer on Q7/Q35. The implemented rule follows FR-19 meanwhile.'],
-        ['6', 'Decisions D4 and D5', 'Implemented and tested; awaiting formal ratification only.'],
+        ['5', 'Decision D1', 'OPEN, and not closable by the Product Owner alone: it needs the course staff’s answer on Q7/Q35. The implemented rule follows FR-19 meanwhile. D2 and D3 were decided on 21/11 and D4 and D5 ratified on 28/11, so D1 is the only decision still open.'],
+        ['6', 'FR-40’s “move an opponent” case, and a chained effect, seen on screen', 'A surprise card was reached on screen on 28/11, confirming FR-39 and decisions D2 and D5 in the running game. But the outcome drawn moves no piece, so the case where the player chooses which opponent piece moves has still not been seen, and neither has a chain.'],
     ], [5, 30, 65]),
     p(''),
     p([{ text: 'Carried over from Iteration 1: ', bold: true },

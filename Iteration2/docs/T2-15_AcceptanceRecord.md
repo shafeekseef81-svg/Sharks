@@ -37,9 +37,11 @@ Where evidence is a teammate's, it says so and is **not** merged into mine.
 
 **SRS IDs:** FR-05, FR-10–FR-12, FR-14, FR-16, FR-17, FR-25 · Story owner: Mohamed Zereny
 
+Test counts are from the team's own `tools/rtm_coverage.py` on `06e2ab2`.
+
 | Requirement | Tests | Strongest evidence |
 |---|---|---|
-| FR-05 all three levels selectable | 22 mentions | **A** `SettingsValidationTest`, `MediumHardAcceptanceTest`; **G** both boards started from the menu |
+| FR-05 all three levels selectable | 11 | **A** `GameSetupViewTest`, `SettingsValidationTest`, `SetupAcceptanceTest`, `MediumHardAcceptanceTest`; **G** both boards started from the menu |
 | FR-10–FR-12 board, special squares, random placement | 20 / 16 / 15 | **A** `BoardGeometryTest`, `DiceRouteIndependentTest` (independent); **G** figures G2, G3 |
 | FR-14 legend | 13 | **G** the on-screen legend prints the same counts as `LevelConfig` |
 | FR-16 both dice shown | 19 | **A** `DiceStrategyTest`; **G** the dice panel on both boards |
@@ -109,12 +111,28 @@ explicit No Answer button) are both implemented and merged. **D5 RATIFIED 28/11.
 **On screen (G):** the question card, the level badge, all three answer outcomes, and — after PR #111 — the
 No Answer button visible, focusable and clickable.
 
-**Outstanding, and it is the weakest point in the iteration's evidence:**
+**Closed on 28/11/2026: a surprise card was reached on screen for the first time (G).** In a Hard
+two-player game driven through the real GUI, a piece landed on a surprise square and the card read
+*"Surprise square — Skip your next turn — 30% chance — Tester's turn — You will miss your next turn, and
+any extra roll from a 6 is cancelled."* That one card confirms **FR-39** (exactly one outcome, named),
+**decision D2** (the badge names the **active** player) and **decision D5 as ratified the same day** (the
+card states the Q56 rule in the player's own words). Evidence:
+`Iteration2/docs/evidence/10_surprise_card_skip_turn.png`.
 
-1. **No surprise square has ever been reached in a GUI run.** Surprises are covered end to end by **A**, and
-   by Rakan's **H** full game only to the extent that he reported the game finishing — he did not itemise
-   which squares he landed on. **Nobody has recorded seeing a surprise card on screen.**
-2. **Chained effects likewise** — 2 chain steps in five Hard games (**A**), never seen on screen.
+**Two bounded GUI runs were made on 28/11 to go further, and they did not.** Run 1 played about 70 turns
+and reached the surprise above before ending on a bug in my script. Run 2 then **jammed for 22 minutes on
+one Medium question card**, because the script mistook the amber **"Medium" level badge** for the orange
+**Continue** button and clicked the badge about 114 times. Its counter said "116 cards"; de-duplicated by
+card content there were **3**. The 116 is withdrawn, the script is fixed, and it now stops with an error
+rather than looping. **The application was not at fault** - the card stayed modal, the window stayed
+responsive, and the board correctly refused to advance while a square was unresolved (NFR-09).
+
+**Still outstanding, and the weakest point in the iteration's evidence:**
+
+1. **FR-40's "move an opponent" case has not been seen on screen.** The outcome drawn above was a **turn**
+   outcome, which moves no piece. The case where the **active player chooses which opponent piece moves** —
+   the one FR-40 is actually about — is still covered by **A** only.
+2. **Chained effects** — 2 chain steps in five Hard games (**A**), never seen on screen.
 3. **FR-38 and FR-36 are the thinnest rows** (3 and 5 tests).
 
 > **Product Owner decision:** ______________________  **Date:** __________
@@ -181,7 +199,7 @@ gaps left.
 |---|---|---|---|
 | H1 | A complete **Medium** game played by hand, menu to results screen | A script does not judge whether the game *looked* right on the way; this is the acceptance of US-2.1 and US-2.4 as a player meets them | M1 |
 | H2 | A complete **Hard** game played by hand, menu to results screen | as above | M2 |
-| H3 | **Reach a surprise square and read the card**: confirm exactly one outcome, and for "move an opponent" that **you** choose the piece and nothing is auto-selected (FR-39, FR-40) | **No surprise card has ever been seen on screen.** This is the largest single gap in the iteration's evidence | M5 |
+| H3 | **Reach a "move an opponent" surprise** and confirm that **you** choose which opponent piece moves, with nothing auto-selected (FR-40) | A surprise card has now been seen on screen (28/11), but it was a **turn** outcome. The piece-choice case — what FR-40 is about — has not been seen | M5 |
 | H4 | **See a chained effect**: a question or surprise movement landing on another special square and opening a second card (FR-41, FR-42) | Rare in natural play — 2 chain steps in five full automated games | M6 |
 | H5 | **Stopwatch a 30-square Hard move inside a real game** (Regular 6 × UltraBoost 6) and write down the milliseconds | The 30-square figure we have is from a harness; the in-game figure is a 10-step move. Only a person can do both at once | M2.4 |
 | H6 | Press **Tab** then **Space** on the question card and confirm the **No Answer** button is visible and shows its focus ring | The regression test proves the pixels; a person confirms it reads as a button | row 3 |

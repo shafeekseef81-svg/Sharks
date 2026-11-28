@@ -33,11 +33,11 @@ That split decides what can honestly be accepted now:
 | A1 | Medium and Hard board setup | US-2.1 | **Yes** | automated, section 2 |
 | A2 | Medium and Hard gameplay to the end | US-2.1, US-2.4 | **Yes** | automated, section 2 |
 | A3 | Boost and UltraBoost dice | US-2.1 | **Yes** | automated, section 2 |
-| A4 | Double Blocks | US-2.2 | **Yes** - landing **and passing** (FR-29 in full, since 23/11) | automated, section 2 |
-| A5 | Questions, correct and incorrect answers | US-2.3 | **Yes**, since #92 merged | automated here and in P12 (#103), manual script M4, section 4 |
-| A6 | Surprise outcomes | US-2.3 | **Yes**, since #90 and #92 merged | automated here and in P12 (#103), manual script M5, section 4 |
-| A7 | Chained effects | US-2.3 | **Yes**, since #92 merged - but **rare in natural play**, see section 2 | automated in P12 (#103); the scripted coverage is T2-12 (#95), manual script M6 |
-| A8 | Turn State transitions | US-2.4 | **Yes** - #79 gave the states, #92 is what ever enters `RESOLVING` | automated here and in P12 (#103), manual script M7, section 4 |
+| A4 | Double Blocks | US-2.2 | **Yes** - landing **and passing** (FR-29 in full) | automated, section 2. **Decision D1 stays OPEN** against the course staff |
+| A5 | Questions, correct and incorrect answers | US-2.3 | **Yes** | automated (section 2) **and seen on screen** - question cards of all three levels, right, wrong and No Answer |
+| A6 | Surprise outcomes | US-2.3 | **Yes** automated; **partly on screen** | all six outcomes drawn in the automated full games. On screen (28/11) a **turn** outcome was reached and read; **FR-40's "move an opponent" case has not been seen** - manual script M5 |
+| A7 | Chained effects | US-2.3 | **Yes** automated; **never seen on screen** | rare in natural play - 2 chain steps in five full games. Scripted coverage is T2-12 (merged); manual script M6 |
+| A8 | Turn State transitions | US-2.4 | **Yes** | `TurnStateTest` (9) plus the full-game runs; manual script M7 |
 | A9 | A full Medium and Hard game played by a person | all | **the code is all there now**; nobody has played it | manual script M1-M3, section 4 — **still the real gap** |
 
 **What changed on 23/11, and what it means for this file.** Until #92 merged, a question or surprise square
